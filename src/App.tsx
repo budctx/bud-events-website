@@ -22,7 +22,7 @@ function Journey() {
   const [prizeDraft, setPrizeDraft] = useState('');
   const parsedPrizes = parsePrizeLines(prizeDraft);
   const [event, send] = useReducer(eventReducer, undefined, initialEventState);
-  const [challenge, play] = useReducer(previewReducer, undefined, () => initialState());
+  const [challenge, play] = useReducer(previewReducer, undefined, () => initialState(5, 1, false));
   const [page, setPage] = useState(0);
   const [wide, setWide] = useState(() => matchMedia('(min-width:1150px)').matches);
   useEffect(() => { const media = matchMedia('(min-width:1150px)'); const update = () => { setWide(media.matches); setPage(0); }; media.addEventListener('change', update); return () => media.removeEventListener('change', update); }, []);
@@ -44,13 +44,13 @@ function Journey() {
   useEffect(() => { if (previousStage.current !== event.stage) { setPage(0); setWinner(null); setNotice(''); heading.current?.focus(); previousStage.current = event.stage; } }, [event.stage]);
   useEffect(() => { const id = window.setInterval(() => setNow(performance.now()), 1000); return () => clearInterval(id); }, []);
   useEffect(() => {
-    if (event.stage !== 'live' || challenge.deadline === null || challenge.seconds === 0 || challenge.outcome) return;
+    if (event.stage !== 'live' || !event.config.timerEnabled || challenge.deadline === null || challenge.seconds === 0 || challenge.outcome) return;
     const tick = () => play({ type: 'tick', now: performance.now() }); const id = window.setInterval(tick, 100);
     document.addEventListener('visibilitychange', tick); return () => { clearInterval(id); document.removeEventListener('visibilitychange', tick); };
-  }, [event.stage, challenge.deadline, challenge.seconds === 0, challenge.outcome]);
+  }, [event.stage, event.config.timerEnabled, challenge.deadline, challenge.seconds === 0, challenge.outcome]);
   useEffect(() => { if (confirmation) { dialog.current?.showModal(); } else { dialog.current?.close(); } }, [confirmation]);
   const confirm = (text: string, action: EventAction, after?: () => void) => setConfirmation({ text, action, after });
-  const resetChallenge = () => play({ type: 'reset', duration: event.config.duration, maxAttempts: event.config.maxAttempts });
+  const resetChallenge = () => play({ type: 'reset', duration: event.config.duration, maxAttempts: event.config.maxAttempts, timerEnabled: event.config.timerEnabled });
   const select = (action: EventAction) => {
     if (capacityReached(event)) confirm(j.capacity, { ...action, confirmNoWinner: true } as EventAction, resetChallenge);
     else { resetChallenge(); send(action); }
@@ -83,7 +83,8 @@ function Journey() {
         <div className="field event-name"><label htmlFor="event-name">{j.eventName}</label><input id="event-name" required maxLength={100} placeholder={j.namePlaceholder} value={event.config.eventName} onChange={e => send({ type: 'configure', config: { eventName: e.target.value } })} /></div>
         <div className="setup-presets">
           <fieldset className="panel preset"><legend>{t.attempts}</legend><div className="preset-options">{([1,2,3] as Attempts[]).map(n => <Button key={n} aria-pressed={event.config.maxAttempts === n} variant={event.config.maxAttempts === n ? 'primary' : 'secondary'} onClick={() => send({ type: 'configure', config: { maxAttempts: n } })}>{n}</Button>)}</div></fieldset>
-          <fieldset className="panel preset"><legend>{t.duration}</legend><div className="preset-options">{([5,7,10] as Duration[]).map(n => <Button key={n} aria-pressed={event.config.duration === n} variant={event.config.duration === n ? 'primary' : 'secondary'} onClick={() => send({ type: 'configure', config: { duration: n } })}>{n}</Button>)}</div></fieldset>
+          <label className="setup-timer-toggle"><input type="checkbox" checked={event.config.timerEnabled} onChange={e => send({ type: 'configure', config: { timerEnabled: e.target.checked } })} />{j.enableTimer}</label>
+          {event.config.timerEnabled && <fieldset className="panel preset"><legend>{t.duration}</legend><div className="preset-options">{([5,7,10] as Duration[]).map(n => <Button key={n} aria-pressed={event.config.duration === n} variant={event.config.duration === n ? 'primary' : 'secondary'} onClick={() => send({ type: 'configure', config: { duration: n } })}>{n}</Button>)}</div></fieldset>}
 
         </div><Button type="submit" variant="primary" disabled={!event.config.eventName.trim()}>{j.setupPrizes}</Button>
       </form>}
@@ -93,7 +94,39 @@ function Journey() {
       </section>}
       {event.stage === 'live' && <>
         {!active && <section className="participant-picker panel"><h2>{j.choosePlayer}</h2><p className="caption">{j.fixture}</p><div className="picker-buttons">{(['neverPlayed','previous'] as const).map(group => <section className="player-group" key={group}><h2>{group === 'neverPlayed' ? j.newPlayers : j.previousPlayers}</h2>{event.participants.filter(p => group === 'neverPlayed' ? p.status === 'neverPlayed' : p.status !== 'neverPlayed').map(p => <Button key={p.id} disabled={p.status === 'qualified'} onClick={() => select({ type: 'select-participant', mode: 'manual', id: p.id })}>{p.name} · {p.status === 'neverPlayed' ? j.newPlayers : p.status === 'qualified' ? t.qualified : t.exhausted}</Button>)}</section>)}</div><Button disabled={!event.participants.some(p => p.status === 'neverPlayed')} onClick={() => select({ type: 'select-participant', mode: 'random', random: Math.random() })}>{j.random}</Button>{!event.participants.some(p => p.status === 'neverPlayed') && <p className="caption">{j.noCandidates}</p>}</section>}
-        {active && <><section className="participant panel"><Icon name="user" theme={theme} /><p>{active.name}</p></section><div className="live-layout"><section className="card-pair"><div className="cards">{(['question','condition'] as const).map((kind,i) => <PlayingCard key={`${event.activeParticipantId}-${kind}-${challenge.attempt}`} kind={kind} revealed={challenge[kind]} front={<><span className="card-title">{t[kind]}</span><img src={`/assets/${kind === 'condition' ? 'dark' : 'light'}-mobile-${kind}.svg`} alt="" width="32" height="32" /><span className="caption">{t.hidden}</span><Button variant="primary" aria-label={`${t.reveal} ${t[kind]}`} disabled={challenge[kind] || !!challenge.outcome} onClick={() => play({ type: 'reveal', card: kind, now: performance.now() })}>{t.reveal}</Button></>} back={<><span className="card-title">{t[kind]}</span><span className="card-content" dir="auto">{pair[i]}</span><span className="caption">{t.revealed}</span></>} />)}</div></section><div className="host-controls"><section className="timer panel"><div className="numeric-row"><Icon name="timer" theme={theme} /><span className="seconds" role="timer">{challenge.seconds}</span></div><p className="caption" role="status">{status}</p></section><section className="judgment panel"><h2>{t.judgment}</h2><div className="judgment-buttons"><Button variant="primary" disabled={!both} onClick={() => judge(true)}>{t.correct}</Button><Button disabled={!both} onClick={() => judge(false)}>{t.incorrect}</Button></div></section><p className="caption">{challenge.maxAttempts > 1 && <>{t.attempt} <bdi>{challenge.attempt} / {challenge.maxAttempts}</bdi></>}</p></div></div></>}
+        {active && <><section className="participant panel"><Icon name="user" theme={theme} /><p>{active.name}</p></section><div className="live-layout"><section className="card-pair"><div className="cards">{(['question','condition'] as const).map((kind,i) => <PlayingCard
+            key={`${event.activeParticipantId}-${kind}-${challenge.attempt}`}
+            kind={kind} revealed={challenge[kind]} disabled={!!challenge.outcome}
+            revealLabel={`${t.reveal} ${t[kind]}`}
+            onReveal={() => play({ type: 'reveal', card: kind, now: performance.now() })}
+            front={<>
+              <img className="card-emblem card-emblem--start" src="/assets/bud-emblem.svg" alt="" width="32" height="23" />
+              <span className="card-title">{t[kind]}</span>
+              <Icon name={kind} theme="light" />
+              <span className="caption">{t.hidden}</span>
+              <img className="card-emblem card-emblem--end" src="/assets/bud-emblem.svg" alt="" width="32" height="23" />
+            </>}
+            back={<>
+              <img className="card-emblem card-emblem--start" src="/assets/bud-emblem.svg" alt="" width="32" height="23" />
+              <span className="card-title">{t[kind]}</span>
+              <span className="card-content" dir="auto">{pair[i]}</span>
+              <span className="caption">{t.revealed}</span>
+              <img className="card-emblem card-emblem--end" src="/assets/bud-emblem.svg" alt="" width="32" height="23" />
+            </>}
+          />)}</div></section><div className="host-controls">
+          {event.config.timerEnabled && <section className="timer panel" aria-label={t.duration}>
+            <div className="numeric-row"><Icon name="timer" theme={theme} /><span className="seconds" role="timer">{challenge.seconds}</span></div>
+            <p className="caption" role="status">{status}</p>
+          </section>}
+          <section className="judgment" role="group" aria-label={t.judgment}>
+            <h2 className="sr-only">{t.judgment}</h2>
+            <div className="judgment-buttons">
+              <Button className="judgment-icon-button" aria-label={t.correct} title={t.correct} disabled={!both} onClick={() => judge(true)}><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg></Button>
+              <Button className="judgment-icon-button" aria-label={t.incorrect} title={t.incorrect} disabled={!both} onClick={() => judge(false)}><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg></Button>
+            </div>
+          </section>
+          <p className="caption host-attempt">{challenge.maxAttempts > 1 && <>{t.attempt} <bdi>{challenge.attempt} / {challenge.maxAttempts}</bdi></>}</p>
+        </div></div></>}
         {challenge.outcome && <p className="caption" role="status">{challenge.outcome === 'qualified' && (event.config.prizeCount === 0 || event.rounds.at(-1)?.outcome === 'no-winner') ? j.successOnly : t[challenge.outcome]}</p>}
         <div className="action-row"><Button variant="primary" disabled={!!active} onClick={() => send({ type: 'show-prizes' })}>{j.prizes}</Button>{canRestart(event, now) && <Button onClick={() => confirm(j.confirmRestart, { type: 'restart', now: performance.now(), confirmed: true }, () => { setPrizeDraft(''); resetChallenge(); })}>{j.restart}</Button>}</div>
       </>}

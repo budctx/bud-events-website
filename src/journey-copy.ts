@@ -16,7 +16,7 @@ export const journeyCopy = {
     copied: 'نُسخت النتائج التوضيحية', copyFailed: 'تعذر النسخ؛ حدد النص أدناه وانسخه', copy: 'نسخ النتائج التوضيحية',
     unverified: 'معرف توضيحي غير موثّق', awarded: 'مُنحت', incomplete: 'أكمل الاسم ومحتوى جميع الجوائز',
     retention: 'معاينة محلية؛ حفظ النتائج لمدة 7 أيام يحتاج ربط الخادم', farewell: 'شكرًا لمشاركتكم',
-    local: 'معاينة محلية · لا اتصال بالخدمات', preferences: 'تفضيلات العرض', decrease: 'تقليل الجوائز', increase: 'زيادة الجوائز',
+    local: 'معاينة محلية · لا اتصال بالخدمات', preferences: 'تفضيلات العرض', enableTimer: 'تفعيل المؤقت', decrease: 'تقليل الجوائز', increase: 'زيادة الجوائز',
   },
   en: {
     linesHelp: 'One prize per line · blank lines are ignored', linesPlaceholder: 'Gift card\nOne month subscription\nSurprise prize', tooManyPrizes: 'Maximum 50 prizes; edit the list to continue', line: 'Line', longPrize: 'Maximum 100 characters per prize', basics: 'Event Setup', setupPrizes: 'Prize Setup', prizes: 'Prizes', closing: 'Closing', completed: 'Event completed',
@@ -35,6 +35,6 @@ export const journeyCopy = {
     copied: 'Example results copied', copyFailed: 'Copy failed; select the text below and copy it', copy: 'Copy example results',
     unverified: 'Unverified example identifier', awarded: 'Awarded', incomplete: 'Complete the event name and every prize content',
     retention: 'Local preview; seven-day results storage requires the server connection', farewell: 'Thanks for taking part',
-    local: 'Local preview · services not connected', preferences: 'Display', decrease: 'Decrease prizes', increase: 'Increase prizes',
+    local: 'Local preview · services not connected', preferences: 'Display', enableTimer: 'Enable timer', decrease: 'Decrease prizes', increase: 'Increase prizes',
   },
 } as const;

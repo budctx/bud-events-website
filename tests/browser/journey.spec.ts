@@ -134,15 +134,17 @@ test('multiline prizes derive count, retain invalid draft and block start',async
   await box.fill('W'.repeat(101)); await expect(page.getByRole('alert')).toContainText('Line 1');
   await box.fill(''); await expect(page.getByRole('button',{name:'Start event',exact:true})).toBeEnabled();
 });
-test('landscape colors and flip do not delay timer; reduced motion reveals instantly',async({page})=>{
-  await page.goto('/?lang=en'); await setup(page,1);
+test('white card faces, emblems and flip do not delay optional timer',async({page})=>{
+  await page.goto('/?lang=en'); await page.getByLabel('Enable timer').check(); await setup(page,1);
   await page.getByRole('button',{name:'Example player 1 · Not played yet',exact:true}).click();
   const q=page.locator('.playing-card--question'),c=page.locator('.playing-card--condition');
   const size=await q.evaluate(n=>({w:n.getBoundingClientRect().width,h:n.getBoundingClientRect().height}));
   expect(size.w/size.h).toBeCloseTo(1.4,1);
-  expect(await q.locator('.card-face--front').evaluate(n=>getComputedStyle(n).backgroundColor)).toBe('rgb(251, 176, 59)');
-  expect(await c.locator('.card-face--front').evaluate(n=>getComputedStyle(n).backgroundColor)).toBe('rgb(51, 51, 51)');
+  expect(await q.locator('.card-face--front').evaluate(n=>getComputedStyle(n).backgroundColor)).toBe('rgb(255, 255, 255)');
+  expect(await c.locator('.card-face--front').evaluate(n=>getComputedStyle(n).backgroundColor)).toBe('rgb(255, 255, 255)');
   expect(await q.locator('.flip-inner').evaluate(n=>getComputedStyle(n).transitionDuration)).toBe('0.42s');
+  await expect(q.locator('.card-face--front .card-emblem')).toHaveCount(2);
+  await expect(c.locator('.card-face--front .card-emblem')).toHaveCount(2);
   await page.getByRole('button',{name:'Reveal Question',exact:true}).click();
   await expect(q).toHaveAttribute('data-revealed','true'); await expect(q.locator('.card-face--front')).toHaveAttribute('inert','');
   await page.getByRole('button',{name:'Reveal Condition',exact:true}).click();
@@ -161,4 +163,22 @@ test('100-character prize back fits landscape face after flip',async({page})=>{
   await page.waitForTimeout(450);
   const fits=await page.locator('.playing-card--prize .card-face--back').evaluate(n=>n.scrollHeight<=n.clientHeight&&[...n.children].every(c=>c.getBoundingClientRect().bottom<=n.getBoundingClientRect().bottom+1));
   expect(fits).toBe(true);
+});
+
+test('card activation by keyboard, hidden timer by default and icon judgment', async ({page}) => {
+  await page.goto('/?lang=en');
+  await expect(page.getByLabel('Enable timer')).not.toBeChecked();
+  await setup(page,1);
+  await page.getByRole('button',{name:'Example player 1 · Not played yet'}).click();
+  const question=page.getByRole('button',{name:'Reveal Question',exact:true});
+  await question.focus(); await page.keyboard.press('Enter');
+  await expect(page.locator('.playing-card--question')).toHaveAttribute('data-revealed','true');
+  await page.getByRole('button',{name:'Reveal Condition',exact:true}).click();
+  await expect(page.locator('.journey .timer')).toHaveCount(0);
+  const correct=page.getByRole('button',{name:'Correct',exact:true});
+  const wrong=page.getByRole('button',{name:'Incorrect',exact:true});
+  await expect(correct.locator('svg')).toHaveCount(1);
+  await expect(wrong.locator('svg')).toHaveCount(1);
+  await correct.click();
+  await expect(page.getByText('Participant qualified · no prize awarded',{exact:true})).toBeVisible();
 });

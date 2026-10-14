@@ -32,3 +32,17 @@ test('judgment is terminal and cannot award prizes or mutate an ended challenge'
   assert.equal(previewReducer(s, { type: 'judge', correct: false }), s);
   assert.equal('award' in s, false);
 });
+
+test('disabled timer has no deadline and judgment still works', () => {
+  let s = initialState(7, 2, false);
+  s = previewReducer(s, {type:'reveal', card:'condition', now:100});
+  s = previewReducer(s, {type:'reveal', card:'question', now:300});
+  assert.equal(s.deadline,null);
+  s = previewReducer(s, {type:'tick',now:50000}); assert.equal(s.seconds,7);
+  s = previewReducer(s, {type:'judge',correct:false});
+  assert.equal(s.attempt,2); assert.equal(s.timerEnabled,false);
+  s = previewReducer(s, {type:'reveal',card:'question',now:60000});
+  s = previewReducer(s, {type:'reveal',card:'condition',now:61000});
+  s = previewReducer(s, {type:'judge',correct:true});
+  assert.equal(s.outcome,'qualified');
+});

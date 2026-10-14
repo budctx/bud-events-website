@@ -5,7 +5,7 @@ export type EventStage = 'setup-basics' | 'setup-prizes' | 'live' | 'prizes' | '
 export type Participant = { id: string; name: string; status: 'neverPlayed' | 'lost' | 'qualified' };
 export type PrizeDefinition = { id: string; name: string };
 export type Award = { prizeId: string; winnerId: string | null };
-export type EventConfig = { eventName: string; duration: Duration; maxAttempts: Attempts; prizeCount: number };
+export type EventConfig = { eventName: string; duration: Duration; maxAttempts: Attempts; timerEnabled: boolean; prizeCount: number };
 export type EventState = {
   source: 'local-preview'; stage: EventStage; config: EventConfig; prizeDefinitions: PrizeDefinition[];
   participants: Participant[]; qualificationOrder: string[]; activeParticipantId: string | null;
@@ -28,7 +28,7 @@ export type EventAction =
   | { type: 'complete'; confirmed: boolean }
   | { type: 'restart'; now: number; confirmed: boolean };
 export function initialEventState(): EventState {
-  return { source: 'local-preview', stage: 'setup-basics', config: { eventName: '', duration: 5, maxAttempts: 1, prizeCount: 0 },
+  return { source: 'local-preview', stage: 'setup-basics', config: { eventName: '', duration: 5, maxAttempts: 1, timerEnabled: false, prizeCount: 0 },
     prizeDefinitions: [], participants: [], qualificationOrder: [], activeParticipantId: null, activeRoundNoWinner: false,
     rounds: [], awards: [], startedAt: null, restartUsed: false };
 }
@@ -53,7 +53,7 @@ export function eventReducer(s: EventState, a: EventAction): EventState {
     if (s.stage !== 'setup-basics') return s;
     const config = { ...s.config, ...a.config };
     if (typeof config.eventName !== 'string' || config.eventName.length > 100 || ![5, 7, 10].includes(config.duration)
-      || ![1, 2, 3].includes(config.maxAttempts) || !Number.isInteger(config.prizeCount) || config.prizeCount < 0 || config.prizeCount > 50) return s;
+      || ![1, 2, 3].includes(config.maxAttempts) || typeof config.timerEnabled !== 'boolean' || !Number.isInteger(config.prizeCount) || config.prizeCount < 0 || config.prizeCount > 50) return s;
     const prizeDefinitions = Array.from({ length: config.prizeCount }, (_, i) => s.prizeDefinitions[i] ?? { id: `prize-${i + 1}`, name: '' });
     return { ...s, config, prizeDefinitions };
   }
