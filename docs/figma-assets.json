@@ -94,5 +94,17 @@
     "sourceNodeId": "I104:2776;104:740;91:768",
     "width": 24,
     "height": 24
+  },
+  {
+    "name": "light-prize.svg",
+    "sourceNodeId": "84:3777",
+    "width": 32,
+    "height": 32
+  },
+  {
+    "name": "dark-prize.svg",
+    "sourceNodeId": "I115:30872;101:76",
+    "width": 32,
+    "height": 32
   }
 ]

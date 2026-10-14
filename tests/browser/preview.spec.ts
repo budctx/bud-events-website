@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 for (const width of [320, 390, 1440]) for (const locale of ['ar', 'en']) for (const theme of ['light', 'dark']) {
   test(`${width}px ${locale} ${theme}: complete assets and no horizontal overflow`, async ({ page }) => {
     await page.setViewportSize({ width, height: width === 1440 ? 900 : 844 });
-    await page.goto(`/?canvas=1&lang=${locale}&theme=${theme}`);
+    await page.goto(`/?screen=foundation&canvas=1&lang=${locale}&theme=${theme}`);
     await page.evaluate(() => document.fonts.ready);
     await expect(page.locator('html')).toHaveAttribute('dir', locale === 'ar' ? 'rtl' : 'ltr');
     await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
@@ -15,7 +15,7 @@ for (const width of [320, 390, 1440]) for (const locale of ['ar', 'en']) for (co
 }
 test('independent reveal, zero and explicit host judgment', async ({ page }) => {
   await page.clock.install();
-  await page.goto('/?lang=en');
+  await page.goto('/?screen=foundation&lang=en');
   await expect(page.getByRole('button', { name: 'Correct', exact: true })).toBeDisabled();
   await page.getByRole('button', { name: 'Reveal Question' }).click();
   await page.clock.fastForward(8000);
@@ -30,7 +30,7 @@ test('independent reveal, zero and explicit host judgment', async ({ page }) => 
   await expect(page.getByRole('button', { name: 'Incorrect', exact: true })).toBeDisabled();
 });
 test('retry hides a fresh pair, theme and language survive reload', async ({ page }) => {
-  await page.goto('/?lang=en');
+  await page.goto('/?screen=foundation&lang=en');
   await page.getByLabel('Attempts', { exact: true }).selectOption('2');
   await page.getByRole('button', { name: 'Reveal Question' }).click();
   await page.getByRole('button', { name: 'Reveal Condition' }).click();
@@ -41,13 +41,13 @@ test('retry hides a fresh pair, theme and language survive reload', async ({ pag
   await expect(page.getByText('Name three things that are yellow.')).toBeVisible();
   await page.getByLabel('Appearance').selectOption('dark');
   await page.getByLabel('Language').selectOption('ar');
-  await page.goto('/');
+  await page.goto('/?screen=foundation');
   await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 });
 test('keyboard reveal and reduced motion retain behavior', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('/?lang=en');
+  await page.goto('/?screen=foundation&lang=en');
   const reveal = page.getByRole('button', { name: 'Reveal Question' });
   await reveal.focus(); await page.keyboard.press('Enter');
   await expect(reveal).toBeDisabled();
