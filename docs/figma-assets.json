@@ -1,0 +1,98 @@
+[
+  {
+    "name": "light-mobile-user.svg",
+    "sourceNodeId": "I104:2470;104:931;98:633",
+    "width": 24,
+    "height": 24
+  },
+  {
+    "name": "light-mobile-condition.svg",
+    "sourceNodeId": "I104:2470;104:937;98:723;91:441",
+    "width": 32,
+    "height": 32
+  },
+  {
+    "name": "light-mobile-question.svg",
+    "sourceNodeId": "I104:2470;104:937;98:712;91:86",
+    "width": 32,
+    "height": 32
+  },
+  {
+    "name": "light-mobile-timer.svg",
+    "sourceNodeId": "I104:2470;104:992;91:768",
+    "width": 24,
+    "height": 24
+  },
+  {
+    "name": "light-desktop-user.svg",
+    "sourceNodeId": "I104:2155;104:677;98:633",
+    "width": 24,
+    "height": 24
+  },
+  {
+    "name": "light-desktop-condition.svg",
+    "sourceNodeId": "I104:2155;104:685;98:677;91:417",
+    "width": 48,
+    "height": 48
+  },
+  {
+    "name": "light-desktop-question.svg",
+    "sourceNodeId": "I104:2155;104:685;98:666;91:57",
+    "width": 48,
+    "height": 48
+  },
+  {
+    "name": "light-desktop-timer.svg",
+    "sourceNodeId": "I104:2155;104:740;91:768",
+    "width": 24,
+    "height": 24
+  },
+  {
+    "name": "dark-mobile-user.svg",
+    "sourceNodeId": "I104:3091;104:931;98:633",
+    "width": 24,
+    "height": 24
+  },
+  {
+    "name": "dark-mobile-condition.svg",
+    "sourceNodeId": "I104:3091;104:937;98:723;91:441",
+    "width": 32,
+    "height": 32
+  },
+  {
+    "name": "dark-mobile-question.svg",
+    "sourceNodeId": "I104:3091;104:937;98:712;91:86",
+    "width": 32,
+    "height": 32
+  },
+  {
+    "name": "dark-mobile-timer.svg",
+    "sourceNodeId": "I104:3091;104:992;91:768",
+    "width": 24,
+    "height": 24
+  },
+  {
+    "name": "dark-desktop-user.svg",
+    "sourceNodeId": "I104:2776;104:677;98:633",
+    "width": 24,
+    "height": 24
+  },
+  {
+    "name": "dark-desktop-condition.svg",
+    "sourceNodeId": "I104:2776;104:685;98:677;91:417",
+    "width": 48,
+    "height": 48
+  },
+  {
+    "name": "dark-desktop-question.svg",
+    "sourceNodeId": "I104:2776;104:685;98:666;91:57",
+    "width": 48,
+    "height": 48
+  },
+  {
+    "name": "dark-desktop-timer.svg",
+    "sourceNodeId": "I104:2776;104:740;91:768",
+    "width": 24,
+    "height": 24
+  }
+]
