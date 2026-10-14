@@ -147,3 +147,37 @@ test('completion preserves relative qualification order when winners choose priz
   assert.deepEqual(s.qualificationOrder, ['local-a', 'local-b']);
   assert.deepEqual(s.awards.map(a => a.winnerId), ['local-b', 'local-a']);
 });
+
+test('line-based replacement derives count in both setup steps and keeps duplicate prizes distinct', () => {
+  let s = reduce(initialEventState(), { type: 'configure', config: { eventName: 'Demo' } });
+  s = reduce(s, { type: 'replace-prizes', text: '  Gift  \r\n\nGift\nجائزة' });
+  assert.equal(s.config.prizeCount, 3);
+  assert.deepEqual(s.prizeDefinitions, [{ id: 'prize-1', name: 'Gift' }, { id: 'prize-2', name: 'Gift' }, { id: 'prize-3', name: 'جائزة' }]);
+  s = reduce(s, { type: 'setup-next' });
+  s = reduce(s, { type: 'replace-prizes', text: 'Only one' });
+  assert.equal(s.config.prizeCount, 1);
+  assert.deepEqual(s.prizeDefinitions, [{ id: 'prize-1', name: 'Only one' }]);
+  s = reduce(s, { type: 'replace-prizes', text: '\n  \n' });
+  assert.equal(s.config.prizeCount, 0);
+  assert.deepEqual(s.prizeDefinitions, []);
+  assert.equal(reduce(s, { type: 'start', now: 100 }).stage, 'live');
+});
+test('invalid replacement is atomic and preserves existing prize configuration', () => {
+  const s = reduce(initialEventState(), { type: 'replace-prizes', text: 'One\nTwo' });
+  assert.equal(reduce(s, { type: 'replace-prizes', text: `Good\n${'x'.repeat(101)}` }), s);
+  assert.equal(reduce(s, { type: 'replace-prizes', text: Array(51).fill('Gift').join('\n') }), s);
+  assert.equal(reduce(s, { type: 'replace-prizes', text: undefined as unknown as string }), s);
+});
+test('replacement locks after start and restart clears derived prize count and names', () => {
+  let s = live();
+  assert.equal(reduce(s, { type: 'replace-prizes', text: 'Changed' }), s);
+  s = reduce(s, { type: 'show-prizes' });
+  assert.equal(reduce(s, { type: 'replace-prizes', text: '' }), s);
+  s = reduce(s, { type: 'restart', now: 200, confirmed: true });
+  assert.equal(s.stage, 'setup-basics');
+  assert.equal(s.config.prizeCount, 0);
+  assert.deepEqual(s.prizeDefinitions, []);
+  const updated = reduce(s, { type: 'replace-prizes', text: 'New' });
+  assert.equal(updated.config.prizeCount, 1);
+  assert.deepEqual(updated.prizeDefinitions, [{ id: 'prize-1', name: 'New' }]);
+});

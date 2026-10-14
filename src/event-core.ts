@@ -1,5 +1,6 @@
 // LOCAL preview only: no server authority, Discord identity, payment or persistence.
 import type { Attempts, Duration } from './preview-state.ts';
+import { parsePrizeLines } from './prize-lines.ts';
 export type EventStage = 'setup-basics' | 'setup-prizes' | 'live' | 'prizes' | 'closing' | 'completed';
 export type Participant = { id: string; name: string; status: 'neverPlayed' | 'lost' | 'qualified' };
 export type PrizeDefinition = { id: string; name: string };
@@ -14,6 +15,7 @@ export type EventState = {
 export type EventAction =
   | { type: 'configure'; config: Partial<EventConfig> }
   | { type: 'define-prize'; prizeId: string; name: string }
+  | { type: 'replace-prizes'; text: string }
   | { type: 'add-participant'; id: string; name: string }
   | { type: 'setup-next' | 'setup-back' }
   | { type: 'start'; now: number; participants?: { id: string; name: string }[] }
@@ -54,6 +56,13 @@ export function eventReducer(s: EventState, a: EventAction): EventState {
       || ![1, 2, 3].includes(config.maxAttempts) || !Number.isInteger(config.prizeCount) || config.prizeCount < 0 || config.prizeCount > 50) return s;
     const prizeDefinitions = Array.from({ length: config.prizeCount }, (_, i) => s.prizeDefinitions[i] ?? { id: `prize-${i + 1}`, name: '' });
     return { ...s, config, prizeDefinitions };
+  }
+  if (a.type === 'replace-prizes') {
+    if (!['setup-basics', 'setup-prizes'].includes(s.stage) || typeof a.text !== 'string') return s;
+    const parsed = parsePrizeLines(a.text);
+    if (!parsed.valid) return s;
+    return { ...s, config: { ...s.config, prizeCount: parsed.count },
+      prizeDefinitions: parsed.lines.map((name, i) => ({ id: `prize-${i + 1}`, name })) };
   }
   if (a.type === 'define-prize') {
     if (s.stage !== 'setup-prizes' || typeof a.name !== 'string' || a.name.length > 100 || !s.prizeDefinitions.some(p => p.id === a.prizeId)) return s;

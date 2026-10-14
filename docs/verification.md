@@ -25,3 +25,9 @@ Root: integration lead, Figma reads/exports, UI/CSS, local browser checks and re
 /root/journey_qa: independent implementation/test review (read only).
 
 Expert OS policy coordination only; this is not a claim of installed/certified Expert OS runtime.
+
+## Latest light refinement evidence — supersedes prior batch counts
+
+Root build/typecheck PASS;19/19 state tests and17/17 Light journey browser tests PASS. Independent /root/refinement_qa repeated build,19state,17Light browser: scoped PASS, no remaining P0/P1 observed. Figma-only-before-code authoring and independent light AR/EN mobile/desktop bounds/contrast checks PASS. Fixed timer row parentage, mobile/desktop page fit,100W full prize-face containment. Native icons reused; no new raster/temporary URLs.
+
+No Dark designs/tests maintained in this batch. Default test command is the current Light journey; historical Foundation tests remain as prior evidence. No full OAuth, actual no-bot deployment/server journey, real Stage attendance, bot permissions, or80-character production recipient validation. CSS flip is functional; Figma motion readback is structural only (export download unavailable). Root remains integration lead; /root/prize_lines parser/core implementation; /root/bot_study official-source study; /root/refinement_qa independent read-only final QA.

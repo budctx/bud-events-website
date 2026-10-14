@@ -132,3 +132,39 @@ textarea { resize: vertical; width: 100%; }
 .player-group:has(h2:only-child) { display:none; }
 @media(max-width:369px) { .journey .prize-cards { grid-template-columns:minmax(0,1fr); } }
 .preset-options, .prize-counter { direction:ltr; }
+/* Light-only owner refinement, authored in Figma page131:2 first. */
+.prize-lines-field { width:340px; max-width:100%; }
+.prize-lines-field textarea { height:220px; resize:none; line-height:28px; }
+.prize-lines-field [role=alert]:empty { display:none; }
+.journey .participant { height:44px; padding:4px 12px; }
+.journey .cards { grid-template-columns:minmax(0,1fr); gap:8px; justify-items:center; }
+.journey .card-pair { width:358px; gap:8px; }
+.playing-card { display:block; width:280px; max-width:100%; aspect-ratio:7 / 5; perspective:1100px; color:var(--bud-card-ink); text-align:start; }
+.flip-inner { display:block; width:100%; height:100%; position:relative; transform-style:preserve-3d; transition:transform var(--bud-motion-flip) ease-in-out; }
+.playing-card[data-revealed=true] .flip-inner { transform:rotateY(180deg); }
+.card-face { position:absolute; inset:0; display:flex; flex-direction:column; align-items:flex-start; justify-content:space-between; gap:8px; padding:12px; border:2px solid var(--bud-color-border-default); border-radius:8px; backface-visibility:hidden; background:var(--bud-card-prize); overflow-wrap:anywhere; }
+.card-face--back { transform:rotateY(180deg); }
+.playing-card--question .card-face { background:var(--bud-card-question); }
+.playing-card--condition .card-face { background:var(--bud-card-condition); color:var(--bud-card-on-ink); }
+.card-title { font-size:14px; line-height:24px; width:100%; }
+.card-face .button { width:140px; align-self:flex-end; }
+.card-face img { align-self:flex-end; }
+.card-face .card-content { font-size:16px; line-height:28px; }
+.journey .prize-grid { border:0; padding:0; background:transparent; width:358px; }
+.journey .prize-cards { grid-template-columns:minmax(0,1fr); justify-items:center; gap:8px; }
+.journey .prize-trigger { display:block; padding:0; border:0; border-radius:8px; background:transparent; width:280px; min-height:0; max-width:100%; box-shadow:none; }
+.journey .prize-trigger:hover:not(:disabled), .journey .prize-trigger:active:not(:disabled) { transform:none; box-shadow:none; }
+.journey .prize-trigger:disabled { background:transparent; color:var(--bud-card-ink); }
+.journey .host-controls { width:358px; }
+@media(max-width:600px) and (min-height:700px) { .journey .judgment-buttons { flex-direction:row; } .journey .timer { min-height:108px; } }
+@media(min-width:1150px) { .prize-lines-field { width:720px; } .journey .cards { grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; } .journey .card-pair { width:744px; } .playing-card, .journey .prize-trigger { width:352px; } .journey .prize-grid { width:744px; } .journey .prize-cards { grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; } }
+@media(prefers-reduced-motion:reduce) { .flip-inner, .card-face { transform:none!important; } .card-face[aria-hidden=true] { visibility:hidden; } }
+.playing-card--prize .card-content { font-size:14px; line-height:22px; }
+.journey .host-controls > .caption:empty { display:none; }
+@media(max-width:600px) { html[lang=en] .journey-header h1 { font-size:22px; line-height:32px; } }
+.card-face > img, .card-face > .button { align-self:flex-start; }
+.card-face .card-content { font-weight:400; }
+.playing-card--prize .prize-content--long { font-size:12px; line-height:18px; }
+.playing-card--prize .card-face--back { gap:4px; }
+.journey .timer { width:112px; gap:4px; min-height:108px; padding:8px; }
+.journey .seconds { font-size:32px; line-height:48px; }

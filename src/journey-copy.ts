@@ -1,6 +1,6 @@
 export const journeyCopy = {
   ar: {
-    basics: 'إعداد الفعالية', setupPrizes: 'إعداد الجوائز', prizes: 'الجوائز', closing: 'الختام', completed: 'انتهت الفعالية',
+    linesHelp: 'كل سطر جائزة · الأسطر الفارغة لا تُحسب', linesPlaceholder: 'بطاقة هدية\nاشتراك شهر\nجائزة مفاجأة', tooManyPrizes: 'الحد الأقصى 50 جائزة؛ عدّل القائمة للمتابعة', line: 'السطر', longPrize: 'الحد الأقصى 100 حرف للجائزة', basics: 'إعداد الفعالية', setupPrizes: 'إعداد الجوائز', prizes: 'الجوائز', closing: 'الختام', completed: 'انتهت الفعالية',
     eventName: 'اسم الفعالية', namePlaceholder: 'اكتب الاسم', prizeCount: 'عدد الجوائز · 0–50', start: 'بدء الفعالية',
     next: 'التالي', previous: 'السابق', back: 'رجوع', page: 'الصفحة', prize: 'الجائزة', content: 'محتوى الجائزة',
     empty: 'لا توجد جوائز لهذه الفعالية', emptyResults: 'لم تُمنح جوائز', noWinner: 'لم يحصل على جائزة',
@@ -19,7 +19,7 @@ export const journeyCopy = {
     local: 'معاينة محلية · لا اتصال بالخدمات', preferences: 'تفضيلات العرض', decrease: 'تقليل الجوائز', increase: 'زيادة الجوائز',
   },
   en: {
-    basics: 'Event Setup', setupPrizes: 'Prize Setup', prizes: 'Prizes', closing: 'Closing', completed: 'Event completed',
+    linesHelp: 'One prize per line · blank lines are ignored', linesPlaceholder: 'Gift card\nOne month subscription\nSurprise prize', tooManyPrizes: 'Maximum 50 prizes; edit the list to continue', line: 'Line', longPrize: 'Maximum 100 characters per prize', basics: 'Event Setup', setupPrizes: 'Prize Setup', prizes: 'Prizes', closing: 'Closing', completed: 'Event completed',
     eventName: 'Event name', namePlaceholder: 'Enter a name', prizeCount: 'Prize count · 0–50', start: 'Start event',
     next: 'Next', previous: 'Previous', back: 'Back', page: 'Page', prize: 'Prize', content: 'Prize content',
     empty: 'This event has no prizes', emptyResults: 'No prizes awarded', noWinner: 'No prize received',
@@ -35,6 +35,6 @@ export const journeyCopy = {
     copied: 'Example results copied', copyFailed: 'Copy failed; select the text below and copy it', copy: 'Copy example results',
     unverified: 'Unverified example identifier', awarded: 'Awarded', incomplete: 'Complete the event name and every prize content',
     retention: 'Local preview; seven-day results storage requires the server connection', farewell: 'Thanks for taking part',
-    local: 'Local preview · services not connected', preferences: 'Display preferences', decrease: 'Decrease prizes', increase: 'Increase prizes',
+    local: 'Local preview · services not connected', preferences: 'Display', decrease: 'Decrease prizes', increase: 'Increase prizes',
   },
 } as const;

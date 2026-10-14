@@ -27,3 +27,5 @@
 @media (prefers-reduced-motion: reduce) {
   :root { --bud-motion-press: 0ms; --bud-motion-hover: 0ms; }
 }
+:root { --bud-card-question:#fbb03b; --bud-card-condition:#333333; --bud-card-prize:#f6f0e2; --bud-card-ink:#333333; --bud-card-on-ink:#f6f0e2; --bud-motion-flip:420ms; }
+@media(prefers-reduced-motion:reduce) { :root { --bud-motion-flip:0ms; } }
