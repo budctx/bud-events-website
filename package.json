@@ -1,0 +1,35 @@
+{
+  "name": "bud-events-website",
+  "version": "0.1.0",
+  "description": "Website implementation for BU\u2019D Discord events.",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "node --test tests/*.test.ts && playwright test tests/browser/journey.spec.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/budctx/bud-events-website.git"
+  },
+  "license": "UNLICENSED",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/budctx/bud-events-website/issues"
+  },
+  "homepage": "https://github.com/budctx/bud-events-website#readme",
+  "dependencies": {
+    "@fontsource-variable/readex-pro": "5.3.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.0",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "typescript": "7.0.2",
+    "vite": "8.3.4"
+  },
+  "private": true
+}
