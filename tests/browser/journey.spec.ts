@@ -15,7 +15,7 @@ async function qualify(page: Page, n = 1) {
 for (const lang of ['ar','en']) for (const theme of ['light']) for (const width of [320,390,1440]) {
   test(`setup fit viewport ${lang} ${theme} ${width}`, async ({ page }) => {
     await page.setViewportSize({width, height: width === 1440 ? 900 : 844});
-    await page.goto(`/?lang=${lang}&theme=${theme}`);
+    await page.goto(`/?legacyPreview=1&lang=${lang}&theme=${theme}`);
     await expect(page.locator('main')).toHaveAttribute('data-stage','setup-basics');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
@@ -29,7 +29,7 @@ for (const lang of ['ar','en']) for (const theme of ['light']) for (const width 
   });
 }
 test('zero prizes preserves all phases and honest final empty results', async ({ page }) => {
-  await page.goto('/?lang=en'); await setup(page); await qualify(page);
+  await page.goto('/?legacyPreview=1&lang=en'); await setup(page); await qualify(page);
   await expect(page.getByText('Correct answer · no prize', {exact:true})).toBeVisible();
   await page.getByRole('button', { name: 'Prizes', exact:true }).click();
   await expect(page.getByText('This event has no prizes')).toBeVisible();
@@ -48,7 +48,7 @@ test('zero prizes preserves all phases and honest final empty results', async ({
 });
 test('assignment confirmation, permanent opening lock and actual ordered results', async ({ page }) => {
   await page.setViewportSize({width:390,height:844});
-  await page.goto('/?lang=en&theme=light'); await setup(page, 2); await qualify(page,1); await qualify(page,2);
+  await page.goto('/?legacyPreview=1&lang=en&theme=light'); await setup(page, 2); await qualify(page,1); await qualify(page,2);
   await page.getByRole('button', {name:'Prizes',exact:true}).click();
   await page.getByLabel('Qualified participants').selectOption('local-player-2');
   await page.locator('.prize-card').first().click();
@@ -74,7 +74,7 @@ test('assignment confirmation, permanent opening lock and actual ordered results
   await expect(page.locator('.winner-row').first()).toContainText('Unverified example identifier');
 });
 test('open unassigned and cancel closing keep committed prize; keyboard modal trap', async ({ page }) => {
-  await page.emulateMedia({reducedMotion:'reduce'}); await page.goto('/?lang=en'); await setup(page,2);
+  await page.emulateMedia({reducedMotion:'reduce'}); await page.goto('/?legacyPreview=1&lang=en'); await setup(page,2);
   await page.getByRole('button',{name:'Prizes',exact:true}).click(); await page.locator('.prize-card').first().click();
   await expect(page.getByRole('dialog')).toContainText('Open without a recipient?');
   await page.getByRole('button',{name:'Cancel',exact:true}).focus();
@@ -90,7 +90,7 @@ test('open unassigned and cancel closing keep committed prize; keyboard modal tr
   await expect(page.locator('.prize-card').first()).toBeDisabled();
 });
 test('50 prize lines produce 50 reachable prize cards',async ({page})=>{
-  await page.setViewportSize({width:390,height:844}); await page.goto('/?lang=en'); await setup(page,50);
+  await page.setViewportSize({width:390,height:844}); await page.goto('/?legacyPreview=1&lang=en'); await setup(page,50);
   await expect(page.locator('main')).toHaveAttribute('data-stage','live');
   await page.getByRole('button',{name:'Prizes',exact:true}).click();
   await expect(page.locator('.pagination')).toContainText('1 / 50');
@@ -99,7 +99,7 @@ test('50 prize lines produce 50 reachable prize cards',async ({page})=>{
   await expect(page.locator('.prize-card').last()).toContainText('50');
 });
 test('capacity practice success does not announce new qualification',async ({page})=>{
-  await page.goto('/?lang=en'); await setup(page,1); await qualify(page,1);
+  await page.goto('/?legacyPreview=1&lang=en'); await setup(page,1); await qualify(page,1);
   await page.getByRole('button',{name:'Example player 2 · Not played yet',exact:true}).click();
   await page.getByRole('button',{name:'Confirm',exact:true}).click();
   await page.getByRole('button',{name:'Reveal Question',exact:true}).click();
@@ -108,7 +108,7 @@ test('capacity practice success does not announce new qualification',async ({pag
   await expect(page.getByText('Correct answer · no prize',{exact:true})).toBeVisible();
 });
 for(const width of [320,390,1440]) test(`live and opened long-content prizes fit ${width}`,async ({page})=>{
-  await page.setViewportSize({width,height:width===1440?900:844}); await page.goto('/?lang=en&theme=light');
+  await page.setViewportSize({width,height:width===1440?900:844}); await page.goto('/?legacyPreview=1&lang=en&theme=light');
   await page.getByLabel('Event name',{exact:true}).fill('Long content event');
   await page.getByRole('button',{name:'Prize Setup',exact:true}).click();
   await page.getByLabel('Prizes',{exact:true}).fill(Array.from({length:4},()=> 'Long prize description '.repeat(4)).join('\n'));
@@ -122,7 +122,7 @@ for(const width of [320,390,1440]) test(`live and opened long-content prizes fit
   expect(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight)).toBe(true);
 });
 test('multiline prizes derive count, retain invalid draft and block start',async({page})=>{
-  await page.goto('/?lang=en'); await page.getByLabel('Event name',{exact:true}).fill('Prize lines');
+  await page.goto('/?legacyPreview=1&lang=en'); await page.getByLabel('Event name',{exact:true}).fill('Prize lines');
   await page.getByRole('button',{name:'Prize Setup',exact:true}).click();
   const box=page.getByLabel('Prizes',{exact:true}); await box.fill('  Gift card  \n\nGift card\n Month membership\n');
   await expect(page.locator('#prize-lines-count')).toContainText('3 / 50');
@@ -135,7 +135,7 @@ test('multiline prizes derive count, retain invalid draft and block start',async
   await box.fill(''); await expect(page.getByRole('button',{name:'Start event',exact:true})).toBeEnabled();
 });
 test('white card faces, emblems and flip do not delay optional timer',async({page})=>{
-  await page.goto('/?lang=en'); await page.getByLabel('Enable timer').check(); await setup(page,1);
+  await page.goto('/?legacyPreview=1&lang=en'); await page.getByLabel('Enable timer').check(); await setup(page,1);
   await page.getByRole('button',{name:'Example player 1 · Not played yet',exact:true}).click();
   const q=page.locator('.playing-card--question'),c=page.locator('.playing-card--condition');
   const size=await q.evaluate(n=>({w:n.getBoundingClientRect().width,h:n.getBoundingClientRect().height}));
@@ -156,7 +156,7 @@ test('white card faces, emblems and flip do not delay optional timer',async({pag
   await expect(c.locator('.card-face--back .card-content')).toHaveText(/Start your answer|Do not repeat|Finish your answer/);
 });
 test('100-character prize back fits landscape face after flip',async({page})=>{
-  await page.setViewportSize({width:320,height:844}); await page.goto('/?lang=en');
+  await page.setViewportSize({width:320,height:844}); await page.goto('/?legacyPreview=1&lang=en');
   await page.getByLabel('Event name',{exact:true}).fill('Long prize'); await page.getByRole('button',{name:'Prize Setup',exact:true}).click();
   await page.getByLabel('Prizes',{exact:true}).fill('W'.repeat(100));
   await page.getByRole('button',{name:'Start event',exact:true}).click(); await page.getByRole('button',{name:'Prizes',exact:true}).click();
@@ -167,7 +167,7 @@ test('100-character prize back fits landscape face after flip',async({page})=>{
 });
 
 test('card activation by keyboard, hidden timer by default and icon judgment', async ({page}) => {
-  await page.goto('/?lang=en');
+  await page.goto('/?legacyPreview=1&lang=en');
   await expect(page.getByLabel('Enable timer')).not.toBeChecked();
   await setup(page,1);
   await page.getByRole('button',{name:'Example player 1 · Not played yet'}).click();
@@ -186,7 +186,7 @@ test('card activation by keyboard, hidden timer by default and icon judgment', a
 
 
 test('host can add a named local participant and play a complete round', async ({ page }) => {
-  await page.goto('/?lang=en&theme=light');
+  await page.goto('/?legacyPreview=1&lang=en&theme=light');
   await setup(page, 1);
   await page.getByText('Add a player for this preview').click();
   await page.getByLabel('Player name').fill('Local guest');
@@ -201,4 +201,47 @@ test('host can add a named local participant and play a complete round', async (
   await page.locator('.prize-card').first().click();
   await page.getByRole('button', { name: 'Confirm' }).click();
   await expect(page.locator('.prize-card').first()).toBeDisabled();
+});
+
+test('manual mode starts without selecting players and records winners only after naming', async ({ page }) => {
+  await page.goto('/?lang=en');
+  await page.getByLabel('Event name',{exact:true}).fill('Manual event');
+  await page.getByRole('button',{name:'Prize Setup',exact:true}).click();
+  await page.getByLabel('Prizes',{exact:true}).fill('Reward A\nReward B');
+  await page.getByRole('button',{name:'Start event',exact:true}).click();
+  await expect(page.locator('.participant-picker')).toHaveCount(0);
+  await expect(page.locator('.playing-card--question')).toBeVisible();
+  await page.getByRole('button',{name:'Reveal Question',exact:true}).click();
+  await page.getByRole('button',{name:'Reveal Condition',exact:true}).click();
+  await page.getByRole('button',{name:'Correct',exact:true}).click();
+  await expect(page.getByRole('dialog',{name:'Register winner'})).toBeVisible();
+  await page.getByRole('button',{name:'Cancel',exact:true}).click();
+  await expect(page.getByText('Registered winners: 0 / 2')).toBeVisible();
+  await page.getByRole('button',{name:'Correct',exact:true}).click();
+  await page.getByLabel('Winner name').fill('First winner');
+  await page.getByRole('button',{name:'Add winner',exact:true}).click();
+  await expect(page.getByText('Registered winners: 1 / 2')).toBeVisible();
+  await page.getByRole('button',{name:'Reveal Question',exact:true}).click();
+  await page.getByRole('button',{name:'Reveal Condition',exact:true}).click();
+  await page.getByRole('button',{name:'Correct',exact:true}).click();
+  await page.getByLabel('Winner name').fill('First winner');
+  await expect(page.getByRole('button',{name:'Add winner',exact:true})).toBeDisabled();
+  await page.getByLabel('Winner name').fill('Second winner');
+  await page.getByRole('button',{name:'Add winner',exact:true}).click();
+  await expect(page.getByText('Registered winners: 2 / 2')).toBeVisible();
+  await page.getByRole('button',{name:'Prizes',exact:true}).click();
+  await expect(page.getByLabel('Qualified participants')).toContainText('First winner');
+});
+
+test('manual incorrect answer without timer continues with new cards',async({page})=>{
+  await page.goto('/?lang=en');
+  await page.getByLabel('Event name',{exact:true}).fill('Manual retry');
+  await page.getByRole('button',{name:'2',exact:true}).click();
+  await page.getByRole('button',{name:'Prize Setup',exact:true}).click();
+  await page.getByRole('button',{name:'Start event',exact:true}).click();
+  await page.getByRole('button',{name:'Reveal Question',exact:true}).click();
+  await page.getByRole('button',{name:'Reveal Condition',exact:true}).click();
+  await page.getByRole('button',{name:'Incorrect',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Reveal Question',exact:true})).toBeEnabled();
+  await expect(page.getByText('Registered winners: 0')).toBeVisible();
 });
