@@ -182,3 +182,22 @@ test('card activation by keyboard, hidden timer by default and icon judgment', a
   await correct.click();
   await expect(page.getByText('Participant qualified · no prize awarded',{exact:true})).toBeVisible();
 });
+
+
+test('host can add a named local participant and play a complete round', async ({ page }) => {
+  await page.goto('/?lang=en&theme=light');
+  await setup(page, 1);
+  await page.getByText('Add a player for this preview').click();
+  await page.getByLabel('Player name').fill('Local guest');
+  await page.getByRole('button', { name: 'Add to attendance' }).click();
+  await expect(page.getByRole('button', { name: 'Local guest · Not played yet' })).toBeVisible();
+  await page.getByRole('button', { name: 'Local guest · Not played yet' }).click();
+  await page.getByRole('button', { name: 'Reveal Question' }).click();
+  await page.getByRole('button', { name: 'Reveal Condition' }).click();
+  await page.getByRole('button', { name: 'Correct' }).click();
+  await page.getByRole('button', { name: 'Prizes', exact: true }).click();
+  await page.getByLabel('Qualified participants').selectOption('local-guest-4');
+  await page.locator('.prize-card').first().click();
+  await page.getByRole('button', { name: 'Confirm' }).click();
+  await expect(page.locator('.prize-card').first()).toBeDisabled();
+});
