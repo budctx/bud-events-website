@@ -194,7 +194,7 @@ test('host can add a named local participant and play a complete round', async (
   await page.getByRole('button', { name: 'Local guest · Not played yet' }).click();
   await page.getByRole('button', { name: 'Reveal Question' }).click();
   await page.getByRole('button', { name: 'Reveal Condition' }).click();
-  await page.getByRole('button', { name: 'Correct' }).click();
+  await page.getByRole('button', { name: 'Correct', exact: true }).click();
   await page.getByRole('button', { name: 'Prizes', exact: true }).click();
   await page.getByLabel('Qualified participants').selectOption('local-guest-4');
   await page.locator('.prize-card').first().click();
