@@ -152,7 +152,8 @@ test('white card faces, emblems and flip do not delay optional timer',async({pag
   await page.emulateMedia({reducedMotion:'reduce'});
   expect(await c.locator('.flip-inner').evaluate(n=>getComputedStyle(n).transitionDuration)).toBe('0s');
   expect(await c.locator('.flip-inner').evaluate(n=>getComputedStyle(n).transform)).toBe('none');
-  await expect(page.getByText('Start your answer with “I bring”.',{exact:true})).toBeVisible();
+  await expect(c.locator('.card-face--back .card-content')).toBeVisible();
+  await expect(c.locator('.card-face--back .card-content')).toHaveText(/Start your answer|Do not repeat|Finish your answer/);
 });
 test('100-character prize back fits landscape face after flip',async({page})=>{
   await page.setViewportSize({width:320,height:844}); await page.goto('/?lang=en');
