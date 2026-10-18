@@ -23,6 +23,10 @@ function Journey() {
   const theme: Theme = 'light';
   const [prizeDraft, setPrizeDraft] = useState('');
   const [localParticipantName, setLocalParticipantName] = useState('');
+  const legacyPreview = params.get('legacyPreview') === '1';
+  const [manualName, setManualName] = useState('');
+  const [winnerDialogOpen, setWinnerDialogOpen] = useState(false);
+  const winnerDialog = useRef<HTMLDialogElement>(null);
   const parsedPrizes = parsePrizeLines(prizeDraft);
   const [event, send] = useReducer(eventReducer, undefined, initialEventState);
   const [challenge, play] = useReducer(previewReducer, undefined, () => initialState(5, 1, false));
@@ -54,6 +58,7 @@ function Journey() {
     document.addEventListener('visibilitychange', tick); return () => { clearInterval(id); document.removeEventListener('visibilitychange', tick); };
   }, [event.stage, event.config.timerEnabled, challenge.deadline, challenge.seconds === 0, challenge.outcome]);
   useEffect(() => { if (confirmation) { dialog.current?.showModal(); } else { dialog.current?.close(); } }, [confirmation]);
+  useEffect(() => { if (winnerDialogOpen) { if (!winnerDialog.current?.open) winnerDialog.current?.showModal(); } else winnerDialog.current?.close(); }, [winnerDialogOpen]);
   const confirm = (text: string, action: EventAction, after?: () => void) => setConfirmation({ text, action, after });
   const resetChallenge = () => play({ type: 'reset', duration: event.config.duration, maxAttempts: event.config.maxAttempts, timerEnabled: event.config.timerEnabled });
   const drawChallenge = () => {
@@ -64,6 +69,20 @@ function Journey() {
   const select = (action: EventAction) => {
     if (capacityReached(event)) confirm(j.capacity, { ...action, confirmNoWinner: true } as EventAction, () => { resetChallenge(); drawChallenge(); });
     else { resetChallenge(); drawChallenge(); send(action); }
+  };
+  const manualNext = () => { resetChallenge(); drawChallenge(); };
+  const manualWrong = () => {
+    if (!challenge.question || !challenge.condition || challenge.outcome) return;
+    const next = previewReducer(challenge, { type: 'judge', correct: false });
+    if (next.outcome === 'exhausted') manualNext();
+    else { play({ type: 'judge', correct: false }); drawChallenge(); }
+  };
+  const manualSave = () => {
+    const name = manualName.trim();
+    if (!name || name.length > 80 || (event.config.prizeCount > 0 && capacityReached(event))
+      || event.participants.some(p => p.status === 'qualified' && p.name.toLocaleLowerCase() === name.toLocaleLowerCase())) return;
+    send({ type: 'manual-qualify', id: `local-manual-${event.participants.length + 1}`, name });
+    setManualName(''); setWinnerDialogOpen(false); manualNext();
   };
   const judge = (correct: boolean) => {
     if (!event.activeParticipantId) return;
@@ -80,6 +99,7 @@ function Journey() {
   const active = event.participants.find(p => p.id === event.activeParticipantId);
   const both = challenge.question && challenge.condition;
   const pair = [samplePairs[locale][pairIndex[0]][0], samplePairs[locale][pairIndex[1]][1]] as const;
+  const manualMode = !legacyPreview;
   const status = challenge.outcome ? t.stopped : !both ? t.waiting : challenge.seconds === 0 ? t.zero : t.running;
   // Fixture IDs are intentionally marked unverified; production export requires server-verified Discord IDs.
   const summary = qualifierRows.flatMap(p => { const a = event.awards.find(a => a.winnerId === p.id); const prize = event.prizeDefinitions.find(x => x.id === a?.prizeId); return prize ? [`${safeCopy(p.name)} — [${j.unverified}: ${p.id}] — ${safeCopy(prize.name)}`] : []; }).join('\n');
@@ -101,12 +121,12 @@ function Journey() {
       </form>}
       {event.stage === 'setup-prizes' && <section className="setup-body">
         <div className="field prize-lines-field"><label htmlFor="prize-lines">{j.prizes}</label><p id="prize-lines-help" className="caption">{j.linesHelp}</p><textarea id="prize-lines" rows={8} value={prizeDraft} aria-describedby="prize-lines-help prize-lines-count prize-lines-error" aria-invalid={!parsedPrizes.valid} placeholder={j.linesPlaceholder} onChange={e => { setPrizeDraft(e.target.value); send({ type: 'replace-prizes', text: e.target.value }); }} /><p id="prize-lines-count" className="caption" role="status">{j.prizes}: <bdi>{parsedPrizes.count} / 50</bdi></p><p id="prize-lines-error" className="caption" role="alert">{parsedPrizes.errors.map(error => error.code === 'too-many-prizes' ? j.tooManyPrizes : `${j.line} ${error.line}: ${j.longPrize}`).join(' · ')}</p></div>
-        <div className="action-row"><Button onClick={() => send({ type: 'setup-back' })}>{j.back}</Button><Button variant="primary" disabled={!parsedPrizes.valid || event.prizeDefinitions.some(p => !p.name.trim())} onClick={() => { resetChallenge(); send({ type: 'start', now: performance.now(), participants: [1,2,3].map(n => ({ id: `local-player-${n}`, name: locale === 'ar' ? `مشارك توضيحي ${n}` : `Example player ${n}` })) }); }}>{j.start}</Button></div>
+        <div className="action-row"><Button onClick={() => send({ type: 'setup-back' })}>{j.back}</Button><Button variant="primary" disabled={!parsedPrizes.valid || event.prizeDefinitions.some(p => !p.name.trim())} onClick={() => { resetChallenge(); send({ type: 'start', now: performance.now(), participants: legacyPreview ? [1,2,3].map(n => ({ id: `local-player-${n}`, name: locale === 'ar' ? `مشارك توضيحي ${n}` : `Example player ${n}` })) : [] }); }}>{j.start}</Button></div>
       </section>}
       {event.stage === 'live' && <>
-        {!active && <section className="participant-picker panel"><h2>{j.choosePlayer}</h2><p className="caption">{j.fixture}</p><details className="local-attendance"><summary>{locale === 'ar' ? 'إضافة مشارك للتجربة' : 'Add a player for this preview'}</summary><form className="local-attendance-form" onSubmit={e => { e.preventDefault(); const name = localParticipantName.trim(); if (!name || name.length > 80) return; send({ type: 'add-participant', id: `local-guest-${event.participants.length + 1}`, name }); setLocalParticipantName(''); }}><label htmlFor="local-participant-name">{locale === 'ar' ? 'اسم المشارك' : 'Player name'}</label><input id="local-participant-name" autoComplete="off" required maxLength={80} value={localParticipantName} onChange={e => setLocalParticipantName(e.target.value)} /><Button type="submit" disabled={!localParticipantName.trim()}>{locale === 'ar' ? 'إضافة إلى الحضور' : 'Add to attendance'}</Button></form></details><div className="picker-buttons">{(['neverPlayed','previous'] as const).map(group => <section className="player-group" key={group}><h2>{group === 'neverPlayed' ? j.newPlayers : j.previousPlayers}</h2>{event.participants.filter(p => group === 'neverPlayed' ? p.status === 'neverPlayed' : p.status !== 'neverPlayed').map(p => <Button key={p.id} disabled={p.status === 'qualified'} onClick={() => select({ type: 'select-participant', mode: 'manual', id: p.id })}>{p.name} · {p.status === 'neverPlayed' ? j.newPlayers : p.status === 'qualified' ? t.qualified : t.exhausted}</Button>)}</section>)}</div><Button disabled={!event.participants.some(p => p.status === 'neverPlayed')} onClick={() => select({ type: 'select-participant', mode: 'random', random: Math.random() })}>{j.random}</Button>{!event.participants.some(p => p.status === 'neverPlayed') && <p className="caption">{j.noCandidates}</p>}</section>}
-        {active && <><section className="participant panel"><Icon name="user" theme={theme} /><p>{active.name}</p></section><div className="live-layout"><section className="card-pair"><div className="cards">{(['question','condition'] as const).map((kind,i) => <PlayingCard
-            key={`${event.activeParticipantId}-${kind}-${challenge.attempt}`}
+        {legacyPreview && !active && <section className="participant-picker panel"><h2>{j.choosePlayer}</h2><p className="caption">{j.fixture}</p><details className="local-attendance"><summary>{locale === 'ar' ? 'إضافة مشارك للتجربة' : 'Add a player for this preview'}</summary><form className="local-attendance-form" onSubmit={e => { e.preventDefault(); const name = localParticipantName.trim(); if (!name || name.length > 80) return; send({ type: 'add-participant', id: `local-guest-${event.participants.length + 1}`, name }); setLocalParticipantName(''); }}><label htmlFor="local-participant-name">{locale === 'ar' ? 'اسم المشارك' : 'Player name'}</label><input id="local-participant-name" autoComplete="off" required maxLength={80} value={localParticipantName} onChange={e => setLocalParticipantName(e.target.value)} /><Button type="submit" disabled={!localParticipantName.trim()}>{locale === 'ar' ? 'إضافة إلى الحضور' : 'Add to attendance'}</Button></form></details><div className="picker-buttons">{(['neverPlayed','previous'] as const).map(group => <section className="player-group" key={group}><h2>{group === 'neverPlayed' ? j.newPlayers : j.previousPlayers}</h2>{event.participants.filter(p => group === 'neverPlayed' ? p.status === 'neverPlayed' : p.status !== 'neverPlayed').map(p => <Button key={p.id} disabled={p.status === 'qualified'} onClick={() => select({ type: 'select-participant', mode: 'manual', id: p.id })}>{p.name} · {p.status === 'neverPlayed' ? j.newPlayers : p.status === 'qualified' ? t.qualified : t.exhausted}</Button>)}</section>)}</div><Button disabled={!event.participants.some(p => p.status === 'neverPlayed')} onClick={() => select({ type: 'select-participant', mode: 'random', random: Math.random() })}>{j.random}</Button>{!event.participants.some(p => p.status === 'neverPlayed') && <p className="caption">{j.noCandidates}</p>}</section>}
+        {(manualMode || active) && <>{active && <section className="participant panel"><Icon name="user" theme={theme} /><p>{active.name}</p></section>}<div className="live-layout"><section className="card-pair"><div className="cards">{(['question','condition'] as const).map((kind,i) => <PlayingCard
+            key={`${event.activeParticipantId ?? 'manual'}-${kind}-${challenge.attempt}-${pairIndex.join('-')}`}
             kind={kind} revealed={challenge[kind]} disabled={!!challenge.outcome}
             revealLabel={`${t.reveal} ${t[kind]}`}
             onReveal={() => play({ type: 'reveal', card: kind, now: performance.now() })}
@@ -132,14 +152,15 @@ function Journey() {
           <section className="judgment" role="group" aria-label={t.judgment}>
             <h2 className="sr-only">{t.judgment}</h2>
             <div className="judgment-buttons">
-              <Button className="judgment-icon-button" aria-label={t.correct} title={t.correct} disabled={!both} onClick={() => judge(true)}><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg></Button>
-              <Button className="judgment-icon-button" aria-label={t.incorrect} title={t.incorrect} disabled={!both} onClick={() => judge(false)}><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg></Button>
+              <Button className="judgment-icon-button" aria-label={t.correct} title={t.correct} disabled={!both || (manualMode && event.config.prizeCount > 0 && capacityReached(event))} onClick={() => manualMode ? setWinnerDialogOpen(true) : judge(true)}><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg></Button>
+              <Button className="judgment-icon-button" aria-label={t.incorrect} title={t.incorrect} disabled={!both} onClick={() => manualMode ? manualWrong() : judge(false)}><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg></Button>
             </div>
           </section>
           <p className="caption host-attempt">{challenge.maxAttempts > 1 && <>{t.attempt} <bdi>{challenge.attempt} / {challenge.maxAttempts}</bdi></>}</p>
         </div></div></>}
         {challenge.outcome && <p className="caption" role="status">{challenge.outcome === 'qualified' && (event.config.prizeCount === 0 || event.rounds.at(-1)?.outcome === 'no-winner') ? j.successOnly : t[challenge.outcome]}</p>}
-        <div className="action-row"><Button variant="primary" disabled={!!active} onClick={() => send({ type: 'show-prizes' })}>{j.prizes}</Button>{canRestart(event, now) && <Button onClick={() => confirm(j.confirmRestart, { type: 'restart', now: performance.now(), confirmed: true }, () => { setPrizeDraft(''); drawBag.current = initialDrawBag(); setPairIndex([0, 0]); resetChallenge(); })}>{j.restart}</Button>}</div>
+        {manualMode && <p className="caption" role="status">{locale === 'ar' ? `الفائزون المسجلون: ${event.qualificationOrder.length}${event.config.prizeCount > 0 ? ` / ${event.config.prizeCount}` : ''}` : `Registered winners: ${event.qualificationOrder.length}${event.config.prizeCount > 0 ? ` / ${event.config.prizeCount}` : ''}`}</p>}
+        <div className="action-row"><Button variant="primary" disabled={!!active || winnerDialogOpen} onClick={() => send({ type: 'show-prizes' })}>{j.prizes}</Button>{canRestart(event, now) && <Button onClick={() => confirm(j.confirmRestart, { type: 'restart', now: performance.now(), confirmed: true }, () => { setPrizeDraft(''); drawBag.current = initialDrawBag(); setPairIndex([0, 0]); resetChallenge(); })}>{j.restart}</Button>}</div>
       </>}
       {event.stage === 'prizes' && <section className="prizes-body">
         {event.config.prizeCount > 0 && <div className="field recipient"><label htmlFor="recipient">{j.winners}</label><select id="recipient" value={winner ?? ''} onChange={e => setWinner(e.target.value || null)}><option value="">{j.chooseWinner}</option>{qualifierRows.map(p => <option key={p.id} value={p.id} disabled={event.awards.some(a => a.winnerId === p.id)}>{p.name}{event.awards.some(a => a.winnerId === p.id) ? ` · ${j.awarded}` : ''}</option>)}</select></div>}
@@ -149,6 +170,7 @@ function Journey() {
       {(event.stage === 'closing' || event.stage === 'completed') && <section className="closing-body"><h2>{j.farewell}</h2><section className="results panel">{resultRows.length === 0 ? <p>{j.emptyResults}</p> : resultRows.slice(page, page + 1).map(p => { const a = event.awards.find(a => a.winnerId === p.id); const prize = event.prizeDefinitions.find(x => x.id === a?.prizeId); return <article className="winner-row panel" key={p.id}><p>{p.name}</p><p className="caption" dir="ltr">{j.unverified}: {p.id}</p><p>{prize ? `${j.awarded}: ${prize.name}` : j.noWinner}</p></article>; })}{pagination(resultPages)}{event.stage === 'closing' && unopenedPrizeCount(event) > 0 && <p className="caption">{j.unopened}: {unopenedPrizeCount(event)}</p>}<Button onClick={copySummary}>{j.copy}</Button><p className="caption">{j.retention}</p></section><div className="action-row">{event.stage === 'closing' && <><Button onClick={() => send({ type: 'back-prizes' })}>{j.backPrizes}</Button><Button variant="primary" onClick={() => confirm(j.confirmEnd, { type: 'complete', confirmed: true })}>{j.end}</Button></>}</div>{notice && <><p role="status">{notice}</p>{notice === j.copyFailed && <textarea readOnly aria-label={j.copy} value={summary || j.emptyResults} />}</>}</section>}
       <p className="caption specimen-label">{j.local}</p>
     </main>
+    <dialog ref={winnerDialog} className="confirmation panel" aria-labelledby="manual-winner-title" onCancel={e => { e.preventDefault(); setWinnerDialogOpen(false); setManualName(''); }}><form onSubmit={e => { e.preventDefault(); manualSave(); }}><h2 id="manual-winner-title">{locale === 'ar' ? 'تسجيل الفائز' : 'Register winner'}</h2><label htmlFor="manual-winner-name">{locale === 'ar' ? 'اسم الفائز' : 'Winner name'}</label><input id="manual-winner-name" autoFocus required maxLength={80} autoComplete="off" value={manualName} onChange={e => setManualName(e.target.value)} />{event.participants.some(p => p.status === 'qualified' && p.name.toLocaleLowerCase() === manualName.trim().toLocaleLowerCase()) && <p role="alert" className="caption">{locale === 'ar' ? 'الاسم مسجل بالفعل' : 'This winner is already registered'}</p>}<div className="action-row"><Button onClick={() => { setWinnerDialogOpen(false); setManualName(''); }}>{j.cancel}</Button><Button type="submit" variant="primary" disabled={!manualName.trim() || event.participants.some(p => p.status === 'qualified' && p.name.toLocaleLowerCase() === manualName.trim().toLocaleLowerCase())}>{locale === 'ar' ? 'إضافة الفائز' : 'Add winner'}</Button></div></form></dialog>
     <dialog ref={dialog} className="confirmation panel" aria-labelledby="confirmation-title" onKeyDown={e => {
       if (e.key !== 'Tab') return;
       const buttons = Array.from(e.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)'));
