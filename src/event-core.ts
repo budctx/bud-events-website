@@ -17,6 +17,7 @@ export type EventAction =
   | { type: 'define-prize'; prizeId: string; name: string }
   | { type: 'replace-prizes'; text: string }
   | { type: 'add-participant'; id: string; name: string }
+  | { type: 'manual-qualify'; id: string; name: string }
   | { type: 'setup-next' | 'setup-back' }
   | { type: 'start'; now: number; participants?: { id: string; name: string }[] }
   | { type: 'select-participant'; mode: 'manual'; id: string; confirmNoWinner?: boolean }
@@ -71,6 +72,14 @@ export function eventReducer(s: EventState, a: EventAction): EventState {
   if (a.type === 'add-participant') {
     if (!['setup-basics', 'setup-prizes', 'live'].includes(s.stage) || !validFixture(a) || s.participants.some(p => p.id === a.id)) return s;
     return { ...s, participants: [...s.participants, { id: a.id, name: a.name.trim(), status: 'neverPlayed' }] };
+  }
+  if (a.type === 'manual-qualify') {
+    const name = typeof a.name === 'string' ? a.name.trim() : '';
+    if (s.stage !== 'live' || s.activeParticipantId || !validFixture({ id: a.id, name }) || capacityReached(s)
+      || s.participants.some(p => p.id === a.id || (p.status === 'qualified' && p.name.toLocaleLowerCase() === name.toLocaleLowerCase()))) return s;
+    return { ...s, participants: [...s.participants, { id: a.id, name, status: 'qualified' }],
+      qualificationOrder: [...s.qualificationOrder, a.id],
+      rounds: [...s.rounds, { participantId: a.id, outcome: 'qualified' }] };
   }
   if (a.type === 'setup-next') return s.stage === 'setup-basics' && s.config.eventName.trim() ? { ...s, stage: 'setup-prizes' } : s;
   if (a.type === 'setup-back') return s.stage === 'setup-prizes' ? { ...s, stage: 'setup-basics' } : s;
