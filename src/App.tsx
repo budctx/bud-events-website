@@ -9,6 +9,8 @@ import { copy, samplePairs } from './i18n';
 import type { Locale } from './i18n';
 import { journeyCopy } from './journey-copy';
 import { initialState, previewReducer } from './preview-state';
+import { initialDrawBag, nextPair } from './local-draw';
+import type { PairIndex } from './local-draw';
 import type { Attempts, Duration } from './preview-state';
 import { canRestart, capacityReached, eventReducer, initialEventState, unopenedPrizeCount } from './event-core';
 import type { EventAction } from './event-core';
@@ -24,6 +26,8 @@ function Journey() {
   const parsedPrizes = parsePrizeLines(prizeDraft);
   const [event, send] = useReducer(eventReducer, undefined, initialEventState);
   const [challenge, play] = useReducer(previewReducer, undefined, () => initialState(5, 1, false));
+  const drawBag = useRef(initialDrawBag());
+  const [pairIndex, setPairIndex] = useState<PairIndex>([0, 0]);
   const [page, setPage] = useState(0);
   const [wide, setWide] = useState(() => matchMedia('(min-width:1150px)').matches);
   useEffect(() => { const media = matchMedia('(min-width:1150px)'); const update = () => { setWide(media.matches); setPage(0); }; media.addEventListener('change', update); return () => media.removeEventListener('change', update); }, []);
@@ -52,14 +56,20 @@ function Journey() {
   useEffect(() => { if (confirmation) { dialog.current?.showModal(); } else { dialog.current?.close(); } }, [confirmation]);
   const confirm = (text: string, action: EventAction, after?: () => void) => setConfirmation({ text, action, after });
   const resetChallenge = () => play({ type: 'reset', duration: event.config.duration, maxAttempts: event.config.maxAttempts, timerEnabled: event.config.timerEnabled });
+  const drawChallenge = () => {
+    const drawn = nextPair(drawBag.current, samplePairs.ar.length, samplePairs.ar.length);
+    drawBag.current = drawn.bag;
+    setPairIndex(drawn.pair);
+  };
   const select = (action: EventAction) => {
-    if (capacityReached(event)) confirm(j.capacity, { ...action, confirmNoWinner: true } as EventAction, resetChallenge);
-    else { resetChallenge(); send(action); }
+    if (capacityReached(event)) confirm(j.capacity, { ...action, confirmNoWinner: true } as EventAction, () => { resetChallenge(); drawChallenge(); });
+    else { resetChallenge(); drawChallenge(); send(action); }
   };
   const judge = (correct: boolean) => {
     if (!event.activeParticipantId) return;
     const next = previewReducer(challenge, { type: 'judge', correct }); play({ type: 'judge', correct });
     if (next.outcome) send({ type: 'record-outcome', outcome: next.outcome });
+    else if (!correct && next.attempt > challenge.attempt) drawChallenge();
   };
   const size = event.stage === 'prizes' ? (wide ? 2 : 1) : 3;
   const prizePage = event.prizeDefinitions.slice(page * size, (page + 1) * size);
@@ -69,7 +79,7 @@ function Journey() {
   const resultPages = Math.max(1, resultRows.length);
   const active = event.participants.find(p => p.id === event.activeParticipantId);
   const both = challenge.question && challenge.condition;
-  const pair = samplePairs[locale][challenge.attempt - 1];
+  const pair = [samplePairs[locale][pairIndex[0]][0], samplePairs[locale][pairIndex[1]][1]] as const;
   const status = challenge.outcome ? t.stopped : !both ? t.waiting : challenge.seconds === 0 ? t.zero : t.running;
   // Fixture IDs are intentionally marked unverified; production export requires server-verified Discord IDs.
   const summary = qualifierRows.flatMap(p => { const a = event.awards.find(a => a.winnerId === p.id); const prize = event.prizeDefinitions.find(x => x.id === a?.prizeId); return prize ? [`${safeCopy(p.name)} — [${j.unverified}: ${p.id}] — ${safeCopy(prize.name)}`] : []; }).join('\n');
@@ -129,12 +139,12 @@ function Journey() {
           <p className="caption host-attempt">{challenge.maxAttempts > 1 && <>{t.attempt} <bdi>{challenge.attempt} / {challenge.maxAttempts}</bdi></>}</p>
         </div></div></>}
         {challenge.outcome && <p className="caption" role="status">{challenge.outcome === 'qualified' && (event.config.prizeCount === 0 || event.rounds.at(-1)?.outcome === 'no-winner') ? j.successOnly : t[challenge.outcome]}</p>}
-        <div className="action-row"><Button variant="primary" disabled={!!active} onClick={() => send({ type: 'show-prizes' })}>{j.prizes}</Button>{canRestart(event, now) && <Button onClick={() => confirm(j.confirmRestart, { type: 'restart', now: performance.now(), confirmed: true }, () => { setPrizeDraft(''); resetChallenge(); })}>{j.restart}</Button>}</div>
+        <div className="action-row"><Button variant="primary" disabled={!!active} onClick={() => send({ type: 'show-prizes' })}>{j.prizes}</Button>{canRestart(event, now) && <Button onClick={() => confirm(j.confirmRestart, { type: 'restart', now: performance.now(), confirmed: true }, () => { setPrizeDraft(''); drawBag.current = initialDrawBag(); setPairIndex([0, 0]); resetChallenge(); })}>{j.restart}</Button>}</div>
       </>}
       {event.stage === 'prizes' && <section className="prizes-body">
         {event.config.prizeCount > 0 && <div className="field recipient"><label htmlFor="recipient">{j.winners}</label><select id="recipient" value={winner ?? ''} onChange={e => setWinner(e.target.value || null)}><option value="">{j.chooseWinner}</option>{qualifierRows.map(p => <option key={p.id} value={p.id} disabled={event.awards.some(a => a.winnerId === p.id)}>{p.name}{event.awards.some(a => a.winnerId === p.id) ? ` · ${j.awarded}` : ''}</option>)}</select></div>}
         {event.config.prizeCount === 0 ? <p className="empty-state panel">{j.empty}</p> : <section className="prize-grid panel"><h2>{j.prizes} · {event.config.prizeCount}</h2><div className="prize-cards">{prizePage.map((p, i) => { const award = event.awards.find(a => a.prizeId === p.id); const recipient = event.participants.find(x => x.id === award?.winnerId); return <Button key={p.id} className="prize-card prize-trigger" aria-label={`${j.prize} ${page * size + i + 1}`} disabled={!!award} onClick={() => confirm(winner ? `${j.confirmOpen} · ${event.participants.find(x => x.id === winner)?.name}` : j.confirmUnassigned, { type: 'open-prize', prizeId: p.id, winnerId: winner, confirmed: true }, () => setWinner(null))}><PlayingCard kind="prize" revealed={!!award} front={<><span className="card-title">{j.prize} · <bdi>{page * size + i + 1}</bdi></span><img src="/assets/light-prize.svg" alt="" width="32" height="32" /><span className="caption">{j.unopened}</span></>} back={<><span className="card-title">{j.prize} · <bdi>{page * size + i + 1}</bdi></span><span dir="auto" className={`card-content ${p.name.length > 70 ? 'prize-content--long' : ''}`}>{p.name}</span><span>{recipient?.name ?? j.noRecipient}</span></>} /></Button>; })}</div>{pagination(pages)}</section>}
-        <div className="action-row"><Button disabled={event.awards.length > 0} onClick={() => send({ type: 'back-live' })}>{j.backLive}</Button><Button variant="primary" onClick={() => unopenedPrizeCount(event) ? confirm(j.confirmClosing, { type: 'closing', confirmed: true }) : send({ type: 'closing' })}>{j.closing}</Button></div>{event.awards.length > 0 && <p className="caption">{j.locked}</p>}{canRestart(event, now) && <Button onClick={() => confirm(j.confirmRestart, { type: 'restart', now: performance.now(), confirmed: true }, () => { setPrizeDraft(''); resetChallenge(); })}>{j.restart}</Button>}
+        <div className="action-row"><Button disabled={event.awards.length > 0} onClick={() => send({ type: 'back-live' })}>{j.backLive}</Button><Button variant="primary" onClick={() => unopenedPrizeCount(event) ? confirm(j.confirmClosing, { type: 'closing', confirmed: true }) : send({ type: 'closing' })}>{j.closing}</Button></div>{event.awards.length > 0 && <p className="caption">{j.locked}</p>}{canRestart(event, now) && <Button onClick={() => confirm(j.confirmRestart, { type: 'restart', now: performance.now(), confirmed: true }, () => { setPrizeDraft(''); drawBag.current = initialDrawBag(); setPairIndex([0, 0]); resetChallenge(); })}>{j.restart}</Button>}
       </section>}
       {(event.stage === 'closing' || event.stage === 'completed') && <section className="closing-body"><h2>{j.farewell}</h2><section className="results panel">{resultRows.length === 0 ? <p>{j.emptyResults}</p> : resultRows.slice(page, page + 1).map(p => { const a = event.awards.find(a => a.winnerId === p.id); const prize = event.prizeDefinitions.find(x => x.id === a?.prizeId); return <article className="winner-row panel" key={p.id}><p>{p.name}</p><p className="caption" dir="ltr">{j.unverified}: {p.id}</p><p>{prize ? `${j.awarded}: ${prize.name}` : j.noWinner}</p></article>; })}{pagination(resultPages)}{event.stage === 'closing' && unopenedPrizeCount(event) > 0 && <p className="caption">{j.unopened}: {unopenedPrizeCount(event)}</p>}<Button onClick={copySummary}>{j.copy}</Button><p className="caption">{j.retention}</p></section><div className="action-row">{event.stage === 'closing' && <><Button onClick={() => send({ type: 'back-prizes' })}>{j.backPrizes}</Button><Button variant="primary" onClick={() => confirm(j.confirmEnd, { type: 'complete', confirmed: true })}>{j.end}</Button></>}</div>{notice && <><p role="status">{notice}</p>{notice === j.copyFailed && <textarea readOnly aria-label={j.copy} value={summary || j.emptyResults} />}</>}</section>}
       <p className="caption specimen-label">{j.local}</p>
