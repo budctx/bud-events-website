@@ -26,6 +26,13 @@
 
 The original Figma Home/Gallery screenshots are visual evidence, **not proof** of immutable Figma design version or final user acceptance for every modal, translation and placeholder.
 
+
+## Approved owner decision — S00-ADR-002 (session maximum and free resume)
+
+Owner approval 2026-10-22: **one session has a maximum lifetime of 4 hours (240 minutes); resuming the same interrupted session must not deduct another Slot.** This is a shared Event Engine / Session Manager responsibility, not a per-template implementation. The backend must enforce idempotent single debit for a newly started session and resume by the original session identity, with expiry and concurrency regression tests in S07–S11.
+
+This approval does **not** resolve the legacy seven-day prestart window, 60-minute one-time restart, result retention period, or exact wall-clock accounting while a host is disconnected. Those remain separately open; 240 minutes + no-double-debit is an approved policy, **not a working/live authenticated session**. The latest decision is recorded in [Notion Stage 00 audit](https://app.notion.com/p/401b475e25f1814d9cc7f75ffcd1bf0c), cross-referenced in existing S02-G05/G06 policy-review fields. No new release authorization implied.
+
 ## Decision-conflict ledger
 
 | ID | Scope | Disposition | Remaining evidence |
