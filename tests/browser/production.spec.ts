@@ -11,6 +11,17 @@ for (const locale of ['ar','en']) for (const size of sizes) {
     await expect(page.getByTestId('nav-events')).toBeVisible();
     await expect(page.getByTestId('nav-designs')).toBeVisible();
     expect(await page.locator('.platform-art img').evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBeTruthy();
+    await page.locator('.platform-art img').evaluate((el: HTMLImageElement) => el.decode());
+    for (const selector of ['.platform-login', '.platform-language', '[data-testid="nav-events"]', '[data-testid="hero-explore"]', '[data-testid="hero-how"]']) {
+      const control = page.locator(selector);
+      const box = await control.boundingBox();
+      expect(box?.height).toBeGreaterThanOrEqual(44);
+      expect(await control.evaluate(el => {
+        const r = el.getBoundingClientRect();
+        return el.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2));
+      })).toBeTruthy();
+    }
+    await expect(page.locator('.platform-art-logo')).toHaveCount(2);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth+1)).toBeTruthy();
     await page.screenshot({path:info.outputPath(`home-${locale}-${size.width}.png`),fullPage:true,animations:'disabled'});
     await page.getByTestId('nav-events').click();
@@ -114,4 +125,22 @@ test('approved Figma dotted secondary button asset is served and applied',async(
   expect(response.status()).toBe(200);
   expect(response.headers()['content-type']).toContain('image/svg+xml');
   expect((await response.body()).length).toBeGreaterThan(1000);
+});
+
+for (const locale of ['ar','en']) test(`homepage explanation and product discovery ${locale}`, async ({ page }) => {
+  for (const size of [{width:320,height:568},{width:768,height:1024},{width:844,height:390},{width:1920,height:1080}]) {
+    await page.setViewportSize(size);
+    await page.goto(`/?lang=${locale}`);
+    await page.getByTestId('hero-how').click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator('.platform-how-steps li')).toHaveCount(3);
+    for(let i=0;i<5;i++) { await page.keyboard.press('Tab'); expect(await dialog.evaluate(el=>el.contains(document.activeElement))).toBeTruthy(); }
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('hero-how')).toBeFocused();
+    await page.getByTestId('hero-how').click();
+    await page.getByTestId('how-explore').click();
+    await expect(page.getByTestId('product-card-qc')).toBeVisible();
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBeTruthy();
+  }
 });

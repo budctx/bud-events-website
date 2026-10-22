@@ -1,5 +1,7 @@
 # BU'D — Question & Condition / Prize Draw UX
 
+Delivery continuation: the later owner acceptance and homepage refresh request authorize direct production delivery of these accepted frontend changes after successful checks. See `BUD_HOMEPAGE_REFRESH.md`; earlier Preview-only statements below describe the historical delivery boundary.
+
 Owner request: 2026-10-22, current chat and seven attached screenshots.
 Baseline: main `8a60944f05718ffa2476aae7e7791eedd5fa0f5c`.
 Branch: `feat/prize-draw-winners-ux`.

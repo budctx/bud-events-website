@@ -36,3 +36,7 @@ The current source hierarchy and conflict list are adjacent documents. Gate00 st
 ## Scoped owner update — Prize Draw UX (2026-10-22)
 
 For the current prize UX request, the owner adopts the current site as the official visual reference and requires Code-first work without Figma. Winner names may repeat and are independent numbered records. Add the recipient sidebar, editable/deletable winner manager, confirmation before prize opening, and configurable celebration. See `BUD_PRIZE_DRAW_UX.md` for implementation and validation. Older Figma-first and unique-winner-name clauses are superseded within this scope; broader project gates are unaffected.
+
+## Homepage and scoped production approval — 2026-10-22
+
+The owner accepted the prize UX, requested a competitor-informed homepage clarity/responsiveness pass, explicitly requested regenerated higher-quality background art and official logos on both cards for mobile/desktop, and authorized direct upload/publication without returning for approval. Existing site identity and Code-first/no-Figma direction remain active. This permits release of these tested frontend changes, including the accepted prize UX, after CI/review gates; it does not authorize purchases or activation of disabled commerce. See `BUD_HOMEPAGE_REFRESH.md` for source observations, image provenance, implementation and validation.
