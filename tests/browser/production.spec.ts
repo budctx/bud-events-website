@@ -12,7 +12,7 @@ for (const locale of ['ar','en']) for (const size of sizes) {
     await expect(page.getByTestId('nav-designs')).toBeVisible();
     expect(await page.locator('.platform-art img').evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBeTruthy();
     await page.locator('.platform-art img').evaluate((el: HTMLImageElement) => el.decode());
-    for (const selector of ['.platform-login', '.platform-language', '[data-testid="nav-events"]', '[data-testid="hero-explore"]', '[data-testid="hero-how"]']) {
+    for (const selector of ['.platform-login', '.platform-language', '[data-testid="nav-events"]', '[data-testid="hero-explore"]']) {
       const control = page.locator(selector);
       const box = await control.boundingBox();
       expect(box?.height).toBeGreaterThanOrEqual(44);
@@ -46,9 +46,9 @@ for(const locale of ['ar','en']) test(`manual journey ${locale}`,async({page},in
   await page.setViewportSize({width:390,height:844});
   await page.goto(`/?screen=game&lang=${locale}`);
   const ar=locale==='ar';
-  await page.getByLabel(ar?'أدخل الجوائز (كل سطر جائزة)':'Enter prizes (one per line)').fill(ar?'هدية خاصة':'Special gift');
+  await page.getByLabel(ar?'أدخل الجوائز':'Enter prizes').fill(ar?'هدية خاصة':'Special gift');
+  await page.getByRole('switch').check();
   await page.getByRole('spinbutton').fill('13');
-  await page.getByRole('checkbox').check();
   await page.getByRole('button',{name:ar?'بدء الفعالية':'Start event',exact:true}).click();
   await expect(page.getByRole('timer')).toHaveText('13');
   await expect(page.locator('#mg-winner-name')).not.toBeVisible();
@@ -115,9 +115,10 @@ test('game fills short viewport without clipping controls',async({page})=>{
  await expect(page.getByRole('button',{name:'صفحة الجوائز',exact:true})).toBeInViewport();
 });
 
-test('approved Figma dotted secondary button asset is served and applied',async({page})=>{
+test('event explanation preserves the dotted secondary button asset',async({page})=>{
   await page.goto('/?lang=ar');
-  const secondary=page.locator('.platform-hero-actions .platform-action-secondary');
+  await page.getByTestId('nav-events').click();
+  const secondary=page.getByTestId('event-how');
   await expect(secondary).toBeVisible();
   const image=await secondary.evaluate(el=>getComputedStyle(el).backgroundImage);
   expect(image).toContain('community-dots-secondary.svg');
@@ -131,16 +132,80 @@ for (const locale of ['ar','en']) test(`homepage explanation and product discove
   for (const size of [{width:320,height:568},{width:768,height:1024},{width:844,height:390},{width:1920,height:1080}]) {
     await page.setViewportSize(size);
     await page.goto(`/?lang=${locale}`);
-    await page.getByTestId('hero-how').click();
+    await expect(page.getByTestId('hero-how')).toHaveCount(0);
+    await page.getByTestId('hero-explore').click();
+    await page.getByTestId('event-how').click();
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
     await expect(dialog.locator('.platform-how-steps li')).toHaveCount(3);
     for(let i=0;i<5;i++) { await page.keyboard.press('Tab'); expect(await dialog.evaluate(el=>el.contains(document.activeElement))).toBeTruthy(); }
     await page.keyboard.press('Escape');
-    await expect(page.getByTestId('hero-how')).toBeFocused();
-    await page.getByTestId('hero-how').click();
-    await page.getByTestId('how-explore').click();
-    await expect(page.getByTestId('product-card-qc')).toBeVisible();
+    await expect(page.getByTestId('event-how')).toBeFocused();
+    await page.getByTestId('event-how').click();
+    await page.getByTestId('how-try').click();
+    await expect(page.locator('.mg-setup')).toBeVisible();
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBeTruthy();
   }
+});
+
+for (const locale of ['ar', 'en']) test(`homepage fits mobile viewport with touch navigation ${locale}`, async ({ browser }) => {
+  const context = await browser.newContext({ hasTouch: true, isMobile: true });
+  const page = await context.newPage();
+  for (const size of [{width:320,height:568},{width:360,height:667},{width:390,height:844},{width:430,height:932},{width:844,height:390},{width:667,height:375},{width:568,height:320}]) {
+    await page.setViewportSize(size);
+    await page.goto(`/?lang=${locale}`);
+    await page.evaluate(() => document.fonts.ready);
+    await expect(page.getByTestId('hero-explore')).toBeInViewport({ratio:1});
+    await expect(page.locator('.platform-footer')).toBeInViewport({ratio:1});
+    expect(await page.evaluate(() => document.querySelector('.platform-footer')!.getBoundingClientRect().top - document.querySelector('[data-testid=hero-explore]')!.getBoundingClientRect().bottom)).toBeGreaterThan(8);
+    expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1)).toBeTruthy();
+    await expect(page.locator('.platform-nav-icon').first()).not.toBeVisible();
+    await expect(page.locator('.platform-nav-label').first()).toBeVisible();
+    await page.getByTestId('nav-events').tap();
+    await expect(page.getByTestId('event-how')).toBeVisible();
+  }
+  await context.close();
+});
+
+test('desktop navigation flips on hover and keyboard focus, Discord uses official branding', async ({page}) => {
+  await page.setViewportSize({width:1440,height:900});
+  await page.goto('/?lang=ar');
+  const nav = page.getByTestId('nav-events');
+  await expect(nav.locator('.platform-nav-label')).toHaveCSS('opacity','0');
+  await nav.hover();
+  await expect(nav.locator('.platform-nav-label')).toHaveCSS('opacity','1');
+  await expect(nav.locator('.platform-nav-icon')).toHaveCSS('opacity','0');
+  await page.mouse.move(0,0); await page.keyboard.press('Tab'); await nav.focus();
+  await expect(nav.locator('.platform-nav-label')).toHaveCSS('opacity','1');
+  const login = page.getByRole('button',{name:'سجّل دخولك عبر Discord'});
+  await expect(login).toHaveCSS('background-color','rgb(88, 101, 242)');
+  await expect(login).toHaveCSS('color','rgb(255, 255, 255)');
+  await expect(login.locator('img')).toHaveAttribute('src','/assets/discord-symbol-white.svg');
+  await login.click();
+  await expect(page.getByRole('dialog')).toContainText('تسجيل الدخول والشراء غير متاحين');
+});
+
+test('timer is optional and setup tooltips work with keyboard and touch', async ({page,browser}) => {
+  await page.goto('/?screen=game&lang=ar');
+  await expect(page.getByRole('spinbutton')).toHaveCount(0);
+  await expect(page.getByRole('switch')).not.toBeChecked();
+  const help = page.getByRole('button',{name:'توضيح الجوائز',exact:true});
+  await help.focus();
+  await expect(page.getByRole('tooltip')).toContainText('كل سطر غير فارغ');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('tooltip')).toHaveCount(0);
+  await page.getByRole('switch').focus(); await page.keyboard.press('Space');
+  await expect(page.getByRole('spinbutton')).toBeVisible();
+  await page.getByRole('spinbutton').fill('13');
+  await page.getByRole('switch').uncheck();
+  await expect(page.getByRole('spinbutton')).toHaveCount(0);
+  await page.getByRole('button',{name:'بدء الفعالية',exact:true}).click();
+  await expect(page.getByRole('timer')).toHaveCount(0);
+  const context = await browser.newContext({hasTouch:true,isMobile:true,viewport:{width:360,height:667}});
+  const touch = await context.newPage(); await touch.goto('/?screen=game&lang=ar');
+  const tip = touch.getByRole('button',{name:'توضيح الجوائز',exact:true});
+  await tip.tap(); await expect(touch.getByRole('tooltip')).toContainText('الحد الأقصى للفائزين');
+  await tip.tap(); await expect(touch.getByRole('tooltip')).toHaveCount(0);
+  await tip.tap(); await touch.locator('h1').tap(); await expect(touch.getByRole('tooltip')).toHaveCount(0);
+  await context.close();
 });

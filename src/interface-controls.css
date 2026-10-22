@@ -1,0 +1,14 @@
+.bud-switch-field { display:flex; align-items:center; justify-content:space-between; gap:16px; min-height:44px; }
+.bud-switch-field label { cursor:pointer; }
+.bud-switch { direction:ltr; flex:none; width:54px; min-height:32px; padding:3px; border:2px solid #333; border-radius:20px; background:#dedbd3; cursor:pointer; transition:background-color 180ms ease; }
+.bud-switch[data-state=checked] { background:#fbb03b; }
+.bud-switch-thumb { display:block; width:22px; height:22px; border:1.5px solid #333; border-radius:50%; background:#fdfdff; box-shadow:1px 2px 0 #333; transform:translateX(0); transition:transform 200ms cubic-bezier(.2,.8,.2,1); }
+.bud-switch-thumb[data-state=checked] { transform:translateX(21px); }
+.bud-switch:focus-visible,.bud-help-trigger:focus-visible { outline:3px solid #333; outline-offset:3px; }
+.mg-field-label { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.bud-help-trigger { display:inline-grid; place-items:center; flex:none; min-width:32px; min-height:32px; padding:4px; font:650 14px/1 'Readex Pro Variable',sans-serif; border:1.5px solid #777268; border-radius:50%; color:#333; background:#f6f0e2; cursor:help; }
+.bud-tooltip { z-index:100; padding:12px 14px; max-width:min(290px,calc(100vw - 24px)); border:2px solid #333; border-radius:9px; background:#fff8e8; color:#333; box-shadow:3px 3px 0 #333; font:12px/1.9 'Readex Pro Variable',sans-serif; text-align:start; animation:bud-tip-enter 140ms ease-out; }
+.bud-tooltip-arrow { fill:#333; }
+@keyframes bud-tip-enter { from { opacity:0; transform:translateY(3px); } to {opacity:1;transform:none;} }
+@media(pointer:coarse) { .bud-help-trigger { min-width:44px; min-height:44px; } .bud-switch { min-height:44px; padding-block:9px; } }
+@media(prefers-reduced-motion:reduce) { .bud-switch,.bud-switch-thumb { transition:none; } .bud-tooltip { animation:none; } }
