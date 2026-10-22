@@ -23,6 +23,11 @@ for(const locale of ['ar','en']) for(const size of [{width:1440,height:900},{wid
     await page.clock.runFor(2100);
     await expect(page.getByRole('timer')).toHaveText(ar?'3ث':'3s');
     expect(Number(await preview.locator('.qc-demo-progress').getAttribute('stroke-dashoffset'))).toBeGreaterThan(initial);
+    for(const card of await preview.locator('.mg-card').all()) {
+      const spacing=await card.evaluate(el=>({content:el.querySelector('.mg-card-content')!.getBoundingClientRect().toJSON(),title:el.querySelector('.mg-face-title')!.getBoundingClientRect().toJSON(),footer:el.querySelector('.mg-face-footer')!.getBoundingClientRect().toJSON()}));
+      expect(spacing.content.bottom).toBeLessThan(spacing.footer.top-2);
+      expect(spacing.content.top).toBeGreaterThan(spacing.title.bottom+2);
+    }
     await page.screenshot({path:info.outputPath('inline-countdown.png'),fullPage:true,animations:'disabled'});
     await page.clock.runFor(3100);
     await expect(page.getByRole('timer')).toHaveText(ar?'0ث':'0s');
@@ -64,7 +69,7 @@ test('preview keyboard, reduced motion, locale reset and unmount cleanup',async(
   await q.focus(); await page.keyboard.press('Enter');
   await page.getByRole('button',{name:'اكشف شرط',exact:true}).focus(); await page.keyboard.press('Space');
   await expect(page.getByRole('timer')).toHaveText('5ث');
-  await expect(page.locator('.qc-demo-flip').first()).toHaveCSS('transition-duration','0s');
+  await expect(page.locator('.mg-flip-inner').first()).toHaveCSS('transition-duration','0s');
   await page.getByTestId('locale-toggle').click();
   await expect(page.getByRole('timer')).toHaveCount(0);
   await page.getByRole('button',{name:'Reveal Question',exact:true}).click();
@@ -73,4 +78,27 @@ test('preview keyboard, reduced motion, locale reset and unmount cleanup',async(
   await page.getByTestId('nav-events').click();
   await expect(page.getByRole('timer')).toHaveCount(0);
   await expect(page.getByRole('button',{name:'Reveal Question',exact:true})).toBeEnabled();
+});
+
+test('sample and host use identical card faces, marks and flip styles at the same width',async({page,browser})=>{
+  await page.setViewportSize({width:1440,height:900});
+  await page.goto('/?screen=events&lang=ar');
+  const sample=page.locator('.qc-demo-card').first();
+  await sample.click();
+  await expect(sample.locator('.mg-card-visible')).toHaveCSS('background-color','rgb(253, 253, 255)');
+  const width=await sample.evaluate(el=>el.getBoundingClientRect().width);
+  const host=await browser.newPage({viewport:{width:1440,height:900}});
+  await host.goto('http://127.0.0.1:4173/?screen=game&lang=ar');
+  await host.getByRole('button',{name:'بدء الفعالية',exact:true}).click();
+  await host.locator('.mg-cards').evaluate((el,w)=>{ (el as HTMLElement).style.width=`${w*2+16}px`; },width);
+  const game=host.locator('.mg-card').first();await game.click();
+  for(const selector of ['.mg-card-hidden','.mg-card-visible','.mg-corner-top','.mg-hidden-center b','.mg-card-content']) {
+    const properties=['backgroundColor','borderTopWidth','borderRadius','boxShadow','fontSize','width'];
+    const actual=await sample.locator(selector).first().evaluate((el,props)=>props.map(p=>getComputedStyle(el).getPropertyValue(p.replace(/[A-Z]/g,m=>`-${m.toLowerCase()}`))),properties);
+    const expected=await game.locator(selector).first().evaluate((el,props)=>props.map(p=>getComputedStyle(el).getPropertyValue(p.replace(/[A-Z]/g,m=>`-${m.toLowerCase()}`))),properties);
+    // Content width depends on the fixed sample text; all other visual properties share one source.
+    expect(actual.slice(0,selector==='.mg-card-content'?-1:undefined)).toEqual(expected.slice(0,selector==='.mg-card-content'?-1:undefined));
+  }
+  await expect(sample.locator('.mg-corner')).toHaveCount(4);
+  await host.close();
 });
