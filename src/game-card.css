@@ -1,0 +1,21 @@
+.mg-card { position:relative; padding:0; display:block; width:100%; aspect-ratio:440/468; min-width:0; border:0; background:transparent; text-align:center; color:#333; cursor:pointer; perspective:1200px; container-type:inline-size; }
+.mg-card:disabled { cursor:default; opacity:1; }
+.mg-flip-inner { display:block; width:100%; height:100%; position:relative; transform-style:preserve-3d; transition:transform 420ms cubic-bezier(.2,.8,.2,1); }
+.mg-card[data-revealed=true] .mg-flip-inner { transform:rotateY(180deg); }
+.mg-card-face { position:absolute; inset:0; display:flex; flex-direction:column; justify-content:center; align-items:center; border:3px solid #282825; border-radius:13px; box-shadow:4px 4px 0 #282825; backface-visibility:hidden; -webkit-backface-visibility:hidden; overflow:hidden; padding:32px 24px; }
+.mg-card-hidden { background:#222221; color:#fdfdff; }
+.mg-card-visible { transform:rotateY(180deg); background:#fdfdff; }
+.mg-hidden-center { display:flex; flex-direction:column; gap:5px; align-items:center; font-size:15px; font-weight:700; color:#fbb03b; }
+.mg-card--condition .mg-hidden-center { color:#80b7e4; }
+.mg-hidden-center b { display:grid; place-items:center; font-style:italic; font-size:30px; border:2px solid #383838; border-radius:50%; width:64px; height:64px; color:#fdfdff; }
+.mg-corner { position:absolute; opacity:.65; width:25px; height:auto; }
+.mg-corner-top { top:14px; inset-inline-start:14px; }
+.mg-corner-bottom { bottom:14px; inset-inline-end:14px; transform:rotate(180deg); }
+.mg-face-title { position:absolute; top:14px; inset-inline:40px; font-size:12px; color:#605d56; }
+.mg-card-content { font-size:clamp(18px,2.4vw,30px); line-height:1.6; overflow-wrap:anywhere; }
+.mg-face-footer { position:absolute; inset-inline:16px; bottom:14px; border-top:1px solid #eeece7; padding-top:4px; color:#a76600; font-size:14px; font-weight:650; }
+.mg-card--condition .mg-face-footer { color:#316b9a; }
+
+@container (max-width:250px) { .mg-card-face { padding:32px 12px; border-width:2px; box-shadow:3px 3px 0 #333; border-radius:10px; } .mg-hidden-center b { width:48px; height:48px; font-size:24px; } .mg-corner { width:18px; } .mg-corner-top { top:10px; inset-inline-start:10px; } .mg-corner-bottom { bottom:10px; inset-inline-end:10px; } .mg-card-content { font-size:18px; line-height:1.5; } .mg-face-title { font-size:9px; line-height:1.4; top:8px; inset-inline:24px; } .mg-face-footer { font-size:11px; line-height:1.4; bottom:9px; } }
+@container (max-width:165px) { .mg-card-content { font-size:16px; } }
+@media(prefers-reduced-motion:reduce) { .mg-flip-inner { transition:none; } }

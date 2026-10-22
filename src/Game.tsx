@@ -9,6 +9,7 @@ import './game.css';
 import { WinnerList, WinnerNumber, WinnerIcon } from './WinnerList';
 import type { ManualWinner } from './manual-game';
 import { PrizeReveal } from './PrizeReveal';
+import { GameCard } from './GameCard';
 import { AnimatedSwitch, HelpTip, InterfaceIcon, NumberStepper } from './InterfaceControls';
 
 const words = {
@@ -21,7 +22,6 @@ const banks = {
   en: { questions: ['A country', 'A mobile app', 'Something you take on a trip', 'A city', 'An animal', 'A food'], conditions: ['Starts with S', 'Contains M', 'Two words', 'Starts with B', 'Contains R', 'At least four letters'] },
 };
 type Props = { onExit?: () => void; locale?: Locale };
-function Mark({ className = '' }: { className?: string }) { return <img className={className} src="/assets/bud-emblem.svg" width="32" height="23" alt="" />; }
 function JudgmentIcon({ correct }: { correct: boolean }) { return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="9" />{correct ? <path d="m7 12 3 3 7-7" /> : <path d="m8 8 8 8m0-8-8 8" />}</svg>; }
 
 function GameDialog({ open, title, onClose, children, className = '', initialFocus = '[data-autofocus]' }: { open: boolean; title: string; onClose: () => void; children: ReactNode; className?: string; initialFocus?: string }) {
@@ -104,16 +104,7 @@ export default function Game({ onExit, locale = 'ar' }: Props) {
   const closeWinner = () => { dispatch({ type: 'cancel-winner' }); setName(''); };
   const copyResults = async () => { try { await navigator.clipboard.writeText(summary || t.empty); setNotice(t.copied); } catch { setNotice(t.copyError); } };
   const prizeDialogClose = () => setPrizeId(null);
-  const renderCard = (kind: 'question' | 'condition', index: number) => {
-    const revealed = state[kind];
-    const content = kind === 'question' ? banks[locale].questions[draw.pair[0]] : banks[locale].conditions[draw.pair[1]];
-    return <button type="button" key={kind} className={`mg-card mg-card--${kind}`} data-revealed={revealed} aria-label={`${t.reveal} ${t[kind]}`} aria-pressed={revealed} disabled={revealed || state.pendingWinner} onClick={() => dispatch({ type: 'reveal', card: kind, now: performance.now() })}>
-      <span className="mg-flip-inner">
-        <span className="mg-card-face mg-card-hidden" aria-hidden={revealed}><Mark className="mg-corner mg-corner-top" /><span className="mg-hidden-center"><b>{index === 0 ? 'Q' : 'C'}</b><span>{t[kind]}</span></span><Mark className="mg-corner mg-corner-bottom" /></span>
-        <span className="mg-card-face mg-card-visible" aria-hidden={!revealed}><span className="mg-face-title">{locale === 'ar' ? `بطاقة ${t[kind]}` : t[kind]}</span><Mark className="mg-corner mg-corner-top" /><strong className="mg-card-content">{content}</strong><span className="mg-face-footer">{t[kind]}</span><Mark className="mg-corner mg-corner-bottom" /></span>
-      </span>
-    </button>;
-  };
+  const renderCard = (kind: 'question' | 'condition') => <GameCard kind={kind} locale={locale} revealed={state[kind]} disabled={state.pendingWinner} content={kind === 'question' ? banks[locale].questions[draw.pair[0]] : banks[locale].conditions[draw.pair[1]]} onReveal={() => dispatch({ type: 'reveal', card: kind, now: performance.now() })} />;
   return <main className={`manual-game manual-phase-${state.phase}`} dir={locale === 'ar' ? 'rtl' : 'ltr'} lang={locale}>
     <header className="mg-header"><button className="mg-icon-button mg-exit" aria-label={t.exit} title={t.exit} onClick={onExit}><InterfaceIcon kind="exit" /></button><h1 ref={heading} tabIndex={-1}>{t.title}</h1>{state.phase !== 'setup' && <div className="mg-toolbar"><button className="mg-button" onClick={() => setViewWinners(true)}>{t.winners} <bdi>({state.winners.length}{state.prizes.length > 0 ? `/${state.prizes.length}` : ''})</bdi></button>{state.phase === 'live' && <button className="mg-button mg-primary" onClick={() => dispatch({ type: 'phase', phase: 'prizes' })}>{t.prizePage}</button>}</div>}</header>
     {state.phase === 'setup' && <section className="mg-setup">
@@ -129,7 +120,7 @@ export default function Game({ onExit, locale = 'ar' }: Props) {
     </section>}
     {state.phase === 'live' && <section className="mg-live" aria-label={t.title}>
       {state.config.timerEnabled && <div className="mg-timer" data-expired={state.remaining === 0} role="timer" aria-label={t.duration}><bdi>{state.remaining}</bdi></div>}
-      <div className="mg-cards">{renderCard('question', 0)}{renderCard('condition', 1)}</div>
+      <div className="mg-cards">{renderCard('question')}{renderCard('condition')}</div>
       <p className="mg-live-status" role="status">{full ? t.full : !both ? t.waiting : state.config.timerEnabled && state.remaining === 0 ? t.expired : t.answer}</p>
       {both && <div className="mg-judgment mg-panel"><button className="mg-button mg-correct" disabled={full || state.pendingWinner} onClick={() => dispatch({ type: 'correct' })}><JudgmentIcon correct />{t.correct}</button><button className="mg-button mg-wrong" disabled={state.pendingWinner} onClick={() => dispatch({ type: 'wrong' })}><JudgmentIcon correct={false} />{t.wrong}</button>{state.config.attempts > 1 && <span className="mg-help">{t.attempt} <bdi>{state.attempt}/{state.config.attempts}</bdi></span>}</div>}
     </section>}
