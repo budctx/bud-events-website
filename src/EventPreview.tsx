@@ -1,0 +1,47 @@
+import { useEffect, useRef, useState } from 'react';
+import type { Ref } from 'react';
+import type { Locale } from './i18n';
+import './event-preview.css';
+
+/** A fixed product sample. No host configuration, rounds, winners or prize state. */
+export function EventPreview({ locale, previewRef }: { locale: Locale; previewRef?: Ref<HTMLElement> }) {
+  const ar = locale === 'ar';
+  const [question, setQuestion] = useState(false);
+  const [condition, setCondition] = useState(false);
+  const [deadline, setDeadline] = useState<number | null>(null);
+  const [remaining, setRemaining] = useState(5000);
+  const firstCard = useRef<HTMLButtonElement>(null);
+  const both = question && condition;
+  const expired = both && remaining === 0;
+  useEffect(() => {
+    if (deadline === null) return;
+    const update = () => { const next = Math.max(0, deadline - performance.now()); setRemaining(next); if (next === 0) clearInterval(interval); };
+    const interval = window.setInterval(update, 50);
+    update();
+    document.addEventListener('visibilitychange', update);
+    return () => { clearInterval(interval); document.removeEventListener('visibilitychange', update); };
+  }, [deadline]);
+  const reveal = (kind: 'question' | 'condition') => {
+    if (kind === 'question') setQuestion(true); else setCondition(true);
+    if ((kind === 'question' ? condition : question) && deadline === null) {
+      setRemaining(5000); setDeadline(performance.now() + 5000);
+    }
+  };
+  const reset = () => { setQuestion(false); setCondition(false); setDeadline(null); setRemaining(5000); requestAnimationFrame(() => firstCard.current?.focus()); };
+  return <section className="qc-demo" ref={previewRef} aria-label={ar ? 'جرّب بطاقتي سؤال وشرط' : 'Try the Question & Condition cards'} data-testid="event-preview">
+    <div className="qc-demo-timer" data-active={both} data-expired={expired}>
+      <svg viewBox="0 0 64 64" aria-hidden="true"><circle className="qc-demo-track" cx="32" cy="32" r="28" /><circle className="qc-demo-progress" cx="32" cy="32" r="28" pathLength="100" strokeDasharray="100" strokeDashoffset={100 * (1 - remaining / 5000)} /></svg>
+      {both && <span role="timer" aria-label={ar ? 'المؤقت التجريبي' : 'Sample timer'} aria-live="off"><bdi>{Math.ceil(remaining / 1000)}</bdi><small>{ar ? 'ث' : 's'}</small></span>}
+    </div>
+    <div className="qc-demo-cards">{(['question', 'condition'] as const).map((kind, index) => {
+      const revealed = kind === 'question' ? question : condition;
+      const label = ar ? (index === 0 ? 'سؤال' : 'شرط') : (index === 0 ? 'Question' : 'Condition');
+      const text = ar ? (index === 0 ? 'اذكر دولة' : 'تبدأ بحرف «س»') : (index === 0 ? 'Name a country' : 'Starts with S');
+      return <button ref={index === 0 ? firstCard : undefined} type="button" key={kind} className={`qc-demo-card qc-demo-${kind}`} data-revealed={revealed} disabled={revealed} aria-pressed={revealed} aria-label={revealed ? `${label}: ${text}` : `${ar ? 'اكشف' : 'Reveal'} ${label}`} onClick={() => reveal(kind)}>
+        <span className="qc-demo-flip"><span className="qc-demo-face qc-demo-back" aria-hidden={revealed}><img src="/assets/bud-emblem.svg" alt="" /><span className="qc-demo-letter">{index === 0 ? 'Q' : 'C'}</span><small>{label}</small></span><span className="qc-demo-face qc-demo-front" aria-hidden={!revealed}><small>{label}</small><strong>{text}</strong><img src="/assets/bud-emblem.svg" alt="" /></span></span>
+      </button>;
+    })}</div>
+    <p className="qc-demo-hint" role="status">{expired ? (ar ? 'انتهى الوقت! أعد المحاولة بالبطاقتين نفسيهما.' : 'Time’s up! Try the same two cards again.') : both ? (ar ? 'ما الدولة التي تبدأ بحرف س؟' : 'Which country starts with S?') : (ar ? 'اضغط البطاقتين؛ يبدأ المؤقت بعد كشفهما.' : 'Tap both cards; the timer starts once both are revealed.')}</p>
+    <button type="button" className="qc-demo-reset" disabled={!question && !condition} onClick={reset}>{ar ? 'إعادة المحاولة' : 'Try again'}</button>
+  </section>;
+}

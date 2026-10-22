@@ -100,7 +100,7 @@ test('buy CTA reports unavailable integration without pretending payment succeed
  await trigger.focus(); await page.keyboard.press('Enter');
  await expect(page.getByTestId('product-dialog')).toBeVisible();
  await page.getByTestId('product-buy').click();
- await expect(page.getByRole('status')).toContainText('Purchasing is currently unavailable');
+ await expect(page.getByTestId('product-dialog').getByRole('status')).toContainText('Purchasing is currently unavailable');
  await page.keyboard.press('Escape');
  await expect(trigger).toBeFocused();
 });
@@ -143,7 +143,9 @@ for (const locale of ['ar','en']) test(`homepage explanation and product discove
     await expect(page.getByTestId('event-how')).toBeFocused();
     await page.getByTestId('event-how').click();
     await page.getByTestId('how-try').click();
-    await expect(page.locator('.mg-setup')).toBeVisible();
+    await expect(page.getByTestId('event-preview')).toBeVisible();
+    await expect(page.getByTestId('event-preview').locator('button').first()).toBeFocused();
+    await expect(page.locator('.manual-game')).toHaveCount(0);
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBeTruthy();
   }
 });

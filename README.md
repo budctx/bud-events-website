@@ -9,7 +9,8 @@ BU’D is a Saudi Discord-first digital products brand. The official website inc
 
 - Light-only, Retro Modern/Arcade identity, Readex Pro, AR/EN with RTL/LTR, responsive layouts and reduced-motion support.
 - Public browsing. Product CTAs may show coming-soon or unavailable integration states.
-- Local unpaid host-operated Question & Condition rehearsal: setup → flip question/condition cards → host correctness decision → winner-name dialog → prizes → closing.
+- Public Question & Condition sample inside Events: two fixed interactive cards and a five-second circular timer, with replay of the same pair. No host setup, winner management or prizes are exposed.
+- Full host workspace is retained only in local development (`npm run dev`, `?screen=game`). Production builds omit the host module; future paid access requires a server-verified entitlement before reintroducing it.
 - **No Discord bot, participant registration/tracking, verified participant identity, or production Dark Mode.**
 - Discord purchaser OAuth, Whop checkout, paid Slots and authoritative server-side gameplay are **not enabled**. Never simulate a successful charge or entitlement.
 
@@ -22,7 +23,7 @@ npm run build
 npm test
 ```
 
-`npm test` runs the current unit suite and browser production tests. Browser runs require Playwright Chromium; locally, first run `npx playwright install chromium`. Do not use superseded browser suites as release criteria.
+Run `npm run build` before `npm test`; browser tests exercise both the development workspace and built production preview. `npm test` runs the current unit suite and browser production tests. Browser runs require Playwright Chromium; locally, first run `npx playwright install chromium`. Do not use superseded browser suites as release criteria.
 
 Work in a feature branch, open a PR, and require green **Website checks / verify** before merging. Deployments are managed by the connected Vercel project. **Main branch protection still requires admin ruleset configuration and independent verification**; GitHub CI passing does not itself enforce merge protection. Do not bypass failed checks or treat deployment `READY` as formal Stage approval.
 
