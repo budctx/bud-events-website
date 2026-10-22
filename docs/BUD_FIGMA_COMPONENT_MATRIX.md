@@ -36,7 +36,7 @@ Page339:2067 is named `02 — الرئيسية • Retro Portal • مراجعة
 | Desktop portal original | Background339:2069; image hash9ea0800694f6ad3ad9e2eaf46b1eaa32c3868056 | public/assets/home-portal-desktop.png | Exact original bytes1713057; SHA1 equals Figma image hash |
 | Mobile portal original | Background339:2071; image hashbc5d6de766e1527185c7615400c2b5cdf28b5e87; Library libfile_4d7364b1a1908191b3036c801ae4d78b | public/assets/home-portal-mobile.png | Exact original bytes1432441; SHA1 equals Figma image hash;851×1848 |
 | Original BU’D emblem | Existing repo asset, Figma source155:1048/component192:41 | public/assets/bud-emblem.svg | Reused existing exact original mark; native32×23 attributes retained |
-| Community dot textures | Figma374:2942, source NzywZGvAw380fzj0MlPvXb2:44198 | None | BLOCKED: provided asset download URLs returned HTML; quota prevented native export. Not silently redrawn. |
+| Community dot texture — secondary hero CTA | Figma instance374:7324 / component374:2942, original community source NzywZGvAw380fzj0MlPvXb2:44198 | public/assets/community-dots-secondary.svg | EXACT native SVG export 61,473 bytes, 158×52 viewport and group opacity0.12; used on Home secondary CTA only. Additional container textures still OPEN. |
 
 Figma asset curl requests returned HTTP200 text/html `Site Unavailable`,195bytes, not valid images. Native read-only `getImageByHash().getBytesAsync()` recovered the Desktop raster through bounded chunks; SHA1 verifies exact bytes. All failed HTML files remain outside the repo. After native retrieval hit its call limit, Library inventory resolved both original artworks: `Golden portal with floating cards.png` (mobile, libfile_4d7364b1a1908191b3036c801ae4d78b) and `Amber portal and floating cards.png` (desktop, libfile_140d6511a9788191af41594e9c503cca). Both SHA1 hashes equal the Figma fill image hashes. The complete mobile original is now available to the implementation; root integration and visual verification remain required.
 
@@ -50,10 +50,10 @@ Figma asset curl requests returned HTTP200 text/html `Site Unavailable`,195bytes
 
 ## Remaining visual blockers
 
-1. Exact Mobile portal raster integrated with picture/source at max-width700px; current mobile screenshot compared with Figma. Geometry and interactions tested; missing dot texture and honest replacement of sample endorsements mean no full pixel-parity claim.
-2. Original dot textures are unavailable; card/secondary/review texture parity is incomplete.
+1. Exact Mobile portal raster integrated with picture/source at max-width700px; current mobile screenshot compared with Figma. Geometry and interactions tested; other un-restored container textures and honest replacement of sample endorsements mean no full pixel-parity claim.
+2. Exact Home secondary CTA dot texture was restored from native Figma instance374:7324 on 2026-10-22. Card/review/other dotted textures remain unverified and visually incomplete.
 3. No latest immutable Figma version/approval timestamp returned. Current frame identity and owner-provided candidate registry are evidence; formal approval linkage remains open.
 4. Product modal, Bots and Designs empty layouts require owner visual acceptance. They reuse existing tokens and do not replace verified Home/Gallery layouts.
 5. Original desktop/mobile Figma screenshots exist as internal evidence in `/workspace/scratch/f0cb861765a1/design-audit/screenshots/`. They are never used as runtime assets.
 
-Verdict: IMPLEMENTED_WITH_LIMITS, not final visual PASS. Root QA must test exact committed SHA and responsive/modal/RTL/EN geometry; dot textures remain a scoped blocker; root must verify recovered Mobile asset placement.
+Verdict: IMPLEMENTED_WITH_LIMITS, not final visual PASS. Root QA must test exact committed SHA and responsive/modal/RTL/EN geometry; other dotted textures remain a scoped blocker; root must verify recovered Mobile asset placement.
