@@ -48,7 +48,7 @@ for(const locale of ['ar','en']) test(`manual journey ${locale}`,async({page},in
   const ar=locale==='ar';
   await page.getByLabel(ar?'أدخل الجوائز':'Enter prizes').fill(ar?'هدية خاصة':'Special gift');
   await page.getByRole('switch').check();
-  await page.getByRole('spinbutton').fill('13');
+  await page.getByRole('spinbutton', {name:ar?'مدة المؤقت':'Timer duration'}).fill('13');
   await page.getByRole('button',{name:ar?'بدء الفعالية':'Start event',exact:true}).click();
   await expect(page.getByRole('timer')).toHaveText('13');
   await expect(page.locator('#mg-winner-name')).not.toBeVisible();
@@ -187,7 +187,7 @@ test('desktop navigation flips on hover and keyboard focus, Discord uses officia
 
 test('timer is optional and setup tooltips work with keyboard and touch', async ({page,browser}) => {
   await page.goto('/?screen=game&lang=ar');
-  await expect(page.getByRole('spinbutton')).toHaveCount(0);
+  await expect(page.getByRole('spinbutton',{name:'مدة المؤقت'})).toHaveCount(0);
   await expect(page.getByRole('switch')).not.toBeChecked();
   const help = page.getByRole('button',{name:'توضيح الجوائز',exact:true});
   await help.focus();
@@ -195,10 +195,10 @@ test('timer is optional and setup tooltips work with keyboard and touch', async 
   await page.keyboard.press('Escape');
   await expect(page.getByRole('tooltip')).toHaveCount(0);
   await page.getByRole('switch').focus(); await page.keyboard.press('Space');
-  await expect(page.getByRole('spinbutton')).toBeVisible();
-  await page.getByRole('spinbutton').fill('13');
+  await expect(page.getByRole('spinbutton',{name:'مدة المؤقت'})).toBeVisible();
+  await page.getByRole('spinbutton',{name:'مدة المؤقت'}).fill('13');
   await page.getByRole('switch').uncheck();
-  await expect(page.getByRole('spinbutton')).toHaveCount(0);
+  await expect(page.getByRole('spinbutton',{name:'مدة المؤقت'})).toHaveCount(0);
   await page.getByRole('button',{name:'بدء الفعالية',exact:true}).click();
   await expect(page.getByRole('timer')).toHaveCount(0);
   const context = await browser.newContext({hasTouch:true,isMobile:true,viewport:{width:360,height:667}});
@@ -208,4 +208,29 @@ test('timer is optional and setup tooltips work with keyboard and touch', async 
   await tip.tap(); await expect(touch.getByRole('tooltip')).toHaveCount(0);
   await tip.tap(); await touch.locator('h1').tap(); await expect(touch.getByRole('tooltip')).toHaveCount(0);
   await context.close();
+});
+
+test('attempt stepper respects limits, supports keyboard and configures the round', async ({page}) => {
+  await page.goto('/?screen=game&lang=ar');
+  const attempts=page.getByRole('spinbutton',{name:'المحاولات',exact:true});
+  await expect(attempts).toHaveAttribute('aria-valuenow','1');
+  await expect(page.getByRole('button',{name:'تقليل المحاولات'})).toBeDisabled();
+  await page.getByRole('button',{name:'زيادة المحاولات'}).click();
+  await page.getByRole('button',{name:'زيادة المحاولات'}).click();
+  await expect(attempts).toHaveAttribute('aria-valuenow','3');
+  await expect(page.getByRole('button',{name:'زيادة المحاولات'})).toBeDisabled();
+  await attempts.focus(); await page.keyboard.press('ArrowDown');
+  await expect(attempts).toHaveAttribute('aria-valuenow','2');
+  await page.getByRole('button',{name:'بدء الفعالية',exact:true}).click();
+  for(const name of ['اكشف سؤال','اكشف شرط','خاطئة']) await page.getByRole('button',{name,exact:true}).click();
+  await expect(page.getByRole('button',{name:'اكشف سؤال',exact:true})).toBeEnabled();
+});
+
+test('artwork spans Home through the footer without opaque footer link boxes', async ({page}) => {
+  for(const size of [{width:1243,height:845},{width:1440,height:900},{width:390,height:844}]) {
+    await page.setViewportSize(size); await page.goto('/?lang=ar');
+    const geometry=await page.locator('.platform-art').evaluate(el=>({art:el.getBoundingClientRect().bottom,root:el.parentElement!.getBoundingClientRect().bottom}));
+    expect(Math.abs(geometry.art-geometry.root)).toBeLessThan(1);
+    await expect(page.locator('.platform-footer-links button').first()).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
+  }
 });
