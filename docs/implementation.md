@@ -1,3 +1,5 @@
+> **ARCHIVED — historical implementation evidence only (superseded on 2026-10-22).** Participant registration/tracking, Discord bots and Dark Mode in this document are **not** current BU’D requirements. See [current approved spec](BUD_CURRENT_APPROVED_SPEC.md), [superseded decisions](BUD_SUPERSEDED_DECISIONS.md) and [archive manifest](BUD_REPOSITORY_ARCHIVE.md). Preserve historical details for traceability; do not implement them as live features.
+
 # Figma implementation — local event journey
 
 2026-10-14. Source file `STOmHGc7E9OQudKbyWDEli`.
