@@ -39,6 +39,10 @@ Screenshot evidence: `docs/evidence/prize-draw/` contains Arabic empty/selected/
 
 Delivery status: complete and verified locally. Automatic approval review rejected `git push -u origin feat/prize-draw-winners-ux` because exporting the code/documentation to GitHub needs explicit authorization for that destination. No push occurred; no PR, remote CI run or Vercel Preview was created. Notion evidence synchronization remains pending together with the remote delivery. Local preview is available at `http://127.0.0.1:4174/?screen=game&lang=ar` while the development server is running.
 
+Delivery continuation: the owner explicitly approved uploading this branch, opening a PR and creating a Vercel Preview. Branch uploaded and PR [#8](https://github.com/budctx/bud-events-website/pull/8) opened, without merging. Vercel deployment `dpl_Arf36tn1trEBwJiUC2vDp4HJuPAi` for `c3c0eebb60299ab08b533b66e19f5dc07aae010f` reached READY. A protected-preview browser smoke test at 390×844 AR completed registration → sidebar selection → confirmation → reveal; prize text correct, zero page errors and no horizontal overflow. Access protection was preserved.
+
+First CI run `39791309980` passed 32 Node tests and 25 of 26 browser tests. The pre-existing purchase keyboard test raced `Platform.navigate`'s next-frame focus handoff. It now waits for the expected main focus before moving focus to the product button; Enter activation, unavailable-payment status and restoration assertions are unchanged. Final exact-SHA CI and preview delivery evidence is recorded in Notion.
+
 ## Limits
 
 The existing game remains an in-memory local rehearsal. This change does not add persistence or activate the commerce/backend path. No production merge, paid resource or production deployment is part of this patch. Existing global project acceptance gates remain open until separately satisfied.

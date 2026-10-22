@@ -82,6 +82,9 @@ test('reduced motion and retired participant route',async({page})=>{
 test('buy CTA reports unavailable integration without pretending payment succeeded',async({page})=>{
  await page.goto('/?lang=en');
  await page.getByTestId('nav-events').click();
+ // Navigation deliberately focuses main on the next animation frame.
+ // Wait for that handoff before testing keyboard activation of the product.
+ await expect(page.locator('#platform-content')).toBeFocused();
  const trigger=page.getByTestId('product-card-qc');
  await trigger.focus(); await page.keyboard.press('Enter');
  await expect(page.getByTestId('product-dialog')).toBeVisible();
