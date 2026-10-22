@@ -1,6 +1,6 @@
 # BU'D — superseded decisions
 
-Version1.1 ·2026-10-22. Owner: project owner. Historical source records are preserved; do not silently rewrite archives.
+Version1.2 ·2026-10-22. Owner: project owner. Historical source records are preserved; do not silently rewrite archives.
 
 | ID | Historical clause | Replacement | Current evidence/date | Status/confidence |
 |---|---|---|---|---|
@@ -19,6 +19,8 @@ Version1.1 ·2026-10-22. Owner: project owner. Historical source records are pre
 | SUP-012 | Original 240-minute session and restriction of restart during first 60m may be interpreted as one inseparable rule | Four-hour max and free same-session resume are now specifically approved; prestart, restart grace, disconnected clock are **not** approved | S00-ADR-002 22Oct | Partial supersession/high |
 | SUP-013 | Per-game duplicated timer settings/controllers could be inferred from game-specific historical UI | One shared Engine Timer Manager; template only signals triggers and policy-specific expiry effects | S00-ADR-001 22Oct | Superseded architecture/high |
 | SUP-014 | Older development Supabase schemas and historical migration files are deployment-ready current authority | Owner requested removal of obsolete development schemas; actual reset migration executed, design deferred to S07 and provisioning to S08 | [Verified reset](BUD_SUPABASE_STAGE00_DEV_RESET_20261022.md),22Oct | Superseded for dev/high |
+
+| SUP-015 | Current local rehearsal prevents entering the same winner display name twice; historical winner uniqueness inferred from names/participant registry | Owner allows identical visible winner names with warning that cannot block Save and distinct internal record IDs; prize assignment/export keyed by IDs rather than names | S00-ADR-004,22Oct | Superseded/high; S09 code change and tests pending |
 
 ## Historical policies under review, not silently revived
 
