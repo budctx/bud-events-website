@@ -105,3 +105,37 @@ test('management validates names, phase, unknown IDs and immutable closing resul
   assert.equal(manualGameReducer(closed, { type: 'rename-winner', winnerId: 'winner-1', name: 'B' }), closed);
   assert.equal(manualGameReducer(closed, { type: 'delete-winner', winnerId: 'winner-1' }), closed);
 });
+
+test('host additions preserve the round, allow duplicates, enforce capacity and replace deleted records', () => {
+  let s = reveal(start('1\n2'));
+  const deadline = s.deadline, round = s.round;
+  s = manualGameReducer(s, {type:'add-winner',name:'سارة'});
+  assert.equal(s.deadline,deadline); assert.equal(s.round,round); assert.equal(s.question,true);
+  s = manualGameReducer(s,{type:'phase',phase:'prizes'});
+  s = manualGameReducer(s,{type:'add-winner',name:'سارة'});
+  assert.deepEqual(s.winners.map(w=>w.id),['winner-1','winner-2']);
+  assert.equal(manualGameReducer(s,{type:'add-winner',name:'زائد'}),s);
+  s = manualGameReducer(s,{type:'delete-winner',winnerId:'winner-1'});
+  s = manualGameReducer(s,{type:'add-winner',name:'بديل'});
+  assert.deepEqual(s.winners.map(w=>w.id),['winner-2','winner-3']);
+  const closed=manualGameReducer(s,{type:'phase',phase:'closing'});
+  assert.equal(manualGameReducer(closed,{type:'add-winner',name:'غير مسموح'}),closed);
+  for(const name of ['', ' ', 'x'.repeat(81)]) assert.equal(manualGameReducer(start(),{type:'add-winner',name}).winners.length,0);
+});
+
+test('manual opening reveals a prize without creating a winner or allowing replay/terminal mutation', () => {
+  let s = start('1\n2');
+  assert.equal(manualGameReducer(s,{type:'open-prize',prizeId:'prize-1'}),s);
+  s = manualGameReducer(s,{type:'phase',phase:'prizes'});
+  s = manualGameReducer(s,{type:'open-prize',prizeId:'prize-1'});
+  assert.equal(s.prizes[0].revealed,true); assert.equal(s.prizes[0].winnerId,null); assert.equal(s.winners.length,0);
+  assert.equal(manualGameReducer(s,{type:'open-prize',prizeId:'prize-1'}),s);
+  assert.equal(manualGameReducer(s,{type:'open-prize',prizeId:'missing'}),s);
+  s = manualGameReducer(s,{type:'add-winner',name:'A'});
+  assert.equal(manualGameReducer(s,{type:'award',prizeId:'prize-1',winnerId:'winner-1'}),s);
+  s = manualGameReducer(s,{type:'award',prizeId:'prize-2',winnerId:'winner-1'});
+  s = manualGameReducer(s,{type:'delete-winner',winnerId:'winner-1'});
+  assert.equal(s.prizes[0].revealed,true); assert.equal(s.prizes[1].revealed,false);
+  s = manualGameReducer(s,{type:'phase',phase:'closing'});
+  assert.equal(manualGameReducer(s,{type:'open-prize',prizeId:'prize-2'}),s);
+});

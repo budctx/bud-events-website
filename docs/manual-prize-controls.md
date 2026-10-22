@@ -1,0 +1,13 @@
+# Manual prize and winner controls — 2026-10-22
+
+Owner request: open remaining prizes without naming a recipient, allow the host to add/delete/replace winner records within capacity, and lower desktop artwork to the bottom-left. Latest explicit instructions authorize Code-first implementation and direct publication after verification.
+
+- Prize draw defaults to the existing recipient-first flow. The sidebar's explicit **Open without a name** toggle clears recipient selection and enables manual opening. Confirmation explains that the prize will not be linked to a name. Selecting a winner leaves manual mode. Both modes retain the existing suspense/reduced-motion behavior.
+- `open-prize` only reveals an unopened card in the prizes phase. It creates no winner and cannot reopen or reassign a revealed card. Closing results and copied text list anonymous reveals separately; named winners without an award remain accurately marked as unawarded. The host can intentionally reveal a card anonymously even when winner records exist.
+- **Add a winner** is available in the sidebar and winner manager during live/prizes. `add-winner` validates names and capacity in the reducer, preserves the current round/timer, allows duplicate names and uses monotonically increasing record IDs. The cap remains the original configured prize count; a no-prize rehearsal retains its existing unlimited capacity. Deletion frees a record slot, so a replacement can be added without replaying a question. Assigned prizes are restored only when their corresponding winner is deleted. Closing remains read-only.
+- New rehearsals clear manual draw mode and selection. Native-dialog focus returns to the newly added winner record. Empty/full states explain available actions.
+- Desktop art is anchored to the physical left and lowered by6dvh, with a140dvh width cap and feathered top/side edges. Image proportions and exact BU’D vector overlays are preserved. Mobile composition is unchanged.
+
+Verification: application build and server typecheck;34 logic/backend tests and39 browser journeys. New tests exercise add validation/cap/replacement, unchanged round/deadline, anonymous reveal single-use and terminal guards, duplicate record identities, named→anonymous draw, canceled confirmation, closing results and reset. Independent Expert OS review passed the AR/EN mobile flows; its desktop hard-edge finding was fixed and the feathered AR/EN1440×900 artwork rechecked PASS. No stage sign-off, payment/OAuth change or Notion write is included.
+
+Visual evidence: `docs/evidence/manual-prize-controls/`. Exact candidate CI and production deployment evidence is recorded in the associated GitHub PR.

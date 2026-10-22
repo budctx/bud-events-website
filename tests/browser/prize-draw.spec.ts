@@ -176,3 +176,57 @@ test('suspense finishes automatically and reduced motion reveals instantly', asy
   await expect(page.locator('.mg-result-prize')).toHaveText('هدية ثانية');
   await expect(page.locator('.mg-anticipation, .mg-confetti')).toHaveCount(0);
 });
+
+for(const ar of [true,false]) test(`manual remaining prizes and host winner replacement ${ar?'ar':'en'}`, async ({page},info) => {
+  await page.setViewportSize({width:390,height:844});
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await start(page,ar,'Gift one\nGift two'); await prizes(page,ar);
+  await page.getByRole('button',{name:ar?'إضافة فائز':'Add a winner',exact:true}).click();
+  await page.locator('#mg-add-name').fill('Sara');
+  await page.getByRole('button',{name:ar?'إضافة الفائز':'Add winner',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Edit Sara #1'.replace('Edit',ar?'تعديل':'Edit'),exact:true})).toBeFocused();
+  await page.locator('.mg-management').getByRole('button',{name:ar?'إضافة فائز':'Add a winner',exact:true}).click();
+  await page.locator('#mg-add-name').fill('Sara');
+  await page.getByRole('button',{name:ar?'إضافة الفائز':'Add winner',exact:true}).click();
+  await expect(page.locator('.mg-management').getByRole('button',{name:ar?'إضافة فائز':'Add a winner',exact:true})).toBeDisabled();
+  await page.getByRole('button',{name:ar?'حذف Sara #1':'Delete Sara #1',exact:true}).click();
+  await page.getByRole('button',{name:ar?'تأكيد الحذف':'Confirm deletion',exact:true}).click();
+  await page.locator('.mg-management').getByRole('button',{name:ar?'إضافة فائز':'Add a winner',exact:true}).click();
+  await page.locator('#mg-add-name').fill('Ali');
+  await page.getByRole('button',{name:ar?'إضافة الفائز':'Add winner',exact:true}).click();
+  await expect(page.locator('.mg-management [data-winner-id="winner-3"]')).toContainText('Ali');
+  await page.keyboard.press('Escape');
+  await page.locator('.mg-winner-option').first().click();
+  await page.locator('.mg-prize-card').first().click();await confirm(page,ar);
+  await page.keyboard.press('Escape');
+  await page.getByRole('button',{name:ar?'فتح دون اسم':'Open without a name',exact:true}).click();
+  await expect(page.locator('.mg-draw-status')).toContainText(ar?'دون تخصيص اسم':'without a recipient');
+  await page.locator('.mg-prize-card').nth(1).click();
+  await expect(page.locator('.mg-award-confirm')).toContainText(ar?'لن ترتبط بأي اسم':'no name will be assigned');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.mg-prize-card').nth(1)).toHaveAttribute('data-revealed','false');
+  await page.locator('.mg-prize-card').nth(1).click();
+  await page.getByRole('button',{name:ar?'افتح دون اسم!':'Open without a name!',exact:true}).click();
+  await expect(page.locator('.mg-result-prize')).toHaveText('Gift two');
+  await expect(page.locator('.mg-result-winner')).toContainText(ar?'دون تخصيص اسم':'without a recipient');
+  await page.screenshot({path:info.outputPath('manual-open.png'),fullPage:true});
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.mg-prize-card').nth(1)).toContainText(ar?'دون اسم':'No recipient');
+  await page.getByRole('button',{name:ar?'إنهاء الفعالية':'End event',exact:true}).click();
+  await page.getByRole('button',{name:ar?'إنهاء وعرض النتائج':'End and view results',exact:true}).click();
+  await expect(page.locator('.mg-unnamed-results')).toContainText('Gift two');
+  await expect(page.locator('.mg-results')).toContainText('Ali');
+  await page.getByRole('button',{name:ar?'تجربة جديدة':'New rehearsal',exact:true}).click();
+  await page.getByLabel(ar?'أدخل الجوائز':'Enter prizes').fill('New');
+  await page.getByRole('button',{name:ar?'بدء الفعالية':'Start event',exact:true}).click();await prizes(page,ar);
+  await expect(page.getByRole('button',{name:ar?'فتح دون اسم':'Open without a name',exact:true})).toHaveAttribute('aria-pressed','false');
+});
+
+test('all prizes can be manually opened with an empty winner list', async ({page}) => {
+  await page.emulateMedia({reducedMotion:'reduce'});await start(page,true,'هدية');await prizes(page,true);
+  await page.getByRole('button',{name:'فتح دون اسم',exact:true}).click();
+  await page.locator('.mg-prize-card').click();await page.getByRole('button',{name:'افتح دون اسم!',exact:true}).click();
+  await expect(page.locator('.mg-result-prize')).toHaveText('هدية');
+  await page.keyboard.press('Escape');await expect(page.locator('.mg-winner-option')).toHaveCount(0);
+  await expect(page.locator('.mg-prize-card')).toBeDisabled();
+});

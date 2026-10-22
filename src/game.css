@@ -142,6 +142,11 @@
 @media(prefers-reduced-motion:reduce) { .mg-flip-inner,.mg-button { transition:none; } .mg-button:hover:not(:disabled),.mg-button:active:not(:disabled) { transform:none; } .mg-dialog::backdrop { backdrop-filter:none; } }
 
 .mg-exit { justify-self:start; }
+.mg-winners-sidebar>.mg-button { width:100%; margin-top:14px; }
+.mg-manual-open[aria-pressed=true] { background:#fbb03b; box-shadow:3px 3px 0 #333; }
+.mg-management>.mg-button { margin-top:18px; }
+.mg-unnamed-results { border-top:1px solid #ddd5c7; padding-top:16px; }
+.mg-unnamed-results ul { margin-block:12px 0; padding-inline-start:20px; line-height:1.9; }
 .mg-field-label>.bud-switch-field { flex:1; }
 .mg-timer-settings { display:flex; flex-direction:column; gap:10px; animation:mg-settings-enter 180ms ease; }
 .mg-reveal-experience { position:relative; }
