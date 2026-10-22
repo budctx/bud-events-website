@@ -1,0 +1,58 @@
+{
+  "closing-mobile.png": {
+    "bytes": 74310,
+    "sha256": "e26cf6930218f9cf215e05d8bf2bf9422636f9a8c4cae35b81ebeb800c70bd6f"
+  },
+  "game-mobile.png": {
+    "bytes": 87025,
+    "sha256": "f0be2e3233e47228fca1d5f05bc7da7d3a38da97afdc397e9fb831498bb373c0"
+  },
+  "home-desktop.png": {
+    "bytes": 1178026,
+    "sha256": "23cbebb256e9119fad6d23c8766528606339bb190e85f1233a061c8df8833248"
+  },
+  "reference-deck-public.png": {
+    "bytes": 356283,
+    "sha256": "981266a9408af487c3b8343cce157523331f4f6de2e6434a0637e538112d840a"
+  },
+  "reference-transitions-public.png": {
+    "bytes": 111873,
+    "sha256": "24e4a13c91eb945c8b8dba15958375535322cc9f4880c89fa591c85fd248ce12"
+  },
+  "figma-home-mobile.png": {
+    "bytes": 358768,
+    "sha256": "027c8f9390cef89a113a2c707796846423553dd36cbe4379b2ee2559ce23c7f3"
+  },
+  "figma-home-desktop.png": {
+    "bytes": 819254,
+    "sha256": "3d92b64bd6df1a24e6b07306b5f567f88b713c9dedc6764c1ff628a07e7b682b"
+  },
+  "home-mobile.png": {
+    "bytes": 273186,
+    "sha256": "cfe6c741637ba9d16f0f648300e1bb86c1fd8c88db4a0df5f842a202d1f4cd1d"
+  },
+  "figma-gallery-desktop.png": {
+    "bytes": 57791,
+    "sha256": "bf6952d85d6b37f441a21b40d813a7b57578a90f38abe94cb754f97ce46caa22"
+  },
+  "reference-godly-gitnimble-mobile.png": {
+    "bytes": 851164,
+    "sha256": "f3316595984f48aa3d9a46d94354f8a3cbe343cecd13a93c6d04ba9ce509778a"
+  },
+  "product-modal.png": {
+    "bytes": 103958,
+    "sha256": "f879d79520d3dc9962feef556dccf00e202cba81714091076dcc434b9c9b780d"
+  },
+  "reference-cocodly-public.png": {
+    "bytes": 917865,
+    "sha256": "315ea2b8a565a34d0249db73ba0b31d9f8ced87ad38f5bf5b6da5dd5efe9dc0d"
+  },
+  "reference-godly-gitnimble-desktop.png": {
+    "bytes": 1379304,
+    "sha256": "a1ec019d93275a4405c34c5f60b81e61f96031b21750f119f845980d7495d635"
+  },
+  "reference-animos-editor.png": {
+    "bytes": 374278,
+    "sha256": "2d47041ed5e89e042f9179e1c4eb792ca4b5587e965445e099028278babf0b38"
+  }
+}

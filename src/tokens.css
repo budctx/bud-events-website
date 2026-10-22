@@ -1,0 +1,25 @@
+:root {
+  color-scheme: light;
+  --bud-color-text-primary: #333333;
+  --bud-color-text-on-action: #333333;
+  --bud-color-surface-canvas: #f6f0e2;
+  --bud-color-surface-panel: #fdfdff;
+  --bud-color-surface-neutral: #e6e6e6;
+  --bud-color-action-primary: #fbb03b;
+  --bud-color-border-default: #333333;
+  --bud-color-effect-hard-shadow: #333333;
+  --bud-space-4: 4px; --bud-space-8: 8px; --bud-space-12: 12px;
+  --bud-space-16: 16px; --bud-space-24: 24px; --bud-space-32: 32px;
+  --bud-radius-8: 8px; --bud-stroke-2: 2px;
+  --bud-shadow: 3px 3px 0 var(--bud-color-effect-hard-shadow);
+  --bud-motion-press: 80ms;
+  --bud-motion-hover: 120ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root { --bud-motion-press: 0ms; --bud-motion-hover: 0ms; }
+}
+:root { --bud-card-question:#fbb03b; --bud-card-condition:#333333; --bud-card-prize:#f6f0e2; --bud-card-ink:#333333; --bud-card-on-ink:#f6f0e2; --bud-motion-flip:420ms; }
+@media(prefers-reduced-motion:reduce) { :root { --bud-motion-flip:0ms; } }
+
+:root { --bud-motion-control:180ms; --bud-motion-section:240ms; --bud-ease:cubic-bezier(.22,.61,.36,1); }
+@media(prefers-reduced-motion:reduce) { :root { --bud-motion-control:0ms; --bud-motion-section:0ms; } }
