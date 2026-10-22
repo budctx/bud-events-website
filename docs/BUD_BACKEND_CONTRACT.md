@@ -65,3 +65,16 @@ Before runtime activation: review SQL, run clean migration against isolated Post
 Current local branch: `feat/bud-platform-production-20261022`, based on `fbd5654dad1982012bd9086bd95b4068718bc3ac`; preserve older branches and main. CLI push dry-run failed for missing GitHub credentials. Use authenticated GitHub MCP blobs/tree/commit/ref tools, then verify the remote exact SHA. The linked Vercel project can auto-build a feature-branch Preview; verify project/team/branch/SHA and target before reporting success. Do not merge, use `--prod`, change production aliases or activate billing.
 
 Existing Vercel project `prj_yYO1QeZoU8LSs6B56KcrVplxYa0u`, team `team_NMhh6HF2W1chpKCzE1qldNGx`, framework Vite/Node 24. SSO protection enabled for `all_except_custom_domains`; do not remove protection to make an automated test pass.
+
+## Verified isolated deployment update — 2026-10-22
+
+The earlier “not applied remotely” statement in **Current truth** above is historical (before this update), not the current state. The migration was subsequently applied to the already-existing BU'D-only development project `cepmvqqrjcvhyzszqand` through the authenticated Supabase migration tool:
+
+- Recorded remote migration: `20261022093928_bud_manual_commerce_contract` — success.
+- New schema `bud_platform` and all four SQL RPCs exist. No `bud_private` objects were altered/dropped.
+- PostgreSQL privilege audit: each `bud_*` RPC is `SECURITY INVOKER`; `anon` / `authenticated` **cannot** execute; `service_role` **can** execute.
+- Supabase security advisor reports RLS-enabled/no-policy INFO on private, server-only schemas. This is intentional fail-closed configuration; do not create public access policies as a cosmetic fix.
+- Performance advisor INFO: `bud_platform.webhook_receipts.order_id` needs an index before scale; historical `bud_private` advisories also exist. No performance remediation or live load testing claimed.
+- Existing Vercel Preview GET `/api/commerce` returned HTTP `405 METHOD_NOT_ALLOWED`, confirming API route dispatch. Actual authenticated POST/DB round-trip is **untested** pending Discord enablement and private configuration.
+
+**Safety:** Remote application does not authorize enabling checkout or any real Slot ledger entry. Discord OAuth, credentials, sandbox Whop signature validation, race tests and production design approval remain blocked. 
