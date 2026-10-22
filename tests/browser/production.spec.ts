@@ -99,3 +99,15 @@ test('game fills short viewport without clipping controls',async({page})=>{
  expect(geometry.height).toBeGreaterThanOrEqual(geometry.viewport);
  await expect(page.getByRole('button',{name:'صفحة الجوائز',exact:true})).toBeInViewport();
 });
+
+test('approved Figma dotted secondary button asset is served and applied',async({page})=>{
+  await page.goto('/?lang=ar');
+  const secondary=page.locator('.platform-hero-actions .platform-action-secondary');
+  await expect(secondary).toBeVisible();
+  const image=await secondary.evaluate(el=>getComputedStyle(el).backgroundImage);
+  expect(image).toContain('community-dots-secondary.svg');
+  const response=await page.request.get('/assets/community-dots-secondary.svg');
+  expect(response.status()).toBe(200);
+  expect(response.headers()['content-type']).toContain('image/svg+xml');
+  expect((await response.body()).length).toBeGreaterThan(1000);
+});
