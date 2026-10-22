@@ -8,10 +8,10 @@ const content = {
     home: 'الرئيسية', events: 'الفعاليات', bots: 'البوتات', designs: 'التصاميم',
     slogan: 'ننقل تجربتك إلى بُعد آخر',
     eyebrow: 'بُعد · لمجتمعات الدسكورد',
-    title: 'فعاليات تجمع مجتمعك على تجربة مختلفة.',
-    description: 'صمّم لحظات تفاعلية، وخل كل فعالية لها طابعها الخاص.',
-    discover: 'استكشف الفعاليات', try: 'جرّب سؤال وشرط',
-    liveLabel: 'معاينة تفاعلية', upcoming: 'قريبًا', made: 'صُنع لمجتمعات الدسكورد',
+    title: 'منتجات رقمية تنقل مجتمعك إلى بُعد آخر.',
+    description: 'نبني تجارب لمجتمعات الدسكورد: فعاليات تفاعلية الآن، وبوتات وتصاميم قادمة. كل منتج له عالمه، وبُعد تجمعهم.',
+    discover: 'تصفح أقسام بُعد', try: 'جرّب سؤال وشرط',
+    liveLabel: 'منتجات بُعد', available: 'متاحة للتجربة', upcoming: 'قريبًا', made: 'صُنع لمجتمعات الدسكورد',
     pick: 'اختر وجهتك', next: 'التالي', previous: 'السابق',
     homeCard: 'سؤال وشرط', cardQuestion: 'سؤال', cardCondition: 'شرط',
     flipHint: 'اضغط لاكتشاف البطاقة', backHint: 'اضغط لإخفاء البطاقة',
@@ -35,10 +35,10 @@ const content = {
     home: 'Home', events: 'Events', bots: 'Bots', designs: 'Designs',
     slogan: 'Take your experience to another dimension.',
     eyebrow: 'BU’D · For Discord communities',
-    title: 'Events that bring your community together.',
-    description: 'Create shared moments with an interactive experience of their own.',
-    discover: 'Explore events', try: 'Try Question & Condition',
-    liveLabel: 'Interactive preview', upcoming: 'Coming soon', made: 'Made for Discord communities',
+    title: 'Digital products for a new dimension of community.',
+    description: 'Building for Discord communities: interactive events today, with bots and design products on the way. Different products, one BU’D.',
+    discover: 'Explore BU’D products', try: 'Try Question & Condition',
+    liveLabel: 'BU’D products', available: 'Try the preview', upcoming: 'Coming soon', made: 'Made for Discord communities',
     pick: 'Choose where to go', next: 'Next', previous: 'Previous',
     homeCard: 'Question & Condition', cardQuestion: 'Question', cardCondition: 'Condition',
     flipHint: 'Tap to reveal the card', backHint: 'Tap to hide the card',
@@ -70,7 +70,6 @@ function startingLanguage(): Language {
 export default function PlatformLanding() {
   const [lang, setLang] = useState<Language>(startingLanguage);
   const [current, setCurrent] = useState<Section>('home');
-  const [revealed, setRevealed] = useState(false);
   const t = content[lang];
   const index = sections.indexOf(current);
   useEffect(() => {
@@ -82,7 +81,6 @@ export default function PlatformLanding() {
   }, [lang]);
   const selectSection = (s: Section) => {
     setCurrent(s);
-    setRevealed(false);
   };
   const cta = '/?lang=' + lang;
   return (
@@ -114,28 +112,26 @@ export default function PlatformLanding() {
                 <h1 id="platform-heading"><span className="platform-slogan">{t.slogan}</span><span>{t.title}</span></h1>
                 <p className="platform-description">{t.description}</p>
                 <div className="platform-actions">
-                  <button className="platform-action primary" onClick={() => selectSection('events')}>{t.discover}</button>
-                  <a className="platform-action secondary" href={cta}>{t.try}</a>
+                  <button className="platform-action primary"
+                    onClick={() => document.querySelector<HTMLElement>('.platform-portal-card')?.focus()}>
+                    {t.discover}
+                  </button>
                 </div>
               </div>
-              <div className="platform-art" aria-label={t.liveLabel}>
+              <div className="platform-art platform-overview" role="group" aria-label={t.liveLabel}>
                 <div className="platform-art-note">{t.liveLabel}</div>
                 <div className="platform-decor platform-decor-one" aria-hidden="true" />
                 <div className="platform-decor platform-decor-two" aria-hidden="true" />
-                <button className={'platform-demo-card '+(revealed?'flipped':'')} aria-pressed={revealed}
-                  onClick={() => setRevealed(v=>!v)} aria-label={revealed?t.backHint:t.flipHint}>
-                  <span className="platform-card-face">
-                    <img src="/assets/bud-emblem.svg" alt="" width="40" height="30" />
-                    <strong>{t.cardQuestion}</strong>
-                    <span>{t.flipHint}</span>
-                  </span>
-                  <span className="platform-card-face platform-card-back" aria-hidden={!revealed}>
-                    <img src="/assets/bud-emblem.svg" alt="" width="38" height="28" />
-                    <strong>{t.cardAnswer}</strong>
-                    <span>{t.backHint}</span>
-                  </span>
-                </button>
-                <div className="platform-condition-chip">{t.cardCondition}</div>
+                {(['events','bots','designs'] as const).map((item, i) => (
+                  <button type="button" key={item}
+                    className={'platform-portal-card platform-portal-'+item}
+                    aria-label={lang==='ar' ? 'تصفح '+t[item] : 'Explore '+t[item]}
+                    onClick={() => selectSection(item)}>
+                    <span className="platform-portal-index" aria-hidden="true">{String(i+1).padStart(2,'0')}</span>
+                    <strong>{t[item]}</strong>
+                    <small>{item==='events' ? t.available : t.upcoming}</small>
+                  </button>
+                ))}
               </div>
             </section>
           )}

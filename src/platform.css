@@ -45,13 +45,16 @@
 .platform-decor {position:absolute;border:2px solid var(--p-ink);border-radius:50%;pointer-events:none;}
 .platform-decor-one {width:18%;height:18%;top:13%;inset-inline-end:10%;background:#f6f0e2;}
 .platform-decor-two {width:13%;height:13%;bottom:14%;inset-inline-start:9%;background:#e6e6e6;}
-.platform-demo-card {position:relative;z-index:2;width:58%;max-width:280px;aspect-ratio:5/6.3;background:transparent;border:0;padding:0;transform-style:preserve-3d;transition:transform 500ms cubic-bezier(.2,.8,.2,1);filter:drop-shadow(6px 7px 0 #333);}
-.platform-demo-card.flipped {transform:rotateY(180deg);}
-.platform-card-face {position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:var(--p-panel);border:2px solid var(--p-ink);border-radius:14px;padding:16px;display:flex;flex-direction:column;justify-content:space-between;align-items:center;text-align:center;}
-.platform-card-face strong {font-size:clamp(18px,2vw,29px);line-height:1.5;overflow-wrap:anywhere;}
-.platform-card-face>span {font-size:clamp(10px,1vw,12px);}
-.platform-card-back {transform:rotateY(180deg);}
-.platform-condition-chip {position:absolute;bottom:14%;inset-inline-end:8%;border:2px solid var(--p-ink);border-radius:12px;padding:12px 24px;background:var(--p-ink);color:var(--p-panel);transform:rotate(-7deg);font-weight:600;}
+.platform-overview {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:center;gap:clamp(7px,1.2vw,14px);padding:clamp(14px,2vw,28px);}
+.platform-portal-card {position:relative;z-index:2;min-width:0;width:100%;height:clamp(145px,18vw,230px);border:2px solid var(--p-ink);border-radius:15px;background:var(--p-panel);box-shadow:4px 5px 0 #333;display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:10px;padding:16px 7px 13px;color:var(--p-ink);font:inherit;transition:transform 180ms ease,box-shadow 180ms ease;}
+.platform-portal-card:hover {transform:translateY(-6px);box-shadow:5px 10px 0 #333;}
+.platform-portal-card:active {transform:translateY(2px);box-shadow:2px 2px 0 #333;}
+.platform-portal-card strong {font-size:clamp(13px,1.6vw,22px);line-height:1.45;text-align:center;overflow-wrap:anywhere;}
+.platform-portal-card small {font-size:clamp(9px,.84vw,11px);line-height:1.4;border:1px solid #333;border-radius:50px;padding:5px 6px;text-align:center;background:#f6f0e2;}
+.platform-portal-index {font-size:clamp(15px,2vw,27px);font-weight:650;letter-spacing:.06em;line-height:1.4;}
+.platform-portal-events {background:#FDFDFF;}
+.platform-portal-bots {background:#f6f0e2;}
+.platform-portal-designs {background:#e6e6e6;}
 .platform-product-tile {width:min(100%,500px);height:min(55dvh,450px);min-height:245px;border:2px solid var(--p-ink);border-radius:26px;background:var(--p-yellow);box-shadow:10px 10px 0 #333;display:flex;flex-direction:column;align-items:center;justify-content:space-around;padding:16px;gap:10px;}
 .platform-tile-label {font-size:12px;letter-spacing:.12em;}
 .platform-product-cards {display:flex;gap:14px;width:90%;justify-content:center;align-items:center;}
@@ -84,9 +87,10 @@
  .platform-description {font-size:clamp(12px,2.9vw,15px);line-height:1.55;}
  .platform-action {min-height:42px;padding:9px 14px;font-size:12px;box-shadow:3px 3px 0 #333;}
  .platform-art {height:100%;width:min(100%,380px);aspect-ratio:auto;max-height:36dvh;box-shadow:5px 5px 0 #333;border-radius:17px;}
- .platform-demo-card {height:78%;aspect-ratio:5/6;width:auto;max-width:54%;}
- .platform-card-face {padding:10px;}
- .platform-card-face strong {font-size:clamp(14px,4vw,23px);}
+ .platform-overview {padding:18px 12px;gap:8px;}
+ .platform-portal-card {height:min(24dvh,170px);padding:10px 5px 9px;gap:6px;border-radius:11px;box-shadow:3px 4px 0 #333;}
+ .platform-portal-card strong {font-size:clamp(12px,3.5vw,17px);}
+ .platform-portal-card small {font-size:9px;padding:4px;}
  .platform-art-note {font-size:10px;top:8px;}
  .platform-product-tile {width:min(100%,360px);height:100%;min-height:0;max-height:37dvh;box-shadow:5px 5px 0 #333;border-radius:17px;}
  .platform-product-cards {height:66%;}
@@ -106,6 +110,9 @@
  .platform-page-nav {gap:6px;}
  .platform-page-nav button {padding:5px 6px;font-size:11px;}
  .platform-art {max-height:32dvh;}
+ .platform-overview {padding:10px 9px;gap:6px;}
+ .platform-portal-card {height:min(23dvh,145px);padding:6px 3px;}
+ .platform-portal-card strong {font-size:12px;}
 }
 @media (max-height:700px) {
  .platform-header {height:61px;}

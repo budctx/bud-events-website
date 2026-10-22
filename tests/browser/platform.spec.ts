@@ -23,12 +23,14 @@ for (const lang of ['ar','en'] as const) {
     });
   }
 }
-test('bilingual navigation, preview links and reveal',async ({page})=>{
+test('balanced bilingual home, product navigation and preview links',async ({page})=>{
   await page.setViewportSize({width:390,height:844});
   await page.goto('/?screen=site&lang=ar');
-  await page.getByRole('button',{name:'اضغط لاكتشاف البطاقة'}).click();
-  await expect(page.locator('.platform-demo-card')).toHaveClass(/flipped/);
-  await page.getByRole('button',{name:'الفعاليات',exact:true}).click();
+  await expect(page.locator('.platform-portal-card')).toHaveCount(3);
+  await expect(page.locator('.platform-hero')).not.toContainText('سؤال وشرط');
+  await page.getByRole('button',{name:'تصفح أقسام بُعد'}).click();
+  await expect(page.locator('.platform-portal-card').first()).toBeFocused();
+  await page.getByRole('button',{name:'تصفح الفعاليات'}).click();
   await expect(page.locator('.platform-main')).toHaveAttribute('data-section','events');
   await expect(page.getByRole('link',{name:'جرّب سؤال وشرط'})).toHaveAttribute('href','/?lang=ar');
   await page.getByRole('button',{name:'البوتات',exact:true}).click();
@@ -44,7 +46,9 @@ test('reduced motion and keyboard',async ({page})=>{
   await expect(page.getByRole('link',{name:'Skip to content'})).toHaveCount(1);
   const duration=await page.locator('.platform-stage').evaluate(el=>getComputedStyle(el).animationDuration);
   expect(duration).toMatch(/^(0s|0ms|0\.0+s)$/);
-  await page.getByRole('button',{name:'Explore events'}).focus();
+  await page.getByRole('button',{name:'Explore BU’D products'}).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.platform-portal-card').first()).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(page.locator('.platform-main')).toHaveAttribute('data-section','events');
 });
