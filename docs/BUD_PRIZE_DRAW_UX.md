@@ -35,7 +35,9 @@ Prize UX coverage includes AR/EN at 1440×900, 390×667 and 360×667; empty list
 
 Independent reviewer initially found two focus failures (management save focus and confirmation initial focus). They were repaired and regression assertions added. Final L1 review: PASS; reviewer independently reproduced save/cancel/delete-cancel focus restoration, initial Cancel focus and Tab containment in Chrome at 360×667 EN. Confidence high for those verified paths; other viewport/language evidence comes from the automated suite and implementer visual inspection.
 
-Screenshot evidence: `docs/evidence/prize-draw/` contains Arabic empty/selected/management/confirmation/result desktop states and selected mobile state. Reviewed against owner screenshots, without changing the site's visual identity. Exact code commit is recorded in the linked PR / Notion evidence update.
+Screenshot evidence: `docs/evidence/prize-draw/` contains Arabic empty/selected/management/confirmation/result desktop states and selected mobile state. Reviewed against owner screenshots, without changing the site's visual identity. Tested application code is committed as `37dd96ba30cd2f8b70b17e5ff0e6cd4db67cbb78`.
+
+Delivery status: complete and verified locally. Automatic approval review rejected `git push -u origin feat/prize-draw-winners-ux` because exporting the code/documentation to GitHub needs explicit authorization for that destination. No push occurred; no PR, remote CI run or Vercel Preview was created. Notion evidence synchronization remains pending together with the remote delivery. Local preview is available at `http://127.0.0.1:4174/?screen=game&lang=ar` while the development server is running.
 
 ## Limits
 
