@@ -34,10 +34,14 @@ Additional current Product Modal/game/closing screenshots and SHA256 manifest ar
 
 ## Open blockers; no stage closure
 
-- Original dotted texture unavailable because asset URLs returned HTML and Figma seat quota stopped native retrieval; do not redraw/substitute silently.
+- Original secondary CTA dotted texture (Figma instance374:7324) was subsequently recovered through exact native SVG export and integrated at `public/assets/community-dots-secondary.svg`. Other un-restored dotted surfaces and post-change visual parity still OPEN; do not redraw/substitute silently.
 - Immutable latest Figma approval/version receipt not exposed; exact observed node IDs and image hashes recorded. Modal/Bots/Designs empty-state styling, English copy and content bank remain reviewable implementation choices, not claimed approved designs.
 - Discord provider disabled; no Vercel env configuration; allowlist unverified. No reviewed Whop verifier/product mapping or true connected sandbox purchase.
 - Local SQL serial connection does not prove multi-connection PostgreSQL races. Live tenant/concurrency/webhook tests required before commerce acceptance.
 - Pricing, Slot expiry, retention, historical event clock/restart/grace carryover, duplicate/edit policy, final legal/support text unresolved.
 - Full performance budget/load tests, field trial and owner visual acceptance are incomplete. No fabricated Lighthouse or accessibility score.
 - Gate00 and project S05/S06/S07+ remain OPEN/IN PROGRESS/BLOCKED as applicable. Notion formulas report evidence readiness; they do not prevent arbitrary manual status edits.
+
+## Subsequent work checkpoint — 2026-10-22
+
+The first branch Preview (`16e84b8`) and earlier local checks are unchanged historical evidence. Subsequent commits restored one exact Figma SVG asset, corrected platform metadata and README, and applied the sandbox-only SQL migration to remote BU'D development. **Do not count new Playwright assertions as PASS** until GitHub CI finishes at the final SHA. The owner visual-review gate remains OPEN.
