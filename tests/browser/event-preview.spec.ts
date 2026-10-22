@@ -42,16 +42,18 @@ for(const locale of ['ar','en']) for(const size of [{width:1440,height:900},{wid
   });
 }
 
-test('production query routes and CTAs cannot open the complete host workspace',async({page})=>{
+test('production routes stay limited and trial CTA is absent',async({page})=>{
   for(const query of ['?screen=game&lang=ar','?screen=game&legacyPreview=1&lang=ar']) {
     await page.goto(`/${query}`);
     await expect(page.getByTestId('event-preview')).toBeVisible();
     await expect(page.locator('.manual-game, #mg-prizes, #mg-winner-name')).toHaveCount(0);
-    await page.getByTestId('product-card-qc').click(); await page.getByTestId('product-try').click();
-    await expect(page.getByTestId('event-preview').locator('button').first()).toBeFocused();
+    await page.getByTestId('product-card-qc').click();
+    await expect(page.getByTestId('product-try')).toHaveCount(0);
+    await page.keyboard.press('Escape');
     await expect(page.locator('.manual-game')).toHaveCount(0);
-    await page.getByTestId('event-how').click(); await page.getByTestId('how-try').click();
-    await expect(page.getByTestId('event-preview').locator('button').first()).toBeFocused();
+    await page.getByTestId('event-how').click();
+    await expect(page.getByTestId('how-try')).toHaveCount(0);
+    await page.keyboard.press('Escape');
   }
   const scripts=readdirSync('dist/assets').filter(name=>name.endsWith('.js'));
   for(const script of scripts) {
