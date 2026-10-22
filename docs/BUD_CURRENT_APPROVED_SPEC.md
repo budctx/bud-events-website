@@ -1,6 +1,10 @@
 # BU'D — current approved specification
 
-Version: 1.0 audit baseline · 2026-10-22 (Asia/Riyadh). Owner: BU'D project owner. Status: source reconciliation in progress; **not production acceptance**.
+Version: 1.1 current-scope correction · 2026-10-22 (Asia/Riyadh). Owner: BU'D project owner. Status: Stage 00 reconciliation in progress; **official frontend publication approved, commercial SaaS not accepted**.
+
+## Operational checkpoint
+
+The later owner decision to use only the current official website supersedes the earlier *Preview-only* release restriction **for the frontend alone**. Current production source is GitHub `main` commit `8a60944f05718ffa2476aae7e7791eedd5fa0f5c` as audited in Notion; the exact SHA can change through reviewed subsequent PRs. Stage 00 remains OPEN and payments remain disabled. [Working reconciliation audit](https://app.notion.com/p/401b475e25f1814d9cc7f75ffcd1bf0c).
 
 ## Source identifiers
 
@@ -26,7 +30,7 @@ Version: 1.0 audit baseline · 2026-10-22 (Asia/Riyadh). Owner: BU'D project own
 | CUR-009 | Light only, Readex Pro, official vector emblem. #333333,#FBB03B,#F6F0E2,#E6E6E6; cards/containers #FDFDFF. Retro Modern/Arcade75% + Gaming25%. | Owner/Handoff22Oct | H,G,F | High |
 | CUR-010 | Fit viewport without clipped controls; overflow available where needed. AR/EN, RTL/LTR, keyboard, focus restoration and reduced motion. | Owner22Oct | H,G | High |
 | CUR-011 | No fabricated partners/testimonials. Current Figma contains sample placeholders; preserve honest empty/sample states until real content supplied. | H explicit no invented endorsements | H + F current context | High |
-| CUR-012 | Preserve archive, main, existing PR2, infrastructure; isolated feature branch; Vercel Preview only. No real payment/purchases/prod merge/release. | Owner22Oct | Current request,H | High |
+| CUR-012 | Preserve archive, legacy branches, development infrastructure. Official BU'D **frontend only** is owner-approved on GitHub `main` and Vercel Production; further changes use reviewed feature PRs. Real purchases, payment activation, Discord OAuth and commercial SaaS go-live remain disallowed until separately verified and approved. | Owner22Oct later explicit release approval | [Notion approval](https://app.notion.com/p/401b475e25f181db9c0dd509e7c1c856), [PR #4](https://github.com/budctx/bud-events-website/pull/4) | High for scoped website release only |
 
 ## Open decisions and bounded execution
 
