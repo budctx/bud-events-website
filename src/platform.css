@@ -25,7 +25,7 @@
 .platform-action { border:2px solid #333; border-radius:8px; padding:8px 16px; min-height:48px; background:#fdfdff; font-size:14px; line-height:24px; font-weight:500; box-shadow:3px 3px 0 #333; transition:transform var(--bud-motion-control,180ms) var(--bud-motion-ease,ease),box-shadow var(--bud-motion-control,180ms); }
 .platform-action-primary { background:#fbb03b; }
 .platform-hero-actions .platform-action-primary { width:258px; height:52px; }
-.platform-hero-actions .platform-action-secondary { width:158px; height:52px; }
+.platform-hero-actions .platform-action-secondary { width:158px; height:52px; background-image:url('/assets/community-dots-secondary.svg'); background-size:158px 52px; background-position:center; background-repeat:no-repeat; }
 .platform-action:hover { transform:translate(-1px,-2px); box-shadow:4px 5px 0 #333; }
 .platform-action:active { transform:translate(3px,3px); box-shadow:none; }
 .platform-proof { position:absolute; inset-inline-start:0; bottom:28px; width:530px; max-width:100%; }
