@@ -1,0 +1,45 @@
+name: Notion CI evidence
+on:
+  workflow_run:
+    workflows: ["Website checks"]
+    types: [completed]
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  publish-ci-evidence:
+    if: >-
+      ${{ github.event.workflow_run.event == 'push' &&
+          github.event.workflow_run.head_branch == 'main' &&
+          github.event.workflow_run.head_repository.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      BUD_NOTION_TOKEN: ${{ secrets.BUD_NOTION_TOKEN }}
+      BUD_NOTION_TESTS_DATA_SOURCE_ID: ${{ secrets.BUD_NOTION_TESTS_DATA_SOURCE_ID }}
+      BUD_CI_SHA: ${{ github.event.workflow_run.head_sha }}
+      BUD_CI_ID: ${{ github.event.workflow_run.id }}
+      BUD_CI_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+      BUD_CI_URL: ${{ github.event.workflow_run.html_url }}
+      BUD_CI_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+      BUD_CI_UPDATED_AT: ${{ github.event.workflow_run.updated_at }}
+    steps:
+      - name: Check integration configuration
+        id: config
+        shell: bash
+        run: |
+          if [[ -n "$BUD_NOTION_TOKEN" && -n "$BUD_NOTION_TESTS_DATA_SOURCE_ID" ]]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Notion is not configured. No evidence was written."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Checkout trusted main
+        if: steps.config.outputs.enabled == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Publish historical CI evidence
+        if: steps.config.outputs.enabled == 'true'
+        run: node scripts/sync-notion-ci.mjs
