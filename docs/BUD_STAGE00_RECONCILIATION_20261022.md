@@ -33,6 +33,16 @@ Owner approval 2026-10-22: **one session has a maximum lifetime of 4 hours (240 
 
 This approval does **not** resolve the legacy seven-day prestart window, 60-minute one-time restart, result retention period, or exact wall-clock accounting while a host is disconnected. Those remain separately open; 240 minutes + no-double-debit is an approved policy, **not a working/live authenticated session**. The latest decision is recorded in [Notion Stage 00 audit](https://app.notion.com/p/401b475e25f1814d9cc7f75ffcd1bf0c), cross-referenced in existing S02-G05/G06 policy-review fields. No new release authorization implied.
 
+## Owner decisions recorded during Stage 00 (2026-10-22)
+
+- **S00-ADR-001** — Shared Engine / Timer Manager uniquely owns timing, time config and clock. Activity templates provide only triggers and activity-specific expiry policy. Do not infer final time input range from an architecture approval; S07 API/S09 implementation, S11 tests.
+- **S00-ADR-002** — Sessions capped at four hours; reconnect/resume existing session consumes zero new Slots. An authentic new session starts with exactly one idempotent debit. Exact disconnected wall-clock semantics and legacy grace/prestart/restart clauses remain unresolved.
+- **S00-ADR-003** — Persistent **Game History** table/list with event/date/time/status and Copy Summary equal to closing's winner—prize lines; no automatic 7-day results deletion. Privacy/erasure and financial retention are separate.
+- **Dev reset evidence** — Owner requested cleanup before S07/S08. [Exact verified reset migration and scope](BUD_SUPABASE_STAGE00_DEV_RESET_20261022.md): `bud_private` + `bud_platform` removed (12 empty tables), four legacy `public.bud_*` functions removed, main Supabase Development project preserved. Do NOT replay obsolete migration drafts. Never confuse this with production DB readiness.
+- **Notion reconciliation coverage:** 17 **additional** pre-existing S02–S04 detailed gate/test Policy Review fields updated to reflect ADR-001/002/003 and current owner scope, all retaining NOT RUN/BLOCKED results. Earlier 10 updates are retained; S02-T01 originally refused by connector and remains unmodified. Updated rows: S02-G04,G09,G10; S03-G01,G04,G05,G10; S04-G05,G06; S02-T02,T03,T04,T05; S03-T02,T05; S04-T02,T03.
+- **Figma game source detailed inspection:** original `314:2` metadata now inventories 42 top-level frames: D01–D17, M01–M10, countdown 5→0, card and button components. Direct screenshot response obtained for setup timer-on (`317:1945`), winner modal (`317:2333`), mobile setup (`317:2857`) and mobile close (`317:3397`); all correct canvas dimensions reported. Metadata confirms D01/D02 **still use legacy 5/7/10 duration chips**. This is a visual/spec drift: current owner wants a custom-second timer, and current exact numeric range remains unapproved; update S05/S06 before final design acceptance. Fetching a screenshot is not proof that browser animation and gameplay were interactively tested.
+- **Browser audit limitation:** Connected browser list_tabs was unavailable. Local container cannot resolve Vercel domain, and ordinary web URL fetch failed; original/current live interactive visual parity remains unverified. These failures are not UI test passes; carry open into S05/S06/S11.
+
 ## Decision-conflict ledger
 
 | ID | Scope | Disposition | Remaining evidence |
@@ -40,7 +50,7 @@ This approval does **not** resolve the legacy seven-day prestart window, 60-minu
 | S00-C01 | Participant registration/attendance/bot from legacy registry | Superseded by explicit owner no-participant/no-bot policy | Reconcile S02–S04 gates and tests |
 | S00-C02 | Verified Discord winner, name before correct | Superseded; host correct, then typed winner; do not claim verified ID | Verify current game regression |
 | S00-C03 | Timer 5/7/10 fixed only | Superseded; custom seconds optional. 3–30/default5 used in original/demo; **final owner bound pending** | Distinguish observed bounds vs approved specification |
-| S00-C04 | 240-minute session clock/10-second grace/60-minute restart/7-day retention | Legacy requirements, not renewed | Scope/owner policy resolution before real sessions |
+| S00-C04 | 240-minute session clock/10-second grace/60-minute restart/7-day retention | Partly resolved: 4h + free same-session resume approved; 7-day result TTL superseded by permanent Game History; prestart/60m/disconnect clock still open | Implement only approved session/history rules; keep other runtime contracts blocked |
 | S00-C05 | Old Preview-only/release restrictions | Superseded **only for public frontend** by newer site release approval | Correct stale docs; maintain commercial go-live restriction |
 | S00-C06 | Modal, content, EN locale, dotted containers and Figma version acceptance | Still open for final design/QA | Responsive screenshot comparisons and owner receipt |
 | S00-C07 | Discord OAuth, Whop webhook, Slot charging on live sessions | Blocked until security/end-to-end tests | No real billing, do not remove fail-closed guards |
@@ -63,7 +73,7 @@ Product policy, UX/Figma, Engineering/Security, QA and Documentation are review 
 - [ ] New interactive browser audit of original/current games and animation, timer, winner flow, mobile behavior.
 - [ ] Visual screenshot-vs-rendered comparison on current website (AR/EN/320/390/1440, short height, keyboard, reduced motion).
 - [ ] Confirm immutable design version/acceptance receipt and other missing modal/container visual states.
-- [ ] Reconcile the existing 140 gates/73 detailed tests to the newer no-bot/manual-winner/Slot policies; mark per-row evidence appropriately.
+- [ ] Continue remaining registry coverage; 27 existing per-item Policy Review annotations now updated (10 prior + 17 additional) without changing PASS. This is **partial**, not full 140/73 coverage.
 - [ ] Resolve older clock/retention/payment policies or mark affected work explicitly deferred.
 - [ ] Independent qualified QA review and Stage 00 owner approval before marking gate closed.
 
