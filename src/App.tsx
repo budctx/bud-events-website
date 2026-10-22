@@ -1,5 +1,6 @@
 import { useEffect, useReducer, useRef, useState } from 'react';
 import FoundationPreview from './FoundationPreview';
+import PlatformLanding from './PlatformLanding';
 import { Button } from './components/Button';
 import { PlayingCard } from './components/PlayingCard';
 import { parsePrizeLines } from './prize-lines';
@@ -17,7 +18,7 @@ import type { EventAction } from './event-core';
 const params = new URLSearchParams(location.search);
 function safeCopy(value: string) { return value.replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g, ' ').replace(/@/g, '@\u200b'); }
 function preference(key: string) { try { return localStorage.getItem(key); } catch { return null; } }
-export default function App() { return params.get('screen') === 'foundation' ? <FoundationPreview /> : <Journey />; }
+export default function App() { return params.get('screen') === 'site' ? <PlatformLanding /> : params.get('screen') === 'foundation' ? <FoundationPreview /> : <Journey />; }
 function Journey() {
   const [locale, setLocale] = useState<Locale>(() => (params.get('lang') ?? preference('bud-lang')) === 'en' ? 'en' : 'ar');
   const theme: Theme = 'light';
