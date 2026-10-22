@@ -24,7 +24,9 @@ test('winner is impossible before both cards and correct judgment; replay cannot
   let next = save(state, '  A  '); assert.equal(next.winners[0]?.name, 'A'); assert.equal(next.question, false);
   assert.equal(manualGameReducer(next, { type: 'save-winner', name: 'B' }), next);
   next = manualGameReducer(reveal(next), { type: 'correct' });
-  assert.equal(manualGameReducer(next, { type: 'save-winner', name: 'a' }), next);
+  const duplicate = manualGameReducer(next, { type: 'save-winner', name: 'a' });
+  assert.equal(duplicate.winners.length, 2);
+  assert.notEqual(duplicate.winners[0].id, duplicate.winners[1].id);
   assert.equal(manualGameReducer(next, { type: 'save-winner', name: ' ' }), next);
   assert.equal(manualGameReducer(next, { type: 'save-winner', name: 'x'.repeat(81) }), next);
   assert.equal('participants' in next, false); assert.equal('discordId' in next.winners[0], false);
@@ -70,4 +72,36 @@ test('canceling winner entry resumes original deadline without freezing the roun
  assert.equal(s.deadline,deadline);
  s=manualGameReducer(s,{type:'tick',now:999999});
  assert.equal(s.remaining,0);
+});
+
+test('duplicate names remain independent through rename, delete, replacement and award', () => {
+  let s = save(save(save(start('1\n2\n3\n4'), 'سارة'), 'سارة'), 'علي');
+  assert.deepEqual(s.winners.map(w => w.id), ['winner-1', 'winner-2', 'winner-3']);
+  s = manualGameReducer(s, { type: 'rename-winner', winnerId: 'winner-3', name: 'سارة' });
+  assert.equal(s.winners.filter(w => w.name === 'سارة').length, 3);
+  s = manualGameReducer(s, { type: 'delete-winner', winnerId: 'winner-2' });
+  s = save(s, 'سارة');
+  assert.deepEqual(s.winners.map(w => w.id), ['winner-1', 'winner-3', 'winner-4']);
+  s = manualGameReducer(s, { type: 'phase', phase: 'prizes' });
+  s = manualGameReducer(s, { type: 'award', prizeId: 'prize-1', winnerId: 'winner-4' });
+  assert.equal(s.prizes[0].winnerId, 'winner-4');
+  assert.equal(manualGameReducer(s, { type: 'award', prizeId: 'prize-2', winnerId: 'winner-4' }), s);
+  s = manualGameReducer(s, { type: 'delete-winner', winnerId: 'winner-1' });
+  assert.equal(s.prizes[0].winnerId, 'winner-4');
+  s = manualGameReducer(s, { type: 'delete-winner', winnerId: 'winner-4' });
+  assert.equal(s.prizes[0].winnerId, null);
+  assert.equal(s.prizes[0].revealed, false);
+  s = manualGameReducer(s, { type: 'award', prizeId: 'prize-1', winnerId: 'winner-3' });
+  assert.equal(s.prizes[0].winnerId, 'winner-3');
+});
+
+test('management validates names, phase, unknown IDs and immutable closing results', () => {
+  const s = save(start(), 'A');
+  for (const name of ['', ' ', 'x'.repeat(81)]) assert.equal(manualGameReducer(s, { type: 'rename-winner', winnerId: 'winner-1', name }), s);
+  assert.equal(manualGameReducer(s, { type: 'delete-winner', winnerId: 'missing' }), s);
+  const pending = manualGameReducer(reveal(s), { type: 'correct' });
+  assert.equal(manualGameReducer(pending, { type: 'delete-winner', winnerId: 'winner-1' }), pending);
+  const closed = manualGameReducer(manualGameReducer(s, { type: 'phase', phase: 'prizes' }), { type: 'phase', phase: 'closing' });
+  assert.equal(manualGameReducer(closed, { type: 'rename-winner', winnerId: 'winner-1', name: 'B' }), closed);
+  assert.equal(manualGameReducer(closed, { type: 'delete-winner', winnerId: 'winner-1' }), closed);
 });

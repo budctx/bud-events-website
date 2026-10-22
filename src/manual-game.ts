@@ -5,7 +5,7 @@ export type ManualWinner = { id: string; name: string };
 export type ManualPrize = { id: string; name: string; revealed: boolean; winnerId: string | null };
 export type ManualState = {
   phase: 'setup' | 'live' | 'prizes' | 'closing'; config: ManualConfig;
-  prizes: ManualPrize[]; winners: ManualWinner[];
+  prizes: ManualPrize[]; winners: ManualWinner[]; nextWinnerNumber: number;
   question: boolean; condition: boolean; attempt: number; round: number;
   deadline: number | null; remaining: number; pendingWinner: boolean;
 };
@@ -15,19 +15,21 @@ export type ManualAction =
   | { type: 'tick'; now: number }
   | { type: 'correct' | 'wrong' | 'cancel-winner' }
   | { type: 'save-winner'; name: string }
+  | { type: 'rename-winner'; winnerId: string; name: string }
+  | { type: 'delete-winner'; winnerId: string }
   | { type: 'phase'; phase: 'live' | 'prizes' | 'closing' }
   | { type: 'award'; prizeId: string; winnerId: string }
   | { type: 'reset' };
 export function initialManualState(): ManualState {
-  return { phase: 'setup', config: { duration: 5, timerEnabled: false, attempts: 1 }, prizes: [], winners: [],
+  return { phase: 'setup', config: { duration: 5, timerEnabled: false, attempts: 1 }, prizes: [], winners: [], nextWinnerNumber: 1,
     question: false, condition: false, attempt: 1, round: 0, deadline: null, remaining: 5, pendingWinner: false };
 }
 export const validDuration = (value: number) => Number.isSafeInteger(value) && value >= 3 && value <= 30;
-export function winnerNameError(state: ManualState, value: string): 'empty' | 'long' | 'duplicate' | null {
+export function winnerNameError(_state: ManualState, value: string): 'empty' | 'long' | null {
   const name = value.trim();
   if (!name) return 'empty';
   if (name.length > 80) return 'long';
-  return state.winners.some(w => w.name.toLocaleLowerCase() === name.toLocaleLowerCase()) ? 'duplicate' : null;
+  return null;
 }
 function nextRound(state: ManualState, attempt = 1): ManualState {
   return { ...state, question: false, condition: false, deadline: null, remaining: state.config.duration,
@@ -49,6 +51,15 @@ export function manualGameReducer(state: ManualState, action: ManualAction): Man
     if (action.phase === 'closing' && state.phase === 'prizes') return { ...state, phase: 'closing', deadline: null };
     return state;
   }
+  if (action.type === 'rename-winner' || action.type === 'delete-winner') {
+    if (!['live', 'prizes'].includes(state.phase) || state.pendingWinner || !state.winners.some(w => w.id === action.winnerId)) return state;
+    if (action.type === 'rename-winner') {
+      if (winnerNameError(state, action.name)) return state;
+      return { ...state, winners: state.winners.map(w => w.id === action.winnerId ? { ...w, name: action.name.trim() } : w) };
+    }
+    return { ...state, winners: state.winners.filter(w => w.id !== action.winnerId),
+      prizes: state.prizes.map(p => p.winnerId === action.winnerId ? { ...p, revealed: false, winnerId: null } : p) };
+  }
   if (action.type === 'award') {
     if (state.phase !== 'prizes' || !state.winners.some(w => w.id === action.winnerId)
       || state.prizes.some(p => p.winnerId === action.winnerId)) return state;
@@ -60,7 +71,7 @@ export function manualGameReducer(state: ManualState, action: ManualAction): Man
   if (action.type === 'cancel-winner') return state.pendingWinner ? { ...state, pendingWinner: false } : state;
   if (action.type === 'save-winner') {
     if (!state.pendingWinner || winnerNameError(state, action.name) || (state.prizes.length > 0 && state.winners.length >= state.prizes.length)) return state;
-    return nextRound({ ...state, winners: [...state.winners, { id: `winner-${state.winners.length + 1}`, name: action.name.trim() }] });
+    return nextRound({ ...state, nextWinnerNumber: state.nextWinnerNumber + 1, winners: [...state.winners, { id: `winner-${state.nextWinnerNumber}`, name: action.name.trim() }] });
   }
   if (state.pendingWinner) return state;
   if (action.type === 'reveal') {

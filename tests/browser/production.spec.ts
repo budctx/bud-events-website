@@ -54,9 +54,10 @@ for(const locale of ['ar','en']) test(`manual journey ${locale}`,async({page},in
   await expect(page.locator('.mg-header h1')).toBeFocused();
   await page.screenshot({path:info.outputPath(`game-${locale}.png`),fullPage:true,animations:'disabled'});
   await page.getByRole('button',{name:ar?'صفحة الجوائز':'Prize page',exact:true}).click();
+  await page.locator('.mg-winner-option').click();
   await page.locator('.mg-prize-card').click();
-  await page.getByLabel(ar?'اختر الفائز':'Choose winner',{exact:true}).selectOption({label:'Test Winner'});
-  await page.getByRole('button',{name:ar?'اكشف الجائزة':'Reveal prize',exact:true}).click();
+  await page.getByRole('button',{name:ar?'افتح جائزته!':'Open their prize!',exact:true}).click();
+  await page.getByRole('button',{name:ar?'متابعة السحب':'Continue draw',exact:true}).click();
   await expect(page.locator('.mg-prize-card')).toContainText('Test Winner');
   await page.getByRole('button',{name:ar?'إنهاء الفعالية':'End event',exact:true}).click();
   await page.getByRole('button',{name:ar?'إنهاء وعرض النتائج':'End and view results',exact:true}).click();
