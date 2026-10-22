@@ -1,5 +1,8 @@
 # BU'D — current approved specification
 
+> **Latest owner design workflow override — S00-ADR-005 (2026-10-22):** The currently published BU'D website UI is the approved visual baseline. Continue **Code-first**, composing reusable responsive components for all screen sizes instead of creating per-breakpoint designs. Figma files are historical reference only; no more Figma edits, new-frame approvals, or immutable Figma version are required for new UI. Preserve the current design language and test real Preview builds on desktop, tablet, mobile, AR/EN, RTL/LTR, keyboard, reduced motion, short viewport, and browser interactions. This does NOT waive QA, business-policy approval, nor Stage 00 completion. [Owner policy record](https://app.notion.com/p/401b475e25f1814d9cc7f75ffcd1bf0c).
+
+
 Version: 1.3 owner-policy reconciliation · 2026-10-22 (Asia/Riyadh). Owner: BU'D project owner. Status: Stage 00 reconciliation in progress; **official frontend publication approved, commercial SaaS not accepted**.
 
 ## Operational checkpoint
