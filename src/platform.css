@@ -1,0 +1,150 @@
+.platform { --platform-ink:#333; --platform-paper:#fdfdff; color:#333; color-scheme:light; background:#f6f0e2; position:relative; isolation:isolate; min-height:100dvh; padding-inline:64px; margin-inline:auto; width:100%; display:flex; flex-direction:column; }
+.platform button { cursor:pointer; }
+.platform button:disabled { cursor:not-allowed; }
+.platform button:focus-visible, .platform a:focus-visible { outline:4px solid #333; outline-offset:4px; }
+.platform-art { position:absolute; z-index:-1; inset:0; overflow:hidden; pointer-events:none; }
+.platform-art img { width:100%; height:100%; display:block; object-fit:cover; }
+.platform-header { height:92px; flex:none; margin-top:12px; display:flex; direction:ltr; align-items:center; justify-content:space-between; gap:24px; }
+.platform-login { width:190px; height:44px; border:1px solid #333; border-radius:8px; background:#fdfdff; font-size:14px; font-weight:500; padding:8px; line-height:24px; }
+.platform-brand-navigation { display:flex; direction:ltr; align-items:center; justify-content:flex-end; gap:32px; }
+.platform-navigation { display:flex; flex-direction:row-reverse; align-items:center; gap:20px; }
+.platform-navigation button { border:0; background:transparent; padding:8px 0; min-height:44px; font-size:16px; line-height:24px; white-space:nowrap; font-weight:500; }
+.platform-navigation button[aria-current=page] { font-weight:700; text-decoration:underline; text-underline-offset:3px; }
+.platform-future-link { opacity:.65; }
+.platform-brand { border:0; padding:0; background:none; width:64px; height:76px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; }
+.platform-mark { display:flex; width:52px; height:37.375px; align-items:center; justify-content:center; }
+.platform-mark img { display:block; transform:scale(1.625); }
+.platform-brand>span:last-child { font-size:27px; font-weight:700; line-height:36px; }
+.platform-home-main { flex:1; min-height:calc(100dvh - 176px); position:relative; }
+.platform-hero { width:530px; max-width:100%; margin-inline-end:auto; padding-top:101px; text-align:start; }
+.platform-eyebrow { font-size:14px; line-height:25px; font-weight:500; opacity:.75; }
+.platform-hero h1 { font-size:56px; line-height:1.42; font-weight:700; margin-top:14px; margin-bottom:14px; }
+.platform[dir=ltr] .platform-hero h1 { font-size:42px; }
+.platform-hero-description { font-size:16px; line-height:1.65; }
+.platform-hero-actions { display:flex; gap:16px; justify-content:flex-start; margin-top:14px; }
+.platform-action { border:2px solid #333; border-radius:8px; padding:8px 16px; min-height:48px; background:#fdfdff; font-size:14px; line-height:24px; font-weight:500; box-shadow:3px 3px 0 #333; transition:transform var(--bud-motion-control,180ms) var(--bud-motion-ease,ease),box-shadow var(--bud-motion-control,180ms); }
+.platform-action-primary { background:#fbb03b; }
+.platform-hero-actions .platform-action-primary { width:258px; height:52px; }
+.platform-hero-actions .platform-action-secondary { width:158px; height:52px; }
+.platform-action:hover { transform:translate(-1px,-2px); box-shadow:4px 5px 0 #333; }
+.platform-action:active { transform:translate(3px,3px); box-shadow:none; }
+.platform-proof { position:absolute; inset-inline-start:0; bottom:28px; width:530px; max-width:100%; }
+.platform-review-empty { background:#fdfdff; border:1.5px solid #333; border-radius:12px; box-shadow:3px 3px 0 #333; height:84px; padding:16px 20px; display:flex; flex-direction:column; justify-content:center; font-size:13px; line-height:20px; text-align:start; }
+.platform-review-empty strong { font-size:14px; font-weight:500; }
+.platform-review-empty p { opacity:.65; font-size:11px; }
+.platform-partners-empty { margin-top:8px; min-height:28px; text-align:end; font-size:11px; line-height:28px; opacity:.75; }
+.platform-footer { height:32px; margin-bottom:40px; flex:none; display:flex; direction:ltr; align-items:center; justify-content:space-between; gap:20px; }
+.platform-footer small { font-size:12px; white-space:nowrap; }
+.platform-footer-links { display:flex; gap:32px; direction:ltr; align-items:center; }
+.platform-footer-links button { border:0; padding:0 8px; background:none; min-height:32px; font-size:14px; line-height:28px; }
+.platform-language { position:absolute; top:84px; inset-inline-end:64px; padding:0; width:32px; min-height:28px; border:0; background:transparent; font-size:11px; line-height:24px; }
+.platform-gallery-main { flex:1; width:100%; max-width:1000px; margin-inline:auto; padding-top:56px; padding-bottom:56px; }
+.platform-gallery-intro { text-align:start; margin-bottom:32px; }
+.platform-gallery-intro h1 { font-size:40px; line-height:48px; font-weight:700; }
+.platform-gallery-intro p { margin-top:4px; font-size:16px; line-height:24px; }
+.platform-product-card { background:#fdfdff; border:2px solid #333; border-radius:16px; box-shadow:4px 5px 0 #333; padding:30px; min-height:440px; display:flex; direction:ltr; gap:32px; align-items:center; justify-content:center; }
+.platform-product-preview { width:420px; height:376px; flex:none; display:flex; direction:ltr; gap:20px; align-items:center; justify-content:center; }
+.platform-mini-card { width:176px; height:187.2px; background:#212121; border:1.2px solid #333; border-radius:6.4px; box-shadow:1.2px 1.2px 0 #333; position:relative; display:flex; align-items:center; justify-content:center; }
+.platform-mini-card .platform-mark { position:absolute; width:9.6px; height:6.9px; opacity:.4; overflow:visible; }
+.platform-mini-card .platform-mark img { position:absolute; top:0; left:0; transform:scale(.3); transform-origin:0 0; }
+.platform-mini-card .mini-mark-top { top:3.6px; right:4.4px; }
+.platform-mini-card .mini-mark-bottom { bottom:6.8px; left:2px; transform:rotate(180deg); }
+.mini-identity { text-align:center; display:flex; align-items:center; flex-direction:column; gap:3.2px; }
+.mini-identity>span { display:flex; width:25.6px; height:25.6px; align-items:center; justify-content:center; border:.8px solid #ffffff1f; border-radius:32px; color:#fff; font-size:12px; line-height:18px; font-weight:700; }
+.mini-identity small { font-size:5.6px; line-height:8.4px; color:#fbb03b; font-weight:700; }
+.platform-mini-card-C small { color:#5db1ff; }
+.platform-product-information { flex:1; min-width:0; display:flex; flex-direction:column; align-items:flex-start; gap:16px; direction:rtl; text-align:start; }
+.platform[dir=ltr] .platform-product-information { direction:ltr; }
+.platform-product-eyebrow { font-size:14px; line-height:24px; font-weight:500; }
+.platform-product-information h2 { font-size:40px; line-height:64px; font-weight:700; }
+.platform-product-description { font-size:18px; line-height:27px; min-height:60px; }
+.platform-features { font-size:14px; line-height:24px; opacity:.72; font-weight:500; }
+.platform-product-information .platform-action { width:226px; height:52px; }
+.platform-coming-soon { text-align:center; direction:inherit; }
+.platform-coming-soon h2 { font-size:36px; line-height:54px; font-weight:700; }
+.platform-coming-soon p { margin-bottom:20px; }
+.platform-status { font-size:14px; }
+.platform-dialog { color:#333; width:min(680px,calc(100% - 32px)); max-height:calc(100dvh - 32px); border:2px solid #333; border-radius:16px; padding:0; background:#fdfdff; box-shadow:5px 6px 0 #333; overflow:auto; }
+.platform-dialog::backdrop { background:rgba(20,20,20,.4); backdrop-filter:blur(4px); }
+.platform-dialog[open] { animation:platform-dialog-enter var(--bud-motion-section,240ms) var(--bud-motion-ease,ease); }
+.platform-dialog-inner { padding:32px; position:relative; }
+.platform-dialog h2 { font-size:30px; line-height:44px; font-weight:700; padding-inline-end:44px; margin-bottom:20px; }
+.platform-dialog p { margin-bottom:16px; }
+.platform-dialog-close { position:absolute; inset-inline-end:16px; top:16px; width:44px; height:44px; border:1px solid #333; border-radius:8px; background:#fdfdff; font:400 30px/40px sans-serif; }
+.platform-dialog .platform-product-preview { width:100%; height:220px; margin-block:8px 24px; }
+.platform-modal-actions { display:flex; gap:16px; flex-wrap:wrap; margin-block:24px 16px; }
+.platform-modal-actions button { flex:1; min-width:180px; }
+.platform-rehearsal { font-size:12px; line-height:20px; opacity:.75; }
+.platform-purchase-status { border-inline-start:3px solid #fbb03b; padding:12px; background:#f6f0e2; }
+.platform-home-main,.platform-gallery-main { animation:platform-section-enter var(--bud-motion-section,240ms) var(--bud-motion-ease,ease); outline:none; }
+@keyframes platform-dialog-enter { from {opacity:0;transform:translateY(12px) scale(.98)} to {opacity:1;transform:none} }
+@keyframes platform-section-enter { from {opacity:0;transform:translateY(8px)} to {opacity:1;transform:none} }
+@media(min-width:1600px) { .platform { padding-inline:max(64px,calc((100vw - 1312px)/2)); } }
+@media(max-width:1000px) and (min-width:701px) { .platform { padding-inline:32px; } .platform-header { gap:16px; } .platform-brand-navigation { gap:16px; } .platform-navigation { gap:12px; } .platform-navigation button {font-size:13px;} .platform-login {width:170px;} .platform-hero { width:48%; } .platform-hero h1 {font-size:40px;} .platform-proof {width:48%;} .platform-product-preview {width:42%;} .platform-mini-card {width:140px;height:149px;} }
+@media(max-width:700px) {
+  .platform { padding-inline:24px; min-height:100dvh; }
+  .platform-header { margin-top:16px; height:108px; position:relative; align-items:flex-start; }
+  .platform-login { width:166px; height:40px; margin-top:12px; font-size:14px; }
+  .platform-brand-navigation { width:100%; display:contents; }
+  .platform-brand { position:absolute; right:0; top:0; width:52px; height:64px; }
+  .platform-brand .platform-mark {width:42px;height:30.1875px;}
+  .platform-brand>span:last-child {font-size:23px;line-height:30px;}
+  .platform-navigation { position:absolute; top:70px; left:0; width:100%; height:32px; justify-content:space-between; gap:8px; }
+  .platform-navigation button {font-size:12px;line-height:20px;min-height:32px;padding:2px 0;}
+  .platform-navigation button span {font-size:11px;}
+  .platform-home-main { min-height:calc(100dvh - 156px); }
+  .platform-hero { width:100%; padding-top:18px; }
+  .platform-eyebrow { font-size:12px;line-height:18px; }
+  .platform-hero h1 { font-size:36px;line-height:1.4;margin-block:14px; }
+  .platform-hero-description {font-size:14px;line-height:1.65;}
+  .platform-hero-actions {gap:12px;margin-top:20px;}
+  .platform-hero-actions .platform-action-primary {width:auto;flex:1;min-width:0;height:48px;padding-inline:8px;}
+  .platform-hero-actions .platform-action-secondary {width:112px;height:48px;padding-inline:8px;}
+  .platform-art {inset:0;}
+  .platform-art img {object-fit:cover;object-position:center;}
+  .platform-proof {width:100%;bottom:20px;}
+  .platform-review-empty {height:70px;padding:10px 12px;font-size:12px;line-height:18px;}
+  .platform-review-empty strong {font-size:12px;}
+  .platform-review-empty p {font-size:10px;}
+  .platform-partners-empty {font-size:10px;}
+  .platform-footer {margin-bottom:0;gap:16px;}
+  .platform-footer small {font-size:10px;line-height:19px;}
+  .platform-footer-links {gap:12px;}
+  .platform-footer-links button {font-size:12px;padding:0;}
+  .platform-language {top:60px;inset-inline-end:auto;left:190px;font-size:10px;}
+  .platform-gallery-main {padding-top:24px;padding-bottom:56px;}
+  .platform-gallery-intro {margin-bottom:24px;}
+  .platform-gallery-intro h1 {font-size:30px;line-height:46px;}
+  .platform-gallery-intro p {font-size:14px;line-height:21px;margin-top:8px;min-height:32px;}
+  .platform-product-card {min-height:476px;flex-direction:column;padding:18px;gap:12px;}
+  .platform-product-preview {width:100%;height:176px;gap:20px;}
+  .platform-mini-card {width:130px;height:138.27px;border-width:.886px;border-radius:4.727px;}
+  .mini-identity>span {width:18.91px;height:18.91px;font-size:8.86px;line-height:13.3px;}
+  .mini-identity small {font-size:4.14px;line-height:6.2px;}
+  .platform-product-information {width:100%;min-height:248px;gap:10px;justify-content:center;}
+  .platform-product-eyebrow {display:none;}
+  .platform-product-information h2 {font-size:28px;line-height:44px;}
+  .platform-product-description {font-size:14px;line-height:21px;min-height:48px;}
+  .platform-features {font-size:11px;line-height:22px;}
+  .platform-product-information .platform-action {width:100%;height:48px;}
+  .platform-dialog-inner {padding:24px 20px;}
+  .platform-dialog h2 {font-size:26px;line-height:40px;}
+  .platform-dialog .platform-product-preview {height:176px;}
+  .platform-modal-actions {gap:12px;}
+  .platform-modal-actions button {min-width:140px;}
+  .platform[dir=ltr] .platform-hero h1 {font-size:31px;}
+}
+@media(max-width:360px) { .platform {padding-inline:16px;} .platform-login {width:156px;font-size:12px;} .platform-hero h1 {font-size:32px;} .platform-footer-links {gap:8px;} .platform-navigation {gap:4px;} .platform-navigation button{font-size:11px;} .platform-hero-actions .platform-action-primary{font-size:12px;} }
+@media(prefers-reduced-motion:reduce) { .platform *, .platform *::before, .platform *::after {animation:none!important;transition:none!important;scroll-behavior:auto!important;} .platform-action:hover,.platform-action:active{transform:none;} }
+
+@media(min-width:701px) and (max-height:800px) { .platform-hero {padding-top:50px;} .platform-hero h1 {font-size:44px;} }
+@media(max-width:700px) { .platform-brand .platform-mark img {transform:scale(1.3125);} }
+.platform-login { direction:rtl; }
+.platform[dir=ltr] .platform-login { direction:ltr; }
+.platform { --platform-travel:12px; }
+.platform[dir=rtl] { --platform-travel:-12px; }
+@keyframes platform-section-enter { from {opacity:0;transform:translateX(var(--platform-travel))} to {opacity:1;transform:none} }
+.platform-dialog { opacity:0; transform:translateY(8px) scale(.98); transition:opacity var(--bud-motion-control) var(--bud-ease),transform var(--bud-motion-control) var(--bud-ease),display var(--bud-motion-control) allow-discrete,overlay var(--bud-motion-control) allow-discrete; }
+.platform-dialog[open] { opacity:1; transform:none; animation:none; }
+@starting-style { .platform-dialog[open] { opacity:0; transform:translateY(8px) scale(.98); } }
+@media(prefers-reduced-motion:reduce) { .platform-dialog,.platform-dialog[open] {transform:none;transition:none;} }
