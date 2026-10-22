@@ -28,7 +28,7 @@ for (const locale of ['ar','en']) for (const size of sizes) {
     await page.getByTestId('product-card-qc').click();
     const dialog=page.getByTestId('product-dialog');
     await expect(dialog).toBeVisible();
-    await expect(page.getByTestId('product-try')).toBeVisible();
+    await expect(page.getByTestId('product-try')).toHaveCount(0);
     for (let i=0;i<8;i++) { await page.keyboard.press('Tab'); expect(await dialog.evaluate(el=>el.contains(document.activeElement))).toBeTruthy(); }
     await page.keyboard.press('Shift+Tab');
     expect(await dialog.evaluate(el=>el.contains(document.activeElement))).toBeTruthy();
@@ -142,9 +142,9 @@ for (const locale of ['ar','en']) test(`homepage explanation and product discove
     await page.keyboard.press('Escape');
     await expect(page.getByTestId('event-how')).toBeFocused();
     await page.getByTestId('event-how').click();
-    await page.getByTestId('how-try').click();
+    await expect(page.getByTestId('how-try')).toHaveCount(0);
+    await page.keyboard.press('Escape');
     await expect(page.getByTestId('event-preview')).toBeVisible();
-    await expect(page.getByTestId('event-preview').locator('button').first()).toBeFocused();
     await expect(page.locator('.manual-game')).toHaveCount(0);
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBeTruthy();
   }
