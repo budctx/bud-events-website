@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 
 async function start(page: Page, ar: boolean, prizes = 'هدية أولى\nهدية ثانية\nهدية ثالثة') {
   await page.goto(`/?screen=game&lang=${ar ? 'ar' : 'en'}`);
-  await page.getByLabel(ar ? 'أدخل الجوائز (كل سطر جائزة)' : 'Enter prizes (one per line)').fill(prizes);
+  await page.getByLabel(ar ? 'أدخل الجوائز' : 'Enter prizes').fill(prizes);
   await page.getByRole('button', { name: ar ? 'بدء الفعالية' : 'Start event', exact: true }).click();
 }
 async function add(page: Page, ar: boolean, name: string) {
@@ -146,4 +146,33 @@ test('deleting an awarded record explains and restores only its prize', async ({
   await page.locator('.mg-winner-option').click();
   await page.locator('.mg-prize-card').first().click(); await confirm(page, true);
   await expect(page.locator('.mg-award-result .mg-winner-number')).toHaveText('2');
+});
+
+test('prize suspense hides the result until reveal and can be skipped without duplicate awards', async ({page}) => {
+  await start(page,true); await add(page,true,'سارة'); await prizes(page,true);
+  await page.locator('.mg-winner-option').click(); await page.locator('.mg-prize-card').first().click();
+  await confirm(page,true);
+  await expect(page.locator('.mg-reveal-experience')).toHaveAttribute('data-stage','anticipation');
+  await expect(page.locator('.mg-result-prize')).toHaveCount(0);
+  await expect(page.locator('.mg-confetti')).toHaveCount(0);
+  await page.getByRole('button',{name:'اكشف الآن',exact:true}).click();
+  await expect(page.locator('.mg-result-prize')).toHaveText('هدية أولى');
+  await expect(page.locator('.mg-confetti')).toHaveCount(1);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.mg-prize-card[data-revealed=true]')).toHaveCount(1);
+  await expect(page.locator('.mg-winner-option')).toBeDisabled();
+});
+
+test('suspense finishes automatically and reduced motion reveals instantly', async ({page}) => {
+  await start(page,true); await add(page,true,'سارة'); await add(page,true,'علي'); await prizes(page,true);
+  await page.locator('.mg-winner-option').first().click(); await page.locator('.mg-prize-card').first().click(); await confirm(page,true);
+  await expect(page.locator('.mg-reveal-experience')).toHaveAttribute('data-stage','anticipation');
+  await expect(page.locator('.mg-result-prize')).toHaveText('هدية أولى');
+  await expect(page.getByRole('button',{name:'متابعة السحب',exact:true})).toBeFocused();
+  await page.keyboard.press('Escape');
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await page.locator('.mg-winner-option:not(:disabled)').click(); await page.locator('.mg-prize-card').nth(1).click(); await confirm(page,true);
+  await expect(page.locator('.mg-reveal-experience')).toHaveAttribute('data-stage','revealed');
+  await expect(page.locator('.mg-result-prize')).toHaveText('هدية ثانية');
+  await expect(page.locator('.mg-anticipation, .mg-confetti')).toHaveCount(0);
 });
