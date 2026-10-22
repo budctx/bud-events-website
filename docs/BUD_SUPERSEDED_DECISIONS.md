@@ -1,5 +1,8 @@
 # BU'D — superseded decisions
 
+> **S00-ADR-005 owner override (2026-10-22):** Old instructions requiring design in Figma first, latest immutable frame version, or Figma sign-off before UI implementation are superseded. Current approved website is the design reference; future elements are reusable responsive code components reviewed by Preview/QA. Keep Figma only as archive, not a required delivery system. [Notion](https://app.notion.com/p/401b475e25f1814d9cc7f75ffcd1bf0c).
+
+
 Version1.2 ·2026-10-22. Owner: project owner. Historical source records are preserved; do not silently rewrite archives.
 
 | ID | Historical clause | Replacement | Current evidence/date | Status/confidence |
