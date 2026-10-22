@@ -15,6 +15,8 @@ export type ManualAction =
   | { type: 'tick'; now: number }
   | { type: 'correct' | 'wrong' | 'cancel-winner' }
   | { type: 'save-winner'; name: string }
+  | { type: 'add-winner'; name: string }
+  | { type: 'open-prize'; prizeId: string }
   | { type: 'rename-winner'; winnerId: string; name: string }
   | { type: 'delete-winner'; winnerId: string }
   | { type: 'phase'; phase: 'live' | 'prizes' | 'closing' }
@@ -50,6 +52,17 @@ export function manualGameReducer(state: ManualState, action: ManualAction): Man
     if (action.phase === 'prizes' && state.phase === 'live') return { ...state, phase: 'prizes' };
     if (action.phase === 'closing' && state.phase === 'prizes') return { ...state, phase: 'closing', deadline: null };
     return state;
+  }
+  if (action.type === 'add-winner') {
+    if (!['live', 'prizes'].includes(state.phase) || state.pendingWinner || winnerNameError(state, action.name)
+      || (state.prizes.length > 0 && state.winners.length >= state.prizes.length)) return state;
+    return { ...state, nextWinnerNumber: state.nextWinnerNumber + 1,
+      winners: [...state.winners, { id: `winner-${state.nextWinnerNumber}`, name: action.name.trim() }] };
+  }
+  if (action.type === 'open-prize') {
+    const prize = state.prizes.find(p => p.id === action.prizeId);
+    if (state.phase !== 'prizes' || !prize || prize.revealed) return state;
+    return { ...state, prizes: state.prizes.map(p => p.id === prize.id ? { ...p, revealed: true } : p) };
   }
   if (action.type === 'rename-winner' || action.type === 'delete-winner') {
     if (!['live', 'prizes'].includes(state.phase) || state.pendingWinner || !state.winners.some(w => w.id === action.winnerId)) return state;
