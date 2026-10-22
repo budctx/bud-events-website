@@ -1,46 +1,51 @@
-# BU'D — Discord-first digital products platform
+# BU’D — Official Discord-first Digital Products Website
 
-This repository hosts the BU'D **development Preview** and the first playable **Question & Condition / سؤال وشرط** event rehearsal. BU'D is a multi-product platform with Events, Bots and Designs galleries; it is not a single-game homepage.
+**Canonical production:** https://bud-events-website.vercel.app  
+**Source of truth for decisions, approvals, and stage gates:** [BU’D Project Command Center in Notion](https://app.notion.com/p/401b475e25f18133bdedc0fab9ee1287)
 
-## Review the Preview
+BU’D is a Saudi Discord-first digital products brand. The official website includes Home, Events, Bots and Designs galleries, with a reusable product-detail modal. **Question & Condition / سؤال وشرط** is the first event demo, not the entire brand or a live paid service.
 
-- [Preview deployment (first production branch build)](https://bud-events-website-6hknms09l-budctx1-8956s-projects.vercel.app)
-- [Development PR #3](https://github.com/budctx/bud-events-website/pull/3)
-- [Acceptance evidence](docs/BUD_VERIFICATION_REPORT.md)
-- [Current approved spec](docs/BUD_CURRENT_APPROVED_SPEC.md)
+## Current approved experience
 
-Browse the landing page and galleries in Arabic or English. Open the **سؤال وشرط** product modal and click **جرّب العرض / Try the demo** to use the *local, unpaid rehearsal*.
+- Light-only, Retro Modern/Arcade identity, Readex Pro, AR/EN with RTL/LTR, responsive layouts and reduced-motion support.
+- Public browsing. Product CTAs may show coming-soon or unavailable integration states.
+- Local unpaid host-operated Question & Condition rehearsal: setup → flip question/condition cards → host correctness decision → winner-name dialog → prizes → closing.
+- **No Discord bot, participant registration/tracking, verified participant identity, or production Dark Mode.**
+- Discord purchaser OAuth, Whop checkout, paid Slots and authoritative server-side gameplay are **not enabled**. Never simulate a successful charge or entitlement.
 
-### Host-operated game
-
-1. Enter event name, choose 1–3 attempts and optionally set a custom timer in the **3–30 second** range.
-2. Enter the prizes (one per line), then start the local event.
-3. Flip each question/condition card separately; when enabled, the timer begins after both are revealed.
-4. Listen to the spoken answer externally, then mark **correct** or **incorrect**. **After** a correct answer, enter the winner's display name in the dialog.
-5. Continue through prizes and closing. There is **no** participant registration, participant tracking or Discord bot.
-
-The demo does not persist authoritative events, spend paid Slots, authenticate users, fulfill purchases or award verifiable prizes. Demo data is illustrative, not a production question bank.
-
-## Development
-
-Node.js 24 is configured on Vercel.
+## Work on the repository
 
 ```sh
 npm ci
-npm run build
 npm run typecheck:server
+npm run build
 npm test
-npx playwright install chromium
-npx playwright test tests/browser/production.spec.ts
 ```
 
-For design comparison, see [Figma component matrix](docs/BUD_FIGMA_COMPONENT_MATRIX.md) and [visual evidence](docs/evidence/). Retain approved Light-only identity, AR/EN and reduced-motion behavior.
+`npm test` runs the current unit suite and browser production tests. Browser runs require Playwright Chromium; locally, first run `npx playwright install chromium`. Do not use superseded browser suites as release criteria.
 
-## Backend and deployment boundaries
+Work in a feature branch, open a PR, and require green **Website checks / verify** before merging. Deployments are managed by the connected Vercel project. **Main branch protection still requires admin ruleset configuration and independent verification**; GitHub CI passing does not itself enforce merge protection. Do not bypass failed checks or treat deployment `READY` as formal Stage approval.
 
-- An **isolated BU'D Supabase development** schema `bud_platform` was applied on 2026-10-22; this is not a commerce go-live. See [backend contract](docs/BUD_BACKEND_CONTRACT.md).
-- Discord OAuth is disabled; Vercel secrets are not configured. The payment endpoint and Whop webhook intentionally fail closed.
-- Real purchase fulfillment, provider verification, multi-connection security tests, payment policies, Figma visual acceptance and final compliance gates remain **OPEN**.
-- Never treat a successful Preview build or passing unit suite as approval to merge to `main`, promote production, activate billing or close Notion Stage 00.
+## Architecture & project records
 
-Notion is the progress standard; see the [Stage 00 gate](https://app.notion.com/p/401b475e25f181909556f65d42e19590). Historical flows and old PR #2 remain archived; they are not the current product spec.
+| Item | Authoritative reference |
+| --- | --- |
+| Current decisions | [Approved spec](docs/BUD_CURRENT_APPROVED_SPEC.md), [superseded decisions](docs/BUD_SUPERSEDED_DECISIONS.md) |
+| Front-end visual evidence | [Figma mapping](docs/BUD_FIGMA_COMPONENT_MATRIX.md), [verification report](docs/BUD_VERIFICATION_REPORT.md) |
+| Server contracts & environment | [Backend contract](docs/BUD_BACKEND_CONTRACT.md), `supabase/migrations/` |
+| CI → Notion historical evidence | [Governance automation](docs/BUD_GOVERNANCE_AUTOMATION.md) |
+| Historical branches and files | [Archive manifest](docs/BUD_REPOSITORY_ARCHIVE.md) |
+| Notion Stage 00 | [Decision reconciliation gate](https://app.notion.com/p/401b475e25f181909556f65d42e19590) |
+
+The historical `docs/implementation.md`, `docs/verification.md` and `docs/bot-impact-study.md` are archive evidence, **not current implementation instructions**. Retired participant-based code and tests were removed from active files but are recoverable from Git history. Historical drafts should never override current owner decisions or Notion approvals.
+
+## Security and delivery boundaries
+
+- Do not commit secrets; use CI/hosting secrets with the minimum access required. `.env*` and `supabase/.temp` are gitignored.
+- The Notion evidence publisher may write **historical run records only** when secrets are configured. It does **not** auto-PASS detailed tests or close stages.
+- A production front-end release was approved by the owner on 2026-10-22. **Stage 00 and all 14 official stage completion gates remain open** until separately verified and approved.
+- Preserved older branches, original assets and prior releases are references/rollback history, not alternate official BU’D websites.
+
+## Licenses
+
+See [third-party notices](THIRD_PARTY_NOTICES.md) and [license files](licenses/).

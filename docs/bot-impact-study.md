@@ -1,3 +1,5 @@
+> **ARCHIVED — historical implementation evidence only (superseded on 2026-10-22).** Participant registration/tracking, Discord bots and Dark Mode in this document are **not** current BU’D requirements. See [current approved spec](BUD_CURRENT_APPROVED_SPEC.md), [superseded decisions](BUD_SUPERSEDED_DECISIONS.md) and [archive manifest](BUD_REPOSITORY_ARCHIVE.md). Preserve historical details for traceability; do not implement them as live features.
+
 # Optional Discord bot — impact study
 
 2026-10-14, Asia/Riyadh. Research owner: `/root/bot_study`; integration owner: Root. **Documentation feasibility study; no bot, OAuth or server integration has been implemented or tested.** This study changes no approved policy and adds no service subscription. Whop remains the payment provider.
