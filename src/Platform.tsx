@@ -48,6 +48,7 @@ export default function Platform({ onPlay, onBuy }: PlatformProps) {
 
   return <div className={`platform platform-${page}`} dir={locale === 'ar' ? 'rtl' : 'ltr'} data-testid="platform-root">
     <a className="skip-link" href="#platform-content">{locale === 'ar' ? 'تجاوز إلى المحتوى' : 'Skip to content'}</a>
+    {page === 'home' && <HeroArtwork />}
     <header className="platform-header" data-node-id="339:2072">
       <div className="platform-header-tools"><button type="button" className="platform-login" aria-label={locale === 'ar' ? 'سجّل دخولك عبر Discord' : 'Sign in with Discord'} onClick={() => setModal('login')}><img src="/assets/discord-symbol-white.svg" width="24" height="18" alt="" />{t.login}</button><button className="platform-language" data-testid="locale-toggle" onClick={() => setLocale(locale === 'ar' ? 'en' : 'ar')} aria-label={t.changeLanguage}>{locale === 'ar' ? 'EN' : 'ع'}</button></div>
       <div className="platform-brand-navigation">
@@ -57,7 +58,7 @@ export default function Platform({ onPlay, onBuy }: PlatformProps) {
     </header>
     <main id="platform-content" className={page === 'home' ? 'platform-home-main' : 'platform-gallery-main'} ref={main} tabIndex={-1} key={page}>
       {page === 'home' ? <>
-        <section className="platform-hero" data-node-id="339:2099"><p className="platform-eyebrow">{t.eyebrow}</p><h1>{t.title}</h1><p className="platform-hero-description">{t.description}</p><div className="platform-hero-actions"><button className="platform-action platform-action-primary" data-testid="hero-explore" onClick={() => navigate('events')}>{t.explore}<span aria-hidden="true">←</span></button></div><p className="platform-hero-hint">{t.browseHint}</p></section><HeroArtwork />
+        <section className="platform-hero" data-node-id="339:2099"><p className="platform-eyebrow">{t.eyebrow}</p><h1>{t.title}</h1><p className="platform-hero-description">{t.description}</p><div className="platform-hero-actions"><button className="platform-action platform-action-primary" data-testid="hero-explore" onClick={() => navigate('events')}>{t.explore}<span aria-hidden="true">←</span></button></div><p className="platform-hero-hint">{t.browseHint}</p></section>
         <aside className="platform-proof" aria-label={locale === 'ar' ? 'المجتمع والشركاء' : 'Community and partners'} data-node-id="359:2272"><div className="platform-review-empty"><strong>{t.review}</strong><p>{t.reviewNote}</p></div><div className="platform-partners-empty">{t.partners}</div></aside>
       </> : <>
         <div className="platform-gallery-intro"><h1>{page === 'events' ? t.galleryTitle : t[page]}</h1><p>{page === 'events' ? t.galleryDescription : t.soonDescription}</p>{page === 'events' && <button className="platform-action platform-action-secondary platform-event-how" data-testid="event-how" onClick={() => setModal('how')}>{t.how}</button>}</div>

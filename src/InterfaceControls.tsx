@@ -13,6 +13,19 @@ export function AnimatedSwitch({ label, checked, onCheckedChange }: { label: str
   return <div className="bud-switch-field"><label htmlFor={id}>{label}</label><Switch.Root id={id} className="bud-switch" checked={checked} onCheckedChange={onCheckedChange}><Switch.Thumb className="bud-switch-thumb" /></Switch.Root></div>;
 }
 
+export function NumberStepper({ id, label, value, min, max, locale, onChange }: { id: string; label: string; value: number; min: number; max: number; locale: 'ar' | 'en'; onChange: (value: number) => void }) {
+  const change = (next: number) => onChange(Math.max(min, Math.min(max, next)));
+  return <div className="bud-stepper" dir="ltr">
+    <button type="button" aria-label={locale === 'ar' ? 'تقليل المحاولات' : 'Decrease attempts'} disabled={value <= min} onClick={() => change(value - 1)}>−</button>
+    <div id={id} role="spinbutton" tabIndex={0} aria-label={label} aria-valuemin={min} aria-valuemax={max} aria-valuenow={value} onKeyDown={event => {
+      if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      change(event.key === 'Home' ? min : event.key === 'End' ? max : value + (['ArrowUp', 'ArrowRight'].includes(event.key) ? 1 : -1));
+    }}>{value}</div>
+    <button type="button" aria-label={locale === 'ar' ? 'زيادة المحاولات' : 'Increase attempts'} disabled={value >= max} onClick={() => change(value + 1)}>+</button>
+  </div>;
+}
+
 export function HelpTip({ label, children }: { label: string; children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
