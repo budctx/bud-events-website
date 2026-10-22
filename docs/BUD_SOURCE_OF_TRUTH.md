@@ -1,5 +1,9 @@
 # BU'D — source of truth and execution basis
 
+> **CURRENT STATUS ADDENDUM — 2026-10-22:** The verified targets section below records the **historical first-audit baseline** (when `main` was README-only). It is not the current deployed state. The owner's later explicit publication approval supersedes the initial Preview-only limitation **for the website frontend only**. At the Stage 00 restart, current GitHub `main` was `8a60944f05718ffa2476aae7e7791eedd5fa0f5c`; Vercel Production matched that SHA; tests passed. [Scoped release approval](https://app.notion.com/p/401b475e25f181db9c0dd509e7c1c856) · [Current Stage 00 audit](https://app.notion.com/p/401b475e25f1814d9cc7f75ffcd1bf0c). Discord OAuth, Whop real payments and commercial go-live remain **NOT APPROVED**. Do not re-run or reinterpret historical branch/reset/setup instructions as current tasks.
+
+> **NEW VERIFIED DEVELOPMENT BASELINE — 2026-10-22:** After the owner requested removal of premature database setup, **both** BU'D application schemas `bud_private` / `bud_platform` and their 12 empty tables plus four BU'D public functions were removed from **development**. Supabase project `cepmvqqrjcvhyzszqand`, auth/storage, and migration history preserved; it remains ACTIVE_HEALTHY. Applied reset `20261022113143_stage00_reset_legacy_dev_schemas`. Original six-table statements below are historic snapshots, **not current implementation**. GitHub old migration files must not be automatically replayed. [Verified reset record](BUD_SUPABASE_STAGE00_DEV_RESET_20261022.md) · [Stage 00 owner ADR-001/002/003](https://app.notion.com/p/401b475e25f1814d9cc7f75ffcd1bf0c). Current cap: 4 hours, no Slot cost for same-session resume, persistent Game History, centralized Timer Manager. None is a verified running backend after reset.
+
 Version1.0 ·2026-10-22. Project: BU'D — Platform Production. User confirms a new project; ChatGPT memory mode UNKNOWN, strict isolation not asserted. Earlier conversation memories are not specifications.
 
 ## Operating specification
@@ -9,11 +13,13 @@ https://drive.google.com/file/d/1UL2VU4Hw8b0_H1yp9GDQeKLTOSOSs-yB/view
 
 Release verification:1NZmiUmXdDnA9js-Mqt9n0hk_044HPE1x. It reports121/121 runtime tests and9/9 mutation probes, **not rerun here**. ChatGPT host certificate1oLeQjXuc1q3rc8Cx_prfFDU6U24RGyB4 explicitly NOT_CERTIFIED. This run follows native Manager/lifecycle/expert/evidence/gate modules through actual tools; it does not claim machine enforcement or invent departments. v1.7.0 is an unintegrated overlay; v1.7.1 candidate directory returned empty.
 
+> **CURRENT DESIGN AUTHORITY — S00-ADR-005 (2026-10-22):** Owner approved the **currently published BU'D website** as the visual reference, and the project is **Code-first** using reusable responsive components. Figma is archived and no longer a required design/approval step. Any older instruction below to obtain new Figma frames, exact Figma parity or immutable Figma approval is superseded. Component and UX QA on Preview remains mandatory in S05/S06/S11. [Consolidated Stage00 decision baseline](BUD_STAGE00_RECONCILIATION_20261022.md).
+
 ## Project authority hierarchy
 
 1. Applicable host/platform/tool constraints.
 2. Latest explicit owner decision for exact scope, with source/date.
-3. Latest owner-approved Figma or original game for visuals, subject to newer owner changes.
+3. The current owner-approved published website visual baseline (ADR-005), and existing code-based design tokens/components for responsive UI; Figma/original game are historical provenance only.
 4. Reconciled PRD/Registry functional/security policy.
 5. Verified current Notion stage/gate/test/decision records.
 6. Existing code, branches and database as historical evidence.

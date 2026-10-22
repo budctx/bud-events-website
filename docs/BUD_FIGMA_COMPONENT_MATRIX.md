@@ -57,3 +57,11 @@ Figma asset curl requests returned HTTP200 text/html `Site Unavailable`,195bytes
 5. Original desktop/mobile Figma screenshots exist as internal evidence in `/workspace/scratch/f0cb861765a1/design-audit/screenshots/`. They are never used as runtime assets.
 
 Verdict: IMPLEMENTED_WITH_LIMITS, not final visual PASS. Root QA must test exact committed SHA and responsive/modal/RTL/EN geometry; other dotted textures remain a scoped blocker; root must verify recovered Mobile asset placement.
+
+## Stage 00 addendum: game state screen inventory and superseded timer control
+
+2026-10-22: Live Figma metadata for original game page `314:2` enumerates **42 top-level frames** covering D01–D17 Desktop, M01–M10 Mobile, timer ticks 4→0, flip states, winner modal, prizes, close confirm and game conclusion. Screenshot tool returned rendered evidence for `317:1945` (Desktop timer enabled), `317:2333` (Desktop Correct→winner name modal), `317:2857` (Mobile setup), `317:3397` (Mobile closing). Source node identity and dimensions were verified; video/hover/animation runtime was **not** tested interactively in this pass.
+
+**Design conflict F-NEW-01:** `317:1865` and `317:1945` display timer duration preset chips **5, 7, 10 seconds**. This is the old visual control; latest owner rule is configurable custom seconds with shared Engine Timer Manager; the demo currently offers 3–30/default5 but the exact final limits are not owner-approved. S05/S06 must redesign the **duration input only** based on final approved policy, preserving card geometry, branding, flow and visual rules. Source Figma is not entitled to override later owner instruction.
+
+**Unimplemented new UI:** persistent Game History with activity, date/time, session state and exact Closing Copy Summary (ADR-003) is approved product scope but has no accepted Figma screen. Build that screen in S05/S06 after a review of empty/loading states, privacy handling and responsive layout. No invented pixel acceptance.
