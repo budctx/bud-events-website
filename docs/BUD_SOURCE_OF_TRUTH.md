@@ -1,5 +1,7 @@
 # BU'D — source of truth and execution basis
 
+> **CURRENT STATUS ADDENDUM — 2026-10-22:** The verified targets section below records the **historical first-audit baseline** (when `main` was README-only). It is not the current deployed state. The owner's later explicit publication approval supersedes the initial Preview-only limitation **for the website frontend only**. At the Stage 00 restart, current GitHub `main` was `8a60944f05718ffa2476aae7e7791eedd5fa0f5c`; Vercel Production matched that SHA; tests passed. [Scoped release approval](https://app.notion.com/p/401b475e25f181db9c0dd509e7c1c856) · [Current Stage 00 audit](https://app.notion.com/p/401b475e25f1814d9cc7f75ffcd1bf0c). Discord OAuth, Whop real payments and commercial go-live remain **NOT APPROVED**. Do not re-run or reinterpret historical branch/reset/setup instructions as current tasks.
+
 Version1.0 ·2026-10-22. Project: BU'D — Platform Production. User confirms a new project; ChatGPT memory mode UNKNOWN, strict isolation not asserted. Earlier conversation memories are not specifications.
 
 ## Operating specification
