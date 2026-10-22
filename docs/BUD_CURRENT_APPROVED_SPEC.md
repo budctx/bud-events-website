@@ -3,7 +3,7 @@
 > **Latest owner design workflow override — S00-ADR-005 (2026-10-22):** The currently published BU'D website UI is the approved visual baseline. Continue **Code-first**, composing reusable responsive components for all screen sizes instead of creating per-breakpoint designs. Figma files are historical reference only; no more Figma edits, new-frame approvals, or immutable Figma version are required for new UI. Preserve the current design language and test real Preview builds on desktop, tablet, mobile, AR/EN, RTL/LTR, keyboard, reduced motion, short viewport, and browser interactions. This does NOT waive QA, business-policy approval, nor Stage 00 completion. [Owner policy record](https://app.notion.com/p/401b475e25f1814d9cc7f75ffcd1bf0c).
 
 
-Version: 1.3 owner-policy reconciliation · 2026-10-22 (Asia/Riyadh). Owner: BU'D project owner. Status: Stage 00 reconciliation in progress; **official frontend publication approved, commercial SaaS not accepted**.
+Version: 1.4 frozen Stage00 owner-policy baseline · 2026-10-22 (Asia/Riyadh). Owner: BU'D project owner. Status: Stage 00 reconciliation in progress; **official frontend publication approved, commercial SaaS not accepted**.
 
 ## Operational checkpoint
 
@@ -14,7 +14,7 @@ The later owner decision to use only the current official website supersedes the
 - H: https://app.notion.com/p/401b475e25f18196b002dc29e039666f — Handoff v1.0, last edited 2026-10-22T08:23:31.434Z; fetched this run.
 - G: https://app.notion.com/p/401b475e25f181909556f65d42e19590 — Gate00, last edited before audit 2026-10-22T08:22:11.310Z.
 - D: https://app.notion.com/p/401b475e25f18148b0f2cdfcb882f76e — provisional baseline, last edited 2026-10-22T08:21:34.558Z.
-- F: https://www.figma.com/design/STOmHGc7E9OQudKbyWDEli — current live Figma; Home339:2068 and339:2070; gallery383:11100 and383:11923. Node IDs are stable identifiers, not immutable version IDs. Version history/owner acceptance receipt remains to verify.
+- F: https://www.figma.com/design/STOmHGc7E9OQudKbyWDEli — current live Figma; Home339:2068 and339:2070; gallery383:11100 and383:11923. Node IDs are stable identifiers, not immutable version IDs. Figma version approval no longer needed under ADR-005; archive evidence only.
 - O: https://bud-qc-xi.vercel.app/ — original game inspected in cloud browser on2026-10-22. Live URL is mutable; observations below are not owner approval of every behavior.
 - B: https://docs.google.com/document/d/1aeyp5rHDzVzG_IZi7fbHrOVBT133aiwxHSouyBxUVTY/edit — Buyer Journey20Oct; contains older proposals; latest H overrides conflicts.
 
@@ -22,7 +22,7 @@ The later owner decision to use only the current official website supersedes the
 
 | ID | Current rule and scope | Authority/date | Evidence | Confidence |
 |---|---|---|---|---|
-| CUR-001 | BU'D is multi-product Discord-community brand; Q&C is first playable product only. Home must reproduce current approved Figma. | Owner20–22Oct | H,G,F | High on scope; visual acceptance pending |
+| CUR-001 | BU'D is multi-product Discord-community brand; Q&C is first playable product only. Current published website is the accepted visual baseline (Code-first, ADR-005); historical Figma is archive only. | Owner20–22Oct | H,G,F | High on scope; visual acceptance pending |
 | CUR-002 | Events/Bots/Designs use reusable Gallery→Product Modal→CTA. Clearly distinguish upcoming/unavailable; no fake checkout. | Owner22Oct | H,D | High; exact modal geometry not in current frames |
 | CUR-003 | Public browsing requires no login. Purchaser/host Discord auth occurs at Buy Now before payment. | Owner20–22Oct | H,G,B | High |
 | CUR-004 | No bot, participant accounts, attendance, registration, selection or tracking. Store manual winners only. | Owner20–22Oct | H,G,B | High |
@@ -40,8 +40,12 @@ The later owner decision to use only the current official website supersedes the
 | CUR-017 | Owner approved repeated manual winner display names, an informational warning that never blocks saving, and a unique internal record identifier for each winner. Prize assignments and copy summaries preserve separate records; no participant login or identity verification is added. | Owner22Oct, S00-ADR-004 | [Notion Stage00](https://app.notion.com/p/401b475e25f1814d9cc7f75ffcd1bf0c) | Policy approved; runtime changes and tests pending |
 | CUR-012 | Preserve archive, legacy branches, development infrastructure. Official BU'D **frontend only** is owner-approved on GitHub `main` and Vercel Production; further changes use reviewed feature PRs. Real purchases, payment activation, Discord OAuth and commercial SaaS go-live remain disallowed until separately verified and approved. | Owner22Oct later explicit release approval | [Notion approval](https://app.notion.com/p/401b475e25f181db9c0dd509e7c1c856), [PR #4](https://github.com/budctx/bud-events-website/pull/4) | High for scoped website release only |
 
+## Stage00 closure-ready policy and downstream deferrals
+
+ADR-005 supersedes use of Figma as a required visual sign-off. The **existing published website** is authoritative visual source; Figma archives are read-only. Only current owner-approved rules can reach production. Unapproved session-time details, Q&C timer bounds, commercial terms and provider settings are bounded deferrals to S07–S10; there is no default business-policy inference and the affected features remain blocked. Stage00's consolidated audit and outstanding independent QA are tracked in [the single final checkpoint](BUD_STAGE00_RECONCILIATION_20261022.md).
+
 ## Open decisions and bounded execution
 
-The 240-minute session maximum and same-session resume without Slot cost are **now owner approved**, and a Game History without automatic retention expiration is approved. Historical 7-day prestart/restart grace/60-minute restart provisions, exact clock semantics during disconnect, timer default/bounds, final price/currency/tax/refund/Slot-expiry policy remain unresolved. The Figma D01/D02 setup frames still display old 5/7/10-second presets; these require revised S05/S06 acceptance rather than silently imposing obsolete product rules. Commercial enforcement stays blocked. Duplicate names are approved with a non-blocking warning and an independent internal winner identifier. The current preview rejects repeated names; this mismatch is deferred to S09 code remediation and tests. Do not claim fully verified production acceptance.
+The 240-minute session maximum and same-session resume without Slot cost are **now owner approved**, and a Game History without automatic retention expiration is approved. Historical 7-day prestart/restart grace/60-minute restart provisions, exact clock semantics during disconnect, timer default/bounds, final price/currency/tax/refund/Slot-expiry policy remain unresolved. The historical Figma timer frames show obsolete 5/7/10-only presets; ADR-005 requires updating reusable code components directly and QA on Preview, with final duration bounds still subject to Q&C policy acceptance. Commercial enforcement stays blocked. Duplicate names are approved with a non-blocking warning and an independent internal winner identifier. The current preview rejects repeated names; this mismatch is deferred to S09 code remediation and tests. Do not claim fully verified production acceptance.
 
 The current source hierarchy and conflict list are adjacent documents. Gate00 stays OPEN until all its checks pass. A scoped engineering readiness decision may authorize independent reversible code only after the relevant sources are inspected; it does not close Gate00 or S05/S06/S07.
