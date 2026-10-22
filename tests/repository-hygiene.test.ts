@@ -6,13 +6,15 @@ import { join } from 'node:path';
 const root = process.cwd();
 const read = (path: string) => readFileSync(join(root, path), 'utf8');
 
-test('official entrypoints use only the current platform and manual host game', () => {
+test('public entrypoint uses the platform and keeps host tools development-only', () => {
   const app = read('src/App.tsx');
   const main = read('src/main.tsx');
   const game = read('src/Game.tsx');
   const platform = read('src/Platform.tsx');
   assert.match(app, /import Platform from '.\/Platform'/);
-  assert.match(app, /import Game from '.\/Game'/);
+  assert.match(app, /import\.meta\.env\.DEV \? lazy/);
+  assert.match(app, /import\('\.\/Game'\)/);
+  assert.doesNotMatch(platform, /onPlay/);
   assert.match(game, /manualGameReducer/);
   assert.match(platform, /platform-product-card/);
   for (const s of [app,main,game,platform]) {
