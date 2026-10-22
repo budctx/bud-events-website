@@ -43,6 +43,14 @@ This approval does **not** resolve the legacy seven-day prestart window, 60-minu
 - **Figma game source detailed inspection:** original `314:2` metadata now inventories 42 top-level frames: D01–D17, M01–M10, countdown 5→0, card and button components. Direct screenshot response obtained for setup timer-on (`317:1945`), winner modal (`317:2333`), mobile setup (`317:2857`) and mobile close (`317:3397`); all correct canvas dimensions reported. Metadata confirms D01/D02 **still use legacy 5/7/10 duration chips**. This is a visual/spec drift: current owner wants a custom-second timer, and current exact numeric range remains unapproved; update S05/S06 before final design acceptance. Fetching a screenshot is not proof that browser animation and gameplay were interactively tested.
 - **Browser audit limitation:** Connected browser list_tabs was unavailable. Local container cannot resolve Vercel domain, and ordinary web URL fetch failed; original/current live interactive visual parity remains unverified. These failures are not UI test passes; carry open into S05/S06/S11.
 
+## Owner approval — S00-ADR-004: duplicate manual winner names
+
+Owner 2026-10-22 explicitly approved allowing multiple winner records with the **same display name** within an activity, showing a **non-blocking duplicate warning**, and assigning each saved winner **its own internal stable identifier**. The host judges Correct first; a duplicate detected by name normalization does **not** disable or reject Save. Prizes and Game History/Copy Summary must preserve separate winner rows and use record IDs instead of display names for referential integrity. Such IDs are app records, **not** Discord IDs, and must not imply verified participant identities.
+
+**Implementation mismatch discovered:** `src/manual-game.ts` has `winnerNameError` returning `duplicate` for case-insensitive matching names, which the present `Game.tsx` UI blocks. This behavior violates ADR-004; targeted change is deferred to S09 implementation and versioned acceptance tests, not made in this documentation-only Stage00 PR. Blank/max-length validation is independent and remains blocking.
+
+**Notion traceability:** Stage00, S03, S04 and S09 stage pages updated. Existing Policy Review fields on S03-G07, S03-G08 and S03-T05 updated without PASS. **S03-T04 update was rejected by connector safety checks** and remains at its prior documented supersession note; do not claim it was rewritten. S03/S09 game acceptance and QA are still NOT RUN.
+
 ## Cross-stage propagation and source QA expansion
 
 - A full Stage Gate/Test **name scan** across S01–S14 identified superseded player/bot/wallet and data-retention clauses reaching S05, S07, S09, S10, S11, S12, S13 and S14 (not just S02–S04).
