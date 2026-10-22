@@ -1,37 +1,46 @@
-# بُعد — سؤال وشرط (Local Play Preview)
+# BU'D — Discord-first digital products platform
 
-This repository contains a **single-browser host-operated rehearsal** of BU'D's first Discord event. It is not a real multi-user Discord service and does not charge or issue wallet credits.
+This repository hosts the BU'D **development Preview** and the first playable **Question & Condition / سؤال وشرط** event rehearsal. BU'D is a multi-product platform with Events, Bots and Designs galleries; it is not a single-game homepage.
 
-## Try a complete round
+## Review the Preview
 
-1. Open the Vercel feature-branch Preview (not production), choose Arabic or English.
-2. Enter an event name, set 1–3 attempts, and optionally enable a 5/7/10-second timer.
-3. Enter zero to fifty prizes in one box, one prize per nonempty line, and start the event.
-4. Choose one of the three example participants or use **Add a player for this preview / إضافة مشارك للتجربة** to type a new local participant name.
-5. Choose manually or randomly. Tap the two white Question / Condition cards to flip them; the optional countdown starts only when **both** are revealed.
-6. The host listens to the voice answer in Discord and clicks the accessible correct/incorrect icons. On an unsuccessful attempt, a new question-condition pair is drawn. Local pair combinations are shuffled without replacement until the cycle is exhausted.
-7. Navigate to Prizes, select a qualified winner, confirm opening/assignment, then close and copy the **unverified** example results.
+- [Preview deployment (first production branch build)](https://bud-events-website-6hknms09l-budctx1-8956s-projects.vercel.app)
+- [Development PR #3](https://github.com/budctx/bud-events-website/pull/3)
+- [Acceptance evidence](docs/BUD_VERIFICATION_REPORT.md)
+- [Current approved spec](docs/BUD_CURRENT_APPROVED_SPEC.md)
 
-> This is a nonpersistent demo: participant identifiers are fictional, do not represent Discord user IDs, and must **not** be used to fulfill real prizes. Browser refresh may lose all gameplay state. The demo bank is small and is **not** the production question bank.
+Browse the landing page and galleries in Arabic or English. Open the **سؤال وشرط** product modal and click **جرّب العرض / Try the demo** to use the *local, unpaid rehearsal*.
+
+### Host-operated game
+
+1. Enter event name, choose 1–3 attempts and optionally set a custom timer in the **3–30 second** range.
+2. Enter the prizes (one per line), then start the local event.
+3. Flip each question/condition card separately; when enabled, the timer begins after both are revealed.
+4. Listen to the spoken answer externally, then mark **correct** or **incorrect**. **After** a correct answer, enter the winner's display name in the dialog.
+5. Continue through prizes and closing. There is **no** participant registration, participant tracking or Discord bot.
+
+The demo does not persist authoritative events, spend paid Slots, authenticate users, fulfill purchases or award verifiable prizes. Demo data is illustrative, not a production question bank.
 
 ## Development
 
-Node 24:
+Node.js 24 is configured on Vercel.
 
 ```sh
 npm ci
-npm run dev
 npm run build
-npx playwright install chromium
+npm run typecheck:server
 npm test
+npx playwright install chromium
+npx playwright test tests/browser/production.spec.ts
 ```
 
-For clean Figma comparison: `/?canvas=1&lang=ar&theme=light`.
+For design comparison, see [Figma component matrix](docs/BUD_FIGMA_COMPONENT_MATRIX.md) and [visual evidence](docs/evidence/). Retain approved Light-only identity, AR/EN and reduced-motion behavior.
 
-## Authoritative design and release boundaries
+## Backend and deployment boundaries
 
-Owner-approved Figma Page 10 is the live game layout source. Figma Page 08 contributes white cards, emblems, flip and optional-timer states. Reuse existing Figma components first; never create a new visual asset from scratch without the owner's separate explicit consent. New work is **Light only**; Dark development is suspended.
+- An **isolated BU'D Supabase development** schema `bud_platform` was applied on 2026-10-22; this is not a commerce go-live. See [backend contract](docs/BUD_BACKEND_CONTRACT.md).
+- Discord OAuth is disabled; Vercel secrets are not configured. The payment endpoint and Whop webhook intentionally fail closed.
+- Real purchase fulfillment, provider verification, multi-connection security tests, payment policies, Figma visual acceptance and final compliance gates remain **OPEN**.
+- Never treat a successful Preview build or passing unit suite as approval to merge to `main`, promote production, activate billing or close Notion Stage 00.
 
-Project's four activity phases: Setup → Event Screen → Prizes → Closing. See [implementation notes](docs/implementation.md) and [third-party notices](THIRD_PARTY_NOTICES.md).
-
-**Not connected:** authenticated Discord OAuth host/attendees, live Stage/bot, a verified BU'D Supabase project with tenant RLS and authoritative data, server question deck/clock/control lease and recovery, Whop top-ups/credits, verified winner identities, persisted seven-day results, email or production integrations. This PR cannot be merged or deployed to production as playable commercial SaaS before these integrations and connected E2E/security/a11y tests pass and the owner approves the result. Until then it is **ready for a local rehearsal only**.
+Notion is the progress standard; see the [Stage 00 gate](https://app.notion.com/p/401b475e25f181909556f65d42e19590). Historical flows and old PR #2 remain archived; they are not the current product spec.
