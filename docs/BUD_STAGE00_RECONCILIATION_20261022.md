@@ -1,5 +1,8 @@
 # BU'D — Stage 00 current-source reconciliation and evidence audit
 
+> **S00-ADR-005 (2026-10-22):** Owner approved the current published website interface as visual baseline and discontinued Figma-first/required Figma approval. Figma materials remain archived provenance only. New screens (including Game History and custom timer input) use **shared responsive code components**, not a fresh Figma design. Remove immutable Figma acceptance/version as Stage 00 blocker; retain tested Preview/interactive QA, accessibility and functional correctness as gates. This latest owner decision supersedes earlier Figma parity and visual approval prerequisites in this audit. [Living Notion decision](https://app.notion.com/p/401b475e25f1814d9cc7f75ffcd1bf0c).
+
+
 **Date:** 2026-10-22 · **Status:** ACTIVE / OPEN (not closed) · **Governance:** Expert Department OS AUTOBOOT v1.6.9, original Google Drive source. The original OS verification report is documentary evidence, not host certification or proof of independent agents.
 
 [Primary living audit and resolution table in Notion](https://app.notion.com/p/401b475e25f1814d9cc7f75ffcd1bf0c) · [Gate 00](https://app.notion.com/p/401b475e25f181909556f65d42e19590)
