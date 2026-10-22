@@ -39,9 +39,18 @@ This approval does **not** resolve the legacy seven-day prestart window, 60-minu
 - **S00-ADR-002** — Sessions capped at four hours; reconnect/resume existing session consumes zero new Slots. An authentic new session starts with exactly one idempotent debit. Exact disconnected wall-clock semantics and legacy grace/prestart/restart clauses remain unresolved.
 - **S00-ADR-003** — Persistent **Game History** table/list with event/date/time/status and Copy Summary equal to closing's winner—prize lines; no automatic 7-day results deletion. Privacy/erasure and financial retention are separate.
 - **Dev reset evidence** — Owner requested cleanup before S07/S08. [Exact verified reset migration and scope](BUD_SUPABASE_STAGE00_DEV_RESET_20261022.md): `bud_private` + `bud_platform` removed (12 empty tables), four legacy `public.bud_*` functions removed, main Supabase Development project preserved. Do NOT replay obsolete migration drafts. Never confuse this with production DB readiness.
-- **Notion reconciliation coverage:** 17 **additional** pre-existing S02–S04 detailed gate/test Policy Review fields updated to reflect ADR-001/002/003 and current owner scope, all retaining NOT RUN/BLOCKED results. Earlier 10 updates are retained; S02-T01 originally refused by connector and remains unmodified. Updated rows: S02-G04,G09,G10; S03-G01,G04,G05,G10; S04-G05,G06; S02-T02,T03,T04,T05; S03-T02,T05; S04-T02,T03.
+- **Notion reconciliation coverage:** 17 **write operations** across pre-existing S02–S04 gate/test Policy Review fields updated to reflect ADR-001/002/003 and current owner scope, all retaining NOT RUN/BLOCKED results. Earlier 10 updates are retained; S02-T01 originally refused by connector and remains unmodified. Updated rows: S02-G04,G09,G10; S03-G01,G04,G05,G10; S04-G05,G06; S02-T02,T03,T04,T05; S03-T02,T05; S04-T02,T03.
 - **Figma game source detailed inspection:** original `314:2` metadata now inventories 42 top-level frames: D01–D17, M01–M10, countdown 5→0, card and button components. Direct screenshot response obtained for setup timer-on (`317:1945`), winner modal (`317:2333`), mobile setup (`317:2857`) and mobile close (`317:3397`); all correct canvas dimensions reported. Metadata confirms D01/D02 **still use legacy 5/7/10 duration chips**. This is a visual/spec drift: current owner wants a custom-second timer, and current exact numeric range remains unapproved; update S05/S06 before final design acceptance. Fetching a screenshot is not proof that browser animation and gameplay were interactively tested.
 - **Browser audit limitation:** Connected browser list_tabs was unavailable. Local container cannot resolve Vercel domain, and ordinary web URL fetch failed; original/current live interactive visual parity remains unverified. These failures are not UI test passes; carry open into S05/S06/S11.
+
+## Cross-stage propagation and source QA expansion
+
+- A full Stage Gate/Test **name scan** across S01–S14 identified superseded player/bot/wallet and data-retention clauses reaching S05, S07, S09, S10, S11, S12, S13 and S14 (not just S02–S04).
+- **18 more existing records** received targeted Policy Review updates for S05/07/09/10/12 (11 gates + 7 tests); **8 further gate records** for S11/S12/S13/S14. Total **51 unique detail rows annotated in this Stage 00 audit** (35 gates and 16 tests), counting the two repeated S02–S04 updates once. All results retain NOT RUN/BLOCKED; no PASS inferred.
+- S10 and S12 game/business checks now explicitly prohibit Discord player onboarding or bot fallbacks; S14 privacy backup/deletion checks distinguish persistent Game History from lawful erasure. Old row titles remain as provenance only.
+- Original live game URL and current official site both responded **HTTP 200 with HTML** to authorized Vercel site fetch (2026-10-22), establishing reachability, **not visual parity, navigation, animation or gameplay QA**. Connected Browser unavailable for new interactive comparison.
+- Source Figma game screenshot for timer-enabled Desktop visually confirms old fixed 5/7/10 chips; winner modal desktop and closing Mobile show proper winner-name entry and copy-results layout. These are sources, not certifying implemented runtime.
+- PR documentation is isolated. GitHub Website Checks on `0dd3ee9f637f5546a6f307e8dee4a8f1d3a6b876` reported completed/success run 39772775223; Vercel check success. A later docs commit requires new exact-SHA CI checking.
 
 ## Decision-conflict ledger
 
@@ -73,7 +82,7 @@ Product policy, UX/Figma, Engineering/Security, QA and Documentation are review 
 - [ ] New interactive browser audit of original/current games and animation, timer, winner flow, mobile behavior.
 - [ ] Visual screenshot-vs-rendered comparison on current website (AR/EN/320/390/1440, short height, keyboard, reduced motion).
 - [ ] Confirm immutable design version/acceptance receipt and other missing modal/container visual states.
-- [ ] Continue remaining registry coverage; 27 existing per-item Policy Review annotations now updated (10 prior + 17 additional) without changing PASS. This is **partial**, not full 140/73 coverage.
+- [ ] Continue remaining registry coverage; 25 **distinct** S02–S04 Policy Review items updated (10 initial plus 17 further writes, with two rows modified twice) without changing PASS. This is **partial**, not full 140/73 coverage.
 - [ ] Resolve older clock/retention/payment policies or mark affected work explicitly deferred.
 - [ ] Independent qualified QA review and Stage 00 owner approval before marking gate closed.
 
