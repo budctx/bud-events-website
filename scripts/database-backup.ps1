@@ -1,5 +1,6 @@
 # Local operator prompt. Never send these fields to chat or write them to a config file.
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'backup-prompt-input.ps1')
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 $backupProjectRoot = Split-Path -Parent $PSScriptRoot
@@ -34,6 +35,7 @@ $backupIntro.Text = "Local encrypted backup of BU'D only. No billing or producti
 $backupIntro.SetBounds(20,18,570,65)
 $backupForm.Controls.Add($backupIntro)
 $backupFields = @()
+$backupInputState = @{ Payload=$null }
 foreach ($backupItem in @(@('Existing Supabase DATABASE password',95),@('New backup passphrase (16+ characters)',165),@('Confirm backup passphrase',235))) {
     $backupLabel = [Windows.Forms.Label]::new(); $backupLabel.Text = $backupItem[0]; $backupLabel.SetBounds(20,$backupItem[1],560,25)
     $backupField = [Windows.Forms.TextBox]::new(); $backupField.UseSystemPasswordChar = $true; $backupField.SetBounds(20,($backupItem[1]+27),560,30)
@@ -46,7 +48,7 @@ $backupButton.Add_Click({
     if ([string]::IsNullOrWhiteSpace($backupFields[0].Text) -or $backupFields[1].Text.Length -lt 16 -or $backupFields[1].Text -cne $backupFields[2].Text) {
         [void][Windows.Forms.MessageBox]::Show('Enter the existing database password and matching backup passphrases of at least 16 characters.'); return
     }
-    $backupForm.DialogResult = 'OK'; $backupForm.Close()
+    Save-BudBackupPromptInput $backupForm $backupFields $backupInputState
 })
 $backupForm.Controls.Add($backupButton); $backupForm.Controls.Add($backupCancel)
 $backupForm.Add_Shown({ $backupForm.Activate(); [IO.File]::WriteAllText((Join-Path $backupPrivateRoot 'prompt-status.json'),'{"status":"WAITING_FOR_LOCAL_INPUT"}') })
@@ -58,9 +60,11 @@ try {
     $backupProcessInfo.Arguments = '"' + (Join-Path $PSScriptRoot 'database-backup.mjs') + '" --run'
     $backupProcessInfo.UseShellExecute = $false; $backupProcessInfo.CreateNoWindow = $true
     $backupProcessInfo.RedirectStandardInput = $true; $backupProcessInfo.RedirectStandardOutput = $true; $backupProcessInfo.RedirectStandardError = $true
+    $backupProcessInfo.StandardInputEncoding = [System.Text.UTF8Encoding]::new($false)
     $backupProcess = [Diagnostics.Process]::Start($backupProcessInfo)
-    $backupProcess.StandardInput.Write(({ password=$backupFields[0].Text; passphrase=$backupFields[1].Text } | ConvertTo-Json -Compress))
+    $backupProcess.StandardInput.Write(($backupInputState.Payload | ConvertTo-Json -Compress))
     $backupProcess.StandardInput.Close()
+    $backupInputState.Payload.Clear()
     foreach ($backupField in $backupFields) { $backupField.Clear() }
     $backupOutput = $backupProcess.StandardOutput.ReadToEnd(); $backupErrors = $backupProcess.StandardError.ReadToEnd()
     $backupProcess.WaitForExit()
@@ -75,6 +79,7 @@ try {
     [IO.File]::WriteAllText((Join-Path $backupPrivateRoot 'last-result.json'),'{"status":"LOCAL_PROMPT_FAILED","verified":false}')
     [void][Windows.Forms.MessageBox]::Show('The local backup could not complete. Return to the chat. No production changes were made.')
 } finally {
+    if ($backupInputState.Payload) { $backupInputState.Payload.Clear() }
     foreach ($backupField in $backupFields) { $backupField.Clear() }
     $backupForm.Dispose()
 }

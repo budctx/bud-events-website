@@ -22,6 +22,8 @@ Keep the passphrase in the owner's password manager; it is not recoverable from 
 
 The prompt passes credentials through a local child-process stdin pipe. The database password is held in a temporary owner-only pgpass file, not process arguments or PGPASSWORD. Temporary plaintext files and disposable data directories are removed in finally cleanup after the local server stops. A crash or forced termination can leave a private pending directory; inspect the exact directory and stop its own server before cleanup. Never recursively delete a computed path without checking its resolved containment.
 
+Prompt handoff regression: the first owner attempt returned `INVALID_LOCAL_INPUT` before any database connection. The prompt had read text controls after closing the form. It now captures the validated payload in memory before closing, serializes that captured payload to an explicitly UTF-8 stdin pipe, then clears it. `scripts/backup-prompt-input.ps1` contains only the form-lifecycle helper, with no file/process/network operations. The separate Windows fixture test (`tests/windows/backup-prompt.test.ps1`) verifies the serialized payload after controls have been disposed; it never loads the real backup runner or contacts Supabase. The owner selected continuing this free local route. A passed prompt fixture is still not a real export result.
+
 ## What runs
 
 The source connection uses `verify-full` TLS against the Windows trusted-root certificate bundle, a fixed project endpoint and read-only session options. There is no SSL downgrade, database-password rotation, permission expansion, production restore, migration, payment or account deletion. Do not broaden source privileges if pg_dump reports a permission failure.
