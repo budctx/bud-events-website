@@ -56,12 +56,15 @@ test('production routes stay limited and trial CTA is absent',async({page})=>{
     await page.keyboard.press('Escape');
   }
   const scripts=readdirSync('dist/assets').filter(name=>name.endsWith('.js'));
-  for(const script of scripts) {
+  // Authenticated hosts have a separate lazy bundle; public routing must never
+  // load that bundle merely by adding a legacy query parameter.
+  for(const script of scripts.filter(name=>name.startsWith('index-'))) {
     const source=readFileSync(`dist/assets/${script}`,'utf8');
     expect(source).not.toContain('mg-winners-sidebar');
     expect(source).not.toContain('mg-winner-name');
     expect(source).not.toContain('manual-phase-');
   }
+  await expect(page.locator('.manual-game')).toHaveCount(0);
 });
 
 test('preview keyboard, reduced motion, locale reset and unmount cleanup',async({page})=>{

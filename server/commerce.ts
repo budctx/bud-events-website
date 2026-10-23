@@ -3,7 +3,6 @@ export type ServerEnv = Record<string, string | undefined>;
 export type Fetcher = typeof fetch;
 const PROJECT_URL = 'https://cepmvqqrjcvhyzszqand.supabase.co';
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const keyPattern = /^[a-zA-Z0-9_-]{16,100}$/;
 
 export function serverEnv(): ServerEnv {
   return (globalThis as unknown as { process?: { env?: ServerEnv } }).process?.env ?? {};
@@ -58,18 +57,12 @@ export async function handleCommerce(request: Request, env: ServerEnv = serverEn
     // Reject identity/price/payment authority supplied by the client.
     if (['hostId', 'userId', 'credits', 'amount', 'paymentId', 'verified'].some(key => key in body)) return json(400, 'CLIENT_AUTHORITY_DENIED');
     if (body.action === 'checkout') return json(503, 'CHECKOUT_NOT_CONFIGURED');
+    // All host state mutations now pass through the cookie-authenticated,
+    // versioned /api/host contract, including product/content availability.
+    if (body.action === 'start' || body.action === 'resume') return json(410, 'HOST_API_REQUIRED');
     const actions: Record<string, { rpc: string; params: Record<string, unknown> }> = {
       balance: { rpc: 'bud_slot_balance', params: {} },
     };
-    if (body.action === 'start') {
-      if (typeof body.idempotencyKey !== 'string' || !keyPattern.test(body.idempotencyKey)
-        || typeof body.title !== 'string' || !body.title.trim() || body.title.trim().length > 100) return json(400, 'INVALID_EVENT');
-      actions.start = { rpc: 'bud_start_event', params: { p_key: body.idempotencyKey, p_title: body.title.trim() } };
-    }
-    if (body.action === 'resume') {
-      if (typeof body.eventId !== 'string' || !uuid.test(body.eventId)) return json(400, 'INVALID_EVENT');
-      actions.resume = { rpc: 'bud_resume_event', params: { p_event: body.eventId } };
-    }
     const action = typeof body.action === 'string' && Object.hasOwn(actions, body.action) ? actions[body.action] : undefined;
     if (!action) return json(400, 'UNKNOWN_ACTION');
     const response = await transport(config.url + '/rest/v1/rpc/' + action.rpc, {

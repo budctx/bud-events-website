@@ -1,4 +1,6 @@
-# BU'D backend contract — code-only development increment
+# BU'D backend contract — historical commerce increment
+
+> Superseded baseline: the 2026-10-23 host foundation is documented in `BUD_PLATFORM_FOUNDATION.md`. Stage00 removed the original development schema after this historical note. A new additive migration restores it and adds protected persistent host APIs. Legacy HTTP start/resume now return 410; do not use this old API table as the active host contract.
 
 2026-10-22 · Expert OS 1.6.9 native evidence/capability/safe-halt rules.
 

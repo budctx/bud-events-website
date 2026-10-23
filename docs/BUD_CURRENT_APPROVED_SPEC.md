@@ -2,6 +2,10 @@
 
 Version: 1.0 audit baseline · 2026-10-22 (Asia/Riyadh). Owner: BU'D project owner. Status: source reconciliation in progress; **not production acceptance**.
 
+## Effective supersession — 23 October 2026
+
+The tables below preserve the earlier audit; newer scoped updates and ADR-001–005 take precedence. Current authority is the approved website and Code-first implementation, without Figma. Duplicate winner names are explicitly allowed and independently numbered. Persistent history and a maximum four-hour session are adopted; no automatic seven-day results deletion is approved. The owner authorized the current backend/host foundation batch and its Notion documentation without repeated permission. Tested public releases are authorized; real billing and external provider activation remain gated. See `BUD_STAGE_RECONCILIATION_20261023.md` for the row-level gate/test map and `BUD_PLATFORM_FOUNDATION.md` for actual implementation versus external blockers. This reconciles instructions; it does not approve every stage or policy.
+
 ## Source identifiers
 
 - H: https://app.notion.com/p/401b475e25f18196b002dc29e039666f — Handoff v1.0, last edited 2026-10-22T08:23:31.434Z; fetched this run.
@@ -15,7 +19,7 @@ Version: 1.0 audit baseline · 2026-10-22 (Asia/Riyadh). Owner: BU'D project own
 
 | ID | Current rule and scope | Authority/date | Evidence | Confidence |
 |---|---|---|---|---|
-| CUR-001 | BU'D is multi-product Discord-community brand; Q&C is first playable product only. Home must reproduce current approved Figma. | Owner20–22Oct | H,G,F | High on scope; visual acceptance pending |
+| CUR-001 | BU'D is a multi-product Discord-community brand; Q&C is the first event. Use the current approved website and owner images as visual authority, Code-first without Figma. | Latest owner scope; ADR-005 | Current site/owner references | High |
 | CUR-002 | Events/Bots/Designs use reusable Gallery→Product Modal→CTA. Clearly distinguish upcoming/unavailable; no fake checkout. | Owner22Oct | H,D | High; exact modal geometry not in current frames |
 | CUR-003 | Public browsing requires no login. Purchaser/host Discord auth occurs at Buy Now before payment. | Owner20–22Oct | H,G,B | High |
 | CUR-004 | No bot, participant accounts, attendance, registration, selection or tracking. Store manual winners only. | Owner20–22Oct | H,G,B | High |
@@ -26,11 +30,11 @@ Version: 1.0 audit baseline · 2026-10-22 (Asia/Riyadh). Owner: BU'D project own
 | CUR-009 | Light only, Readex Pro, official vector emblem. #333333,#FBB03B,#F6F0E2,#E6E6E6; cards/containers #FDFDFF. Retro Modern/Arcade75% + Gaming25%. | Owner/Handoff22Oct | H,G,F | High |
 | CUR-010 | Fit viewport without clipped controls; overflow available where needed. AR/EN, RTL/LTR, keyboard, focus restoration and reduced motion. | Owner22Oct | H,G | High |
 | CUR-011 | No fabricated partners/testimonials. Current Figma contains sample placeholders; preserve honest empty/sample states until real content supplied. | H explicit no invented endorsements | H + F current context | High |
-| CUR-012 | Preserve archive, main, existing PR2, infrastructure; isolated feature branch; Vercel Preview only. No real payment/purchases/prod merge/release. | Owner22Oct | Current request,H | High |
+| CUR-012 | Preserve archive and infrastructure, use an isolated feature branch/PR and green CI. Owner authorized tested publication and the backend foundation batch without returning for approval. No real payment activation. | Later owner scope22–23Oct | Conversation + scoped updates below | High |
 
 ## Open decisions and bounded execution
 
-Historical240-minute limit, restart/grace/retention periods, final price/currency/tax/refund/Slot-expiry policy are not reapproved by silence. Commercial enforcement stays blocked. Duplicate winner names need a final policy; preview rejects exact normalized duplicates and labels this reversible implementation choice. Do not claim fully verified production acceptance.
+ADR-002 approves the maximum four-hour session and no additional resume charge; ADR-003 adopts persistent history; ADR-004 allows duplicate names as independent records. Restart/grace, detailed retention, final price/currency/tax/refund/Slot-expiry policies remain unresolved. Commercial enforcement stays blocked. Do not claim fully verified production acceptance.
 
 The current source hierarchy and conflict list are adjacent documents. Gate00 stays OPEN until all its checks pass. A scoped engineering readiness decision may authorize independent reversible code only after the relevant sources are inspected; it does not close Gate00 or S05/S06/S07.
 ## Scoped owner update — Prize Draw UX (2026-10-22)

@@ -1,0 +1,49 @@
+.host-portal { min-height: 100dvh; background: #f6f0e2; color: #333; padding: 24px clamp(16px, 5vw, 72px) 48px; font-family: 'Readex Pro Variable', sans-serif; box-sizing: border-box; }
+.host-portal *, .host-portal *::before, .host-portal *::after { box-sizing: border-box; }
+.host-portal button, .host-portal input, .host-portal textarea { font: inherit; }
+.host-portal button:where(:not(.bud-switch):not(.bud-help-trigger)) { min-height: 44px; padding: 10px 16px; border: 1.5px solid #333; border-radius: 9px; color: #333; background: #fffdf8; cursor: pointer; }
+.host-portal button:where(:hover:not(:disabled):not(.bud-switch):not(.bud-help-trigger)) { background: #f1e6ce; }
+.host-portal button:disabled, .host-portal fieldset:disabled { opacity: .6; }
+.host-portal button:disabled { cursor: default; }
+.host-portal :focus-visible { outline: 3px solid #5366b1; outline-offset: 4px; }
+.host-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 1200px; margin: auto; }
+.host-header .host-back { display: inline-flex; align-items: center; gap: 12px; background: transparent; border-color: transparent; }
+.host-portal main { max-width: 1200px; margin: 36px auto 0; }
+.host-heading { display: flex; gap: 24px; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+.host-portal h1 { font-size: clamp(26px, 4vw, 38px); line-height: 1.5; margin: 0; }
+.host-portal h2 { font-size: 19px; margin: 0 0 16px; line-height: 1.6; }
+.host-portal h3 { font-size: 15px; line-height: 1.8; margin: 0; overflow-wrap: anywhere; }
+.host-portal p { font-size: 13px; line-height: 1.9; }
+.host-eyebrow { color: #8c640e; letter-spacing: 3px; margin: 0; }
+.host-panel { border: 1.5px solid #333; background: #fffdfb; border-radius: 14px; padding: clamp(18px, 3vw, 28px); box-shadow: 3px 4px 0 #333; min-width: 0; }
+.host-balance { display: flex; justify-content: space-between; align-items: center; gap: 24px; margin-bottom: 28px; background: #fff3ce; }
+.host-balance h2 { margin-bottom: 4px; }.host-balance p { margin: 0; }.host-balance strong { font-size: 38px; line-height: 1; }
+.host-grid { display: grid; grid-template-columns: minmax(280px, .9fr) minmax(0, 1.3fr); gap: 28px; align-items: start; }
+.host-session-lists { display: grid; gap: 28px; }
+.host-portal form { display: grid; gap: 16px; }
+.host-portal fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 14px; min-width: 0; }
+.host-portal label { display: block; font-size: 13px; font-weight: 600; line-height: 1.8; }
+.host-portal input, .host-portal textarea { border: 1.5px solid #777; background: #fff; color: #333; border-radius: 8px; padding: 12px; width: 100%; min-height: 44px; min-width: 0; }
+.host-portal textarea { resize: vertical; line-height: 1.9; }
+.host-options { display: flex; align-items: start; justify-content: space-between; gap: 24px; }
+.host-options > div { flex: 1; min-width: 0; }.host-options .bud-switch-field { align-items: start; }
+.host-options .bud-stepper { margin-top: 8px; }.host-portal .bud-stepper button { padding: 4px; min-width: 40px; }
+.host-duration { display: grid; gap: 8px; }.host-duration input { max-width: 140px; }
+.host-field-label { display: flex; align-items: center; gap: 8px; }
+.host-portal .bud-help-trigger { min-height: 28px; width: 28px; padding: 0; }
+.host-portal .host-primary { background: #ffb638; border: 2px solid #333; box-shadow: 3px 4px 0 #333; font-weight: 600; }
+.host-portal .host-primary:hover:not(:disabled) { background: #ffc85d; }
+.host-portal .host-discord { display: inline-flex; gap: 10px; align-items: center; background: #5865f2; color: white; border-color: #3e48b8; }
+.host-portal .host-discord:hover:not(:disabled) { background: #4752c4; }
+.host-access { max-width: 640px; margin: 48px auto; text-align: center; }.host-access button { margin: 8px; }
+.host-message { padding: 14px; border-inline-start: 3px solid #d39a2b; background: #fff7e1; border-radius: 6px; }
+.host-portal .host-error { color: #8d2828; }.host-empty { color: #68645e; }
+.host-session-lists ul { padding: 0; margin: 0; list-style: none; display: grid; gap: 12px; }
+.host-session-lists li { display: flex; align-items: center; justify-content: space-between; gap: 16px; border-top: 1px solid #ddd6c9; padding-top: 14px; }
+.host-session-lists li > div { min-width: 0; }.host-session-lists li button { flex-shrink: 0; }.host-session-lists small { font-size: 11px; line-height: 1.9; color: #68645e; }
+.host-summary { background: #fffdfb; border: 2px solid #333; border-radius: 14px; color: #333; box-shadow: 6px 7px 0 #333; padding: 24px; width: min(600px, calc(100% - 32px)); max-height: calc(100dvh - 48px); overflow: auto; }
+.host-summary::backdrop { background: #0008; backdrop-filter: blur(5px); }
+.host-summary pre { font: inherit; font-size: 13px; line-height: 2; white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; }
+.host-summary-actions { display: flex; gap: 16px; justify-content: space-between; margin: 24px 0 8px; }
+@media(max-width: 760px) { .host-portal { padding-top: 12px; }.host-grid { grid-template-columns: minmax(0,1fr); }.host-heading { align-items: start; gap: 12px; }.host-heading > button { font-size: 11px; }.host-options { gap: 16px; }.host-session-lists li { flex-wrap: wrap; }.host-session-lists li button { width: 100%; }.host-header button { font-size: 11px; padding: 8px; }.host-balance { gap: 16px; } }
+@media(max-width: 760px) { .host-session-lists { grid-row: 1; } }

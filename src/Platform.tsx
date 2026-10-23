@@ -3,11 +3,12 @@ import './platform.css';
 import { HeroArtwork } from './HeroArtwork';
 import { InterfaceIcon } from './InterfaceControls';
 import { EventPreview } from './EventPreview';
+import { Seo } from './Seo';
 
 type Locale = 'ar' | 'en';
 type Page = 'home' | 'events' | 'bots' | 'designs';
 type Modal = 'qc' | 'soon' | 'about' | 'privacy' | 'terms' | 'support' | 'login' | 'how' | null;
-type PlatformProps = { onBuy?: (locale: Locale) => void };
+type PlatformProps = { onBuy?: (locale: Locale) => void; onHost?: (locale: Locale) => void };
 
 const copy = {
   ar: { home: 'الرئيسية', events: 'الفعاليات', bots: 'بوتات', designs: 'تصاميم', soon: 'قريبًا', login: 'سجّل دخولك', eyebrow: 'تجارب رقمية، بروح مجتمعك', title: <>ننقل تجربتك<br />إلى بُعد آخر</>, description: <>منتجات رقمية لمجتمعك على Discord.<br />ابدأ بالفعاليات، واكتشف ما يأتي بعدها.</>, explore: 'استكشف الفعاليات', about: 'عن بُعد', how: 'كيف تبدأ الفعالية؟', browseHint: 'تصفّح المنتجات وجرّب الفعالية قبل الشراء.', privacy: 'الخصوصية', terms: 'الشروط', support: 'الدعم', close: 'إغلاق', galleryTitle: 'فعاليات بُعد', galleryDescription: 'اختر الفعالية، وجهّز وقتًا يجمع مجتمعك.', product: 'سؤال وشرط', productEyebrow: 'فعالية صوتية على Discord', productDescription: <>سؤال يختبرك، وشرط يغيّر التحدّي.<br />أدر الفعالية بطريقتك مع مجتمعك.</>, features: 'إدارة للهوست · جوائز · مؤقت اختياري', view: 'عرض الفعالية', buy: 'اشترِ الآن', review: 'آراء المجتمع قريبًا', reviewNote: 'لم تُنشر آراء معتمدة بعد.', partners: 'الشركاء قريبًا', purchaseUnavailable: 'الشراء غير متاح حاليًا. لن يُخصم أي رصيد.', rehearsal: 'معاينة ببطاقتين ثابتتين ومؤقت 5 ثوانٍ، دون تشغيل فعالية كاملة.', details: 'اكشف بطاقتي السؤال والشرط، واحكم على الإجابة صوتيًا. بعد الإجابة الصحيحة أدخل اسم الفائز، ثم وزّع الجوائز واختتم الفعالية.', soonDescription: 'نعمل على منتجات جديدة لمجتمعك. ستظهر هنا عند توفرها.', aboutDescription: 'بُعد منصة منتجات رقمية لمجتمعات Discord. ننقل تجربتك إلى بُعد آخر.', legalPending: 'هذه الصفحة قيد الإعداد. ستتوفر التفاصيل المعتمدة قبل تفعيل الشراء.', loginUnavailable: 'تسجيل الدخول والشراء غير متاحين في هذه المعاينة. يمكنك تصفّح المنتجات وتجربة البطاقتين دون تسجيل.', changeLanguage: 'English', question: 'سؤال', condition: 'شرط' },
@@ -23,7 +24,7 @@ function CardPreview({ locale }: { locale: Locale }) {
   return <div className="platform-product-preview" aria-hidden="true">{(['Q', 'C'] as const).map((letter, i) => <div className={`platform-mini-card platform-mini-card-${letter}`} key={letter}><Mark className="mini-mark-top" /><Mark className="mini-mark-bottom" /><div className="mini-identity"><span>{letter}</span><small>{i === 0 ? t.question : t.condition}</small></div></div>)}</div>;
 }
 
-export default function Platform({ onBuy }: PlatformProps) {
+export default function Platform({ onBuy, onHost }: PlatformProps) {
   const [locale, setLocale] = useState<Locale>(() => { const requested = new URLSearchParams(location.search).get('lang'); try { return (requested ?? localStorage.getItem('bud-lang')) === 'en' ? 'en' : 'ar'; } catch { return requested === 'en' ? 'en' : 'ar'; } });
   const [page, setPage] = useState<Page>(() => ['game', 'events'].includes(new URLSearchParams(location.search).get('screen') ?? '') ? 'events' : 'home');
   const [modal, setModal] = useState<Modal>(null);
@@ -48,10 +49,10 @@ export default function Platform({ onBuy }: PlatformProps) {
   const modalTitle = modal === 'qc' ? t.product : modal === 'soon' ? t.soon : modal ? t[modal] : '';
 
   return <div className={`platform platform-${page}`} dir={locale === 'ar' ? 'rtl' : 'ltr'} data-testid="platform-root">
-    <a className="skip-link" href="#platform-content">{locale === 'ar' ? 'تجاوز إلى المحتوى' : 'Skip to content'}</a>
+    <Seo locale={locale} screen={page} /><a className="skip-link" href="#platform-content">{locale === 'ar' ? 'تجاوز إلى المحتوى' : 'Skip to content'}</a>
     {page === 'home' && <HeroArtwork />}
     <header className="platform-header" data-node-id="339:2072">
-      <div className="platform-header-tools"><button type="button" className="platform-login" aria-label={locale === 'ar' ? 'سجّل دخولك عبر Discord' : 'Sign in with Discord'} onClick={() => setModal('login')}><img src="/assets/discord-symbol-white.svg" width="24" height="18" alt="" />{t.login}</button><button className="platform-language" data-testid="locale-toggle" onClick={() => setLocale(locale === 'ar' ? 'en' : 'ar')} aria-label={t.changeLanguage}>{locale === 'ar' ? 'EN' : 'ع'}</button></div>
+      <div className="platform-header-tools"><button type="button" className="platform-login" aria-label={locale === 'ar' ? 'سجّل دخولك عبر Discord' : 'Sign in with Discord'} onClick={() => onHost?.(locale)}><img src="/assets/discord-symbol-white.svg" width="24" height="18" alt="" />{t.login}</button><button className="platform-language" data-testid="locale-toggle" onClick={() => setLocale(locale === 'ar' ? 'en' : 'ar')} aria-label={t.changeLanguage}>{locale === 'ar' ? 'EN' : 'ع'}</button></div>
       <div className="platform-brand-navigation">
         <nav className="platform-navigation" aria-label={locale === 'ar' ? 'التنقل الرئيسي' : 'Main navigation'}>{(['home', 'events', 'bots', 'designs'] as const).map(item => <button type="button" key={item} data-testid={`nav-${item}`} aria-label={`${t[item]}${item === 'bots' || item === 'designs' ? ` · ${t.soon}` : ''}`} aria-current={page === item ? 'page' : undefined} className={item === 'bots' || item === 'designs' ? 'platform-future-link' : ''} onClick={() => navigate(item)}><span className="platform-nav-icon"><InterfaceIcon kind={item} /></span><span className="platform-nav-label">{t[item]}{(item === 'bots' || item === 'designs') && <small> · {t.soon}</small>}</span></button>)}</nav>
         <button className="platform-brand" aria-label={locale === 'ar' ? 'بُعد — الرئيسية' : 'BU’D — Home'} onClick={() => navigate('home')}><Mark /><span>بُعد</span></button>
