@@ -12,7 +12,7 @@ const text = {
   en: { title: 'Your BU’D space', back: 'Back to BU’D', loading: 'Loading your space…', signin: 'Sign in', intro: 'Sign in to manage your events and resume your sessions.', unavailable: 'The host space is currently unavailable. Please try later.', retry: 'Try again', failure: 'We could not complete the request. Please try again.', expired: 'Your sign-in session ended. Please sign in again.', logout: 'Sign out', slots: 'Available event runs', slotHint: 'Starting a new event uses one run. Resuming an event uses no additional runs.', setup: 'New event', eventTitle: 'Event name', defaultTitle: 'Question & Condition', timer: 'Enable timer', duration: 'Timer duration in seconds', attempts: 'Attempts', prizes: 'Prizes', prizeHelp: 'Each nonempty line is one prize and determines the winner limit. Up to 50 prizes, 100 characters each.', prizeError: 'Enter up to 50 prizes, with no more than 100 characters per line.', start: 'Start event', starting: 'Starting event…', noSlots: 'No event runs available. Purchasing is currently unavailable.', noContent: 'This event is currently unavailable to start.', running: 'Your ongoing events', history: 'Your past events', emptyActive: 'No ongoing events. Start one when you are ready.', emptyHistory: 'Your completed events will appear here.', resume: 'Resume event', summary: 'View summary', winners: 'Winners', opened: 'Opened prizes', close: 'Close summary', copy: 'Copy results', copied: 'Results copied', copyFailed: 'Unable to copy. Select and copy the results.', unnamed: 'No name', noPrizes: 'No prizes recorded.', live: 'Ongoing', completed: 'Completed', preparing: 'Setup', titleError: 'Enter an event name of up to 100 characters.', busy: 'Processing your request…', confirmChange: 'A start request has an unknown outcome. Retry to recover its result before changing settings.', reload: 'Refresh list' }
 };
 const completed = (event: HostEvent) => event.phase === 'completed' || event.phase === 'closing' || event.state.phase === 'closing';
-export default function HostPortal({ onPlay, onExit, locale }: { onPlay: (event: HostEvent) => void; onExit: () => void; locale: Locale }) {
+export default function HostPortal({ onPlay, onExit, locale, view, onAuthLost }: { onPlay: (event: HostEvent) => void; onExit: () => void; locale: Locale; view?: 'setup' | 'history'; onAuthLost?: () => void }) {
   const t = text[locale];
   const [status, setStatus] = useState<'loading' | 'signed-out' | 'ready' | 'unavailable' | 'error'>('loading');
   const [session, setSession] = useState<HostSession | null>(null);
@@ -26,20 +26,22 @@ export default function HostPortal({ onPlay, onExit, locale }: { onPlay: (event:
   const [summary, setSummary] = useState<HostEvent | null>(null);
   const [copyStatus, setCopyStatus] = useState('');
   const summaryDialog = useRef<HTMLDialogElement>(null);
+  const heading = useRef<HTMLHeadingElement>(null);
   const pendingStart = useRef<StartHostEvent | null>(null);
   const locked = useRef(false);
   const [uncertain, setUncertain] = useState(false);
+  useEffect(() => { if (view) heading.current?.focus(); }, [view]);
   useEffect(() => {
     const controller = new AbortController();
     setStatus('loading'); setError('');
     void (async () => {
       try { const user = await getHostSession(controller.signal); const data = await getHostDashboard(controller.signal); if (!controller.signal.aborted) { setSession(user); setDashboard(data); setStatus('ready'); } }
-      catch (reason) { if (controller.signal.aborted) return; const issue = reason instanceof HostClientError ? reason : null; setStatus(issue?.status === 401 ? 'signed-out' : issue?.status === 503 ? 'unavailable' : 'error'); }
+      catch (reason) { if (controller.signal.aborted) return; const issue = reason instanceof HostClientError ? reason : null; setStatus(issue?.status === 401 ? 'signed-out' : issue?.status === 503 ? 'unavailable' : 'error'); if (issue?.status === 401) onAuthLost?.(); }
     })();
     return () => controller.abort();
-  }, [reload]);
+  }, [reload, onAuthLost]);
   useEffect(() => { if (summary) summaryDialog.current?.showModal(); else summaryDialog.current?.close(); }, [summary]);
-  const reportError = (reason: unknown) => { const issue = reason instanceof HostClientError ? reason : null; setError(issue?.status === 401 ? t.expired : issue?.status === 503 ? t.unavailable : t.failure); if (issue?.status === 401) setStatus('signed-out'); };
+  const reportError = (reason: unknown) => { const issue = reason instanceof HostClientError ? reason : null; setError(issue?.status === 401 ? t.expired : issue?.status === 503 ? t.unavailable : t.failure); if (issue?.status === 401) {setStatus('signed-out'); onAuthLost?.();} };
   const perform = async (action: () => Promise<void>) => { if (locked.current) return; locked.current = true; setBusy(true); setError(''); try { await action(); } catch (reason) { reportError(reason); } finally { locked.current = false; setBusy(false); } };
   const parsed = parsePrizeLines(prizeText);
   const product = dashboard?.products.find(item => item.id === 'question-condition') ?? dashboard?.products[0];
@@ -53,13 +55,13 @@ export default function HostPortal({ onPlay, onExit, locale }: { onPlay: (event:
     catch (reason) { setUncertain(true); throw reason; }
   });
   const summaryText = summary ? formatEventResults(summary.state,locale) : '';
-  return <div className="host-portal" dir={locale === 'ar' ? 'rtl' : 'ltr'} lang={locale}>
-    <header className="host-header"><button className="host-back" onClick={onExit}><img src="/assets/bud-emblem.svg" width="32" height="24" alt="" />{t.back}</button>{status === 'ready' && <button disabled={busy} onClick={() => void perform(async () => { try { await signOutHost(); } finally { pendingStart.current = null; setUncertain(false); setTitle(t.defaultTitle); setPrizeText(''); setConfig({ duration: 5, timerEnabled: false, attempts: 1 }); setSession(null); setDashboard(null); setStatus('signed-out'); } })}>{t.logout}</button>}</header>
-    <main><div className="host-heading"><div><p className="host-eyebrow">BU’D</p><h1>{t.title}</h1>{session && status === 'ready' && <p>{session.displayName}</p>}</div>{status === 'ready' && <button disabled={busy} onClick={() => setReload(value => value + 1)}>{t.reload}</button>}</div>
+  return <div className={`host-portal${view ? ' host-embedded' : ''}`} dir={locale === 'ar' ? 'rtl' : 'ltr'} lang={locale}>
+    <header className="host-header"><button className="host-back" onClick={onExit}><img src="/assets/bud-emblem.svg" width="32" height="24" alt="" />{view ? (locale === 'ar' ? 'العودة' : 'Back') : t.back}</button>{!view && status === 'ready' && <button disabled={busy} onClick={() => void perform(async () => { try { await signOutHost(); } finally { pendingStart.current = null; setUncertain(false); setTitle(t.defaultTitle); setPrizeText(''); setConfig({ duration: 5, timerEnabled: false, attempts: 1 }); setSession(null); setDashboard(null); setStatus('signed-out'); } })}>{t.logout}</button>}</header>
+    <div className="host-content"><div className="host-heading"><div><p className="host-eyebrow">BU’D</p><h1 ref={heading} tabIndex={-1}>{view === 'history' ? (locale === 'ar' ? 'السجل' : 'History') : view === 'setup' ? t.setup : t.title}</h1>{!view && session && status === 'ready' && <p>{session.displayName}</p>}</div>{status === 'ready' && <button disabled={busy} onClick={() => setReload(value => value + 1)}>{t.reload}</button>}</div>
       {error && <p className="host-message host-error" role="alert">{error}</p>}
-      {status === 'loading' ? <p className="host-message" role="status">{t.loading}</p> : status !== 'ready' ? <section className="host-panel host-access"><h2>{status === 'signed-out' ? t.signin : t.unavailable}</h2><p>{status === 'signed-out' ? t.intro : t.failure}</p>{status === 'signed-out' && <button className="host-discord" disabled={busy} onClick={() => void perform(signInHost)}><img src="/assets/discord-symbol-white.svg" width="24" height="18" alt="Discord" />{t.signin}</button>}<button disabled={busy} onClick={() => setReload(value => value + 1)}>{t.retry}</button></section> : dashboard && <>
-        <section className="host-balance host-panel" aria-label={t.slots}><div><h2>{t.slots}</h2><p>{t.slotHint}</p></div><strong>{dashboard.credits}</strong></section>
-        <div className="host-grid"><section className="host-panel"><h2>{t.setup}</h2><form onSubmit={event => { event.preventDefault(); void start(); }}>
+      {status === 'loading' ? <p className="host-message" role="status">{t.loading}</p> : status !== 'ready' ? <section className="host-panel host-access"><h2>{status === 'signed-out' ? t.signin : t.unavailable}</h2><p>{status === 'signed-out' ? t.intro : t.failure}</p>{status === 'signed-out' && <button className="host-discord" disabled={busy} onClick={() => void perform(() => signInHost({page:'events',locale}))}><img src="/assets/discord-symbol-white.svg" width="24" height="18" alt="Discord" />{t.signin}</button>}<button disabled={busy} onClick={() => setReload(value => value + 1)}>{t.retry}</button></section> : dashboard && <>
+        {!view && <section className="host-balance host-panel" aria-label={t.slots}><div><h2>{t.slots}</h2><p>{t.slotHint}</p></div><strong>{dashboard.credits}</strong></section>}
+        <div className={view ? 'host-single' : 'host-grid'}>{view !== 'history' && <section className="host-panel"><h2>{t.setup}</h2><form onSubmit={event => { event.preventDefault(); void start(); }}>
           {uncertain && <p className="host-message" role="status">{t.confirmChange}</p>}
           <fieldset disabled={busy || uncertain}><label htmlFor="host-title">{t.eventTitle}</label><input id="host-title" value={title} maxLength={100} onChange={event => setTitle(event.target.value)} required />
             <div className="host-options"><AnimatedSwitch label={t.timer} checked={config.timerEnabled} onCheckedChange={timerEnabled => setConfig(previous => ({ ...previous, timerEnabled }))} /><div><label id="host-attempts-label">{t.attempts}</label><NumberStepper id="host-attempts" label={t.attempts} value={config.attempts} min={1} max={3} locale={locale} onChange={attempts => setConfig(previous => ({ ...previous, attempts: attempts as 1 | 2 | 3 }))} /></div></div>
@@ -68,10 +70,10 @@ export default function HostPortal({ onPlay, onExit, locale }: { onPlay: (event:
           </fieldset>
           {!enoughRuns && <p>{t.noSlots}</p>}{(!product?.available || !contentReady) && <p>{t.noContent}</p>}
           <button type="submit" className="host-primary" disabled={busy || !parsed.valid || !enoughRuns || !product?.available || !contentReady}>{busy ? t.starting : uncertain ? t.retry : t.start}</button>
-        </form></section>
-        <div className="host-session-lists">{[false, true].map(history => <section className="host-panel" key={String(history)}><h2>{history ? t.history : t.running}</h2>{dashboard.events.filter(event => completed(event) === history).length === 0 ? <p className="host-empty">{history ? t.emptyHistory : t.emptyActive}</p> : <ul>{dashboard.events.filter(event => completed(event) === history).map(event => <li key={event.eventId}><div><h3>{event.title}</h3><small>{history ? t.completed : event.phase === 'setup' ? t.preparing : t.live}{event.updatedAt && !Number.isNaN(Date.parse(event.updatedAt)) && <> · <time dateTime={event.updatedAt}>{new Date(event.updatedAt).toLocaleDateString(locale)}</time></>}</small></div><button disabled={busy} onClick={() => { if (history) { setCopyStatus(''); setSummary(event); } else void perform(async () => onPlay(await resumeHostEvent(event.eventId))); }}>{history ? t.summary : t.resume}</button></li>)}</ul>}</section>)}</div></div>
+        </form></section>}
+        {view !== 'setup' && <div className="host-session-lists">{[false, true].map(history => <section className="host-panel" key={String(history)}><h2>{history ? t.history : t.running}</h2>{dashboard.events.filter(event => completed(event) === history).length === 0 ? <p className="host-empty">{history ? t.emptyHistory : t.emptyActive}</p> : <ul>{dashboard.events.filter(event => completed(event) === history).map(event => <li key={event.eventId}><div><h3>{event.title}</h3><small>{history ? t.completed : event.phase === 'setup' ? t.preparing : t.live}{event.updatedAt && !Number.isNaN(Date.parse(event.updatedAt)) && <> · <time dateTime={event.updatedAt}>{new Date(event.updatedAt).toLocaleDateString(locale)}</time></>}</small></div><button disabled={busy} onClick={() => { if (history) { setCopyStatus(''); setSummary(event); } else void perform(async () => onPlay(await resumeHostEvent(event.eventId))); }}>{history ? t.summary : t.resume}</button></li>)}</ul>}</section>)}</div>}</div>
       </>}
-    </main>
+    </div>
     <dialog className="host-summary" ref={summaryDialog} onCancel={() => setSummary(null)} onClose={() => setSummary(null)} aria-labelledby="host-summary-title"><h2 id="host-summary-title">{summary?.title}</h2>{summary && <><p>{t.winners}: {summary.state.winners.length} · {t.opened}: {summary.state.prizes.filter(prize => prize.revealed).length}</p><pre tabIndex={0}>{summaryText || t.noPrizes}</pre><div className="host-summary-actions"><button onClick={() => { void navigator.clipboard?.writeText(summaryText).then(() => setCopyStatus(t.copied)).catch(() => setCopyStatus(t.copyFailed)); if (!navigator.clipboard) setCopyStatus(t.copyFailed); }}>{t.copy}</button><button className="host-primary" autoFocus onClick={() => setSummary(null)}>{t.close}</button></div>{copyStatus && <p role="status">{copyStatus}</p>}</>}</dialog>
   </div>;
 }

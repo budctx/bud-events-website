@@ -23,8 +23,11 @@ function transportFor(options: { expires?: number; user?: unknown; onRequest?: (
     return Response.json({ access_token: 'valid-access-token-that-is-long-enough', refresh_token: 'valid-refresh-token', expires_in: options.expires ?? 3600 });
   };
 }
-async function login(transport = transportFor()) {
-  const begin = await handleAuth(req('signin', 'POST'), env, transport);
+async function login(transport = transportFor(), destination?: unknown) {
+  const signin = destination === undefined ? req('signin', 'POST') : new Request(origin + '/api/auth?action=signin', {
+    method: 'POST', headers: { origin, 'x-vercel-forwarded-for': '192.0.2.1', 'content-type': 'application/json' }, body: JSON.stringify(destination),
+  });
+  const begin = await handleAuth(signin, env, transport);
   const authorize = new URL((await begin.json()).data.url);
   const callback = new URL(authorize.searchParams.get('redirect_to')!);
   callback.searchParams.set('code', 'auth-code');
@@ -75,9 +78,9 @@ test('callback validates encrypted state, expiry, nonce and PKCE binding', async
 });
 test('session returns verified identity only, never tokens or editable user metadata', async () => {
   const { complete, cookie } = await login();
-  assert.equal(complete.status, 303); assert.equal(complete.headers.get('location'), origin + '/?screen=host');
+  assert.equal(complete.status, 303); assert.equal(complete.headers.get('location'), origin + '/?lang=ar');
   const response = await handleAuth(req('session', 'GET', cookie), env, transportFor());
-  assert.deepEqual(await response.json(), { code: 'OK', data: { id, displayName: 'Verified Host' } });
+  assert.deepEqual(await response.json(), { code: 'OK', data: { id, displayName: 'Verified Host', avatarUrl: null } });
   const resolved = await resolveSession(req('session', 'GET', cookie), env, transportFor());
   assert.equal(resolved?.hostId, id); assert.deepEqual(Object.keys(resolved!), ['hostId', 'headers']);
   assert.ok(!cookie.includes('valid-access-token')); assert.ok(!cookie.includes('valid-refresh-token'));
@@ -121,4 +124,70 @@ test('upstream failures are sanitized and unavailable session is not successful'
   assert.equal((await handleAuth(req('session'), env, transportFor())).status, 401);
   const oversized = await handleAuth(req('session', 'GET', cookie), env, async input => String(input).endsWith('/rpc/bud_consume_rate_limit') ? Response.json({allowed:true,retryAfter:0}) : new Response('x'.repeat(65537)));
   assert.equal(oversized.status, 503);
+});
+test('signin preserves only allowlisted page and locale in authenticated flow cookie', async () => {
+  for (const page of ['home', 'events', 'bots', 'designs']) {
+    for (const locale of ['ar', 'en']) {
+      const flow = await login(transportFor(), { page, locale });
+      assert.equal(flow.complete.status, 303);
+      assert.equal(flow.complete.headers.get('location'), `${origin}/?${page === 'home' ? '' : `screen=${page}&`}lang=${locale}`);
+      // Caller callback query parameters cannot override the encrypted destination.
+      flow.callback.searchParams.set('screen', 'host'); flow.callback.searchParams.set('lang', locale === 'ar' ? 'en' : 'ar');
+      flow.callback.searchParams.set('returnUrl', 'https://evil.example');
+      const retry = await handleAuth(new Request(flow.callback, { headers: { 'x-vercel-forwarded-for': '192.0.2.1', cookie: cookies(flow.begin) } }), env, transportFor());
+      assert.equal(retry.headers.get('location'), flow.complete.headers.get('location'));
+    }
+  }
+  assert.equal((await login(transportFor(), {})).complete.headers.get('location'), origin + '/?lang=ar');
+  assert.equal((await login(transportFor(), { locale: 'en' })).complete.headers.get('location'), origin + '/?lang=en');
+  assert.equal((await login(transportFor(), { page: 'events' })).complete.headers.get('location'), origin + '/?screen=events&lang=ar');
+});
+test('signin rejects arbitrary destinations, malformed JSON and oversized bodies', async () => {
+  for (const body of [{ page: 'host' }, { page: 'https://evil.example' }, { locale: 'fr' }, { page: null }, { returnUrl: 'https://evil.example' }, { hostId: id }, [], null]) {
+    const response = await handleAuth(new Request(origin + '/api/auth?action=signin', { method: 'POST',
+      headers: { origin, 'x-vercel-forwarded-for': '192.0.2.1', 'content-type': 'application/json' }, body: JSON.stringify(body) }), env, transportFor());
+    assert.equal(response.status, 400); assert.equal(response.headers.getSetCookie().length, 0);
+  }
+  for (const [body, type, expected] of [['{bad', 'application/json', 400], ['{}', 'text/plain', 415], ['x'.repeat(2049), 'application/json', 413]] as const) {
+    const response = await handleAuth(new Request(origin + '/api/auth?action=signin', { method: 'POST',
+      headers: { origin, 'x-vercel-forwarded-for': '192.0.2.1', 'content-type': type }, body }), env, transportFor());
+    assert.equal(response.status, expected);
+  }
+});
+test('legacy encrypted flow cookie without destination safely returns to Arabic home', async () => {
+  const flow = await login(transportFor(), { page: 'events', locale: 'en' });
+  const raw = cookies(flow.begin).split('=')[1]; const [ivPart, dataPart] = raw.split('.');
+  const decode = (value: string) => Uint8Array.from(atob(value.replace(/-/g, '+').replace(/_/g, '/')), char => char.charCodeAt(0));
+  const encode = (value: Uint8Array) => btoa(String.fromCharCode(...value)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const key = await crypto.subtle.importKey('raw', await crypto.subtle.digest('SHA-256', new TextEncoder().encode(env.BUD_AUTH_COOKIE_SECRET)), 'AES-GCM', false, ['encrypt', 'decrypt']);
+  const aad = new TextEncoder().encode('__Host-bud-oauth' + origin);
+  const payload = JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: decode(ivPart), additionalData: aad }, key, decode(dataPart))));
+  delete payload.page; delete payload.locale;
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: aad }, key, new TextEncoder().encode(JSON.stringify(payload)));
+  const legacyCookie = '__Host-bud-oauth=' + encode(iv) + '.' + encode(new Uint8Array(encrypted));
+  const complete = await handleAuth(new Request(flow.callback, { headers: { 'x-vercel-forwarded-for': '192.0.2.1', cookie: legacyCookie } }), env, transportFor());
+  assert.equal(complete.status, 303); assert.equal(complete.headers.get('location'), origin + '/?lang=ar');
+});
+test('session avatar comes only from verified Discord identity and exact CDN paths', async () => {
+  const snowflake = '123456789012345678'; const hash = '0123456789abcdef0123456789abcdef';
+  const { cookie } = await login();
+  const readAvatar = async (identityData: Record<string, unknown>, providerId?: string) => {
+    const current = { ...user, identities: [{ provider: 'discord', provider_id: providerId, identity_data: { full_name: 'Verified Host', ...identityData } }],
+      user_metadata: { avatar_url: 'https://evil.example/fake.png', full_name: 'Untrusted Name' } };
+    const response = await handleAuth(req('session', 'GET', cookie), env, transportFor({ user: current }));
+    assert.equal(response.status, 200); const data = (await response.json()).data;
+    assert.equal(data.displayName, 'Verified Host'); return data.avatarUrl;
+  };
+  const expected = `https://cdn.discordapp.com/avatars/${snowflake}/${hash}.png?size=64`;
+  assert.equal(await readAvatar({ sub: snowflake, picture: `https://cdn.discordapp.com/avatars/${snowflake}/${hash}.webp?size=128` }), expected);
+  assert.equal(await readAvatar({ provider_id: snowflake, avatar: hash }), expected);
+  assert.equal(await readAvatar({ sub: snowflake, avatar: `a_${hash}` }), `https://cdn.discordapp.com/avatars/${snowflake}/a_${hash}.png?size=64`);
+  assert.equal(await readAvatar({ avatar_url: 'https://cdn.discordapp.com/embed/avatars/5.png' }), 'https://cdn.discordapp.com/embed/avatars/5.png');
+  assert.equal(await readAvatar({}), null);
+  for (const avatar_url of [`http://cdn.discordapp.com/avatars/${snowflake}/${hash}.png`, `https://cdn.discordapp.com.evil.example/avatars/${snowflake}/${hash}.png`,
+    `https://user@cdn.discordapp.com/avatars/${snowflake}/${hash}.png`, `https://cdn.discordapp.com/avatars/${snowflake}/${hash}.png?redirect=https://evil.example`,
+    `https://cdn.discordapp.com/avatars/${snowflake}/../${hash}.png`, 'data:image/svg+xml,fake']) assert.equal(await readAvatar({ avatar_url }), null);
+  assert.equal(await readAvatar({ sub: snowflake, avatar_url: `https://cdn.discordapp.com/avatars/999999999999999999/${hash}.png` }), null);
+  assert.equal(await readAvatar({ sub: snowflake, avatar: hash }, '999999999999999999'), null);
 });

@@ -8,6 +8,57 @@ const FLOW = '__Host-bud-oauth';
 const WEEK = 604800;
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const encoder = new TextEncoder();
+const pages = ['home', 'events', 'bots', 'designs'] as const;
+type ReturnPage = typeof pages[number];
+type ReturnLocale = 'ar' | 'en';
+function returnPage(value: unknown): ReturnPage { return pages.includes(value as ReturnPage) ? value as ReturnPage : 'home'; }
+function returnLocale(value: unknown): ReturnLocale { return value === 'en' ? 'en' : 'ar'; }
+async function signInDestination(request: Request): Promise<{ page: ReturnPage; locale: ReturnLocale } | Response> {
+  const reader = request.body?.getReader();
+  let text = ''; let size = 0; const decoder = new TextDecoder('utf-8', { fatal: true });
+  if (reader) {
+    try {
+      while (true) {
+        const chunk = await reader.read(); if (chunk.done) break;
+        size += chunk.value.length;
+        if (size > 2048) { await reader.cancel(); return result(413, 'REQUEST_TOO_LARGE'); }
+        text += decoder.decode(chunk.value, { stream: true });
+      }
+      text += decoder.decode();
+    } catch { return result(400, 'INVALID_SIGNIN_REQUEST'); }
+  }
+  if (!text.trim()) return { page: 'home', locale: 'ar' };
+  if (request.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== 'application/json') return result(415, 'JSON_REQUIRED');
+  let data: unknown;
+  try { data = JSON.parse(text); } catch { return result(400, 'INVALID_SIGNIN_REQUEST'); }
+  if (!data || typeof data !== 'object' || Array.isArray(data) || Object.keys(data).some(key => key !== 'page' && key !== 'locale')) return result(400, 'INVALID_SIGNIN_REQUEST');
+  const destination = data as Record<string, unknown>;
+  if (('page' in destination && !pages.includes(destination.page as ReturnPage))
+    || ('locale' in destination && destination.locale !== 'ar' && destination.locale !== 'en')) return result(400, 'INVALID_SIGNIN_REQUEST');
+  return { page: returnPage(destination.page), locale: returnLocale(destination.locale) };
+}
+/** Supabase's verified Discord identity includes picture/avatar_url, sub and provider_id.
+ * Sources: supabase/auth internal/api/provider/discord.go; Discord reference Image Formatting.
+ * Canonical static PNG avoids animation and arbitrary external image requests. */
+function discordAvatar(identity: Record<string, unknown>): string | null {
+  const data = identity.identity_data;
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
+  const fields = data as Record<string, unknown>;
+  const snowflake = /^[1-9][0-9]{5,19}$/;
+  const hash = /^(?:a_)?[a-f0-9]{32}$/;
+  const ids = [identity.provider_id, fields.provider_id, fields.sub].filter((value): value is string => typeof value === 'string' && snowflake.test(value));
+  if (new Set(ids).size > 1) return null;
+  const providerId = ids[0];
+  if (providerId && typeof fields.avatar === 'string' && hash.test(fields.avatar)) return `https://cdn.discordapp.com/avatars/${providerId}/${fields.avatar}.png?size=64`;
+  for (const candidate of [fields.picture, fields.avatar_url]) {
+    if (typeof candidate !== 'string') continue;
+    const custom = /^https:\/\/cdn\.discordapp\.com\/avatars\/([1-9][0-9]{5,19})\/((?:a_)?[a-f0-9]{32})\.(?:png|jpe?g|webp|gif)(?:\?size=(?:16|32|64|128|256|512|1024|2048|4096))?$/.exec(candidate);
+    if (custom && (!providerId || providerId === custom[1])) return `https://cdn.discordapp.com/avatars/${custom[1]}/${custom[2]}.png?size=64`;
+    const fallback = /^https:\/\/cdn\.discordapp\.com\/embed\/avatars\/([0-5])\.png$/.exec(candidate);
+    if (fallback) return `https://cdn.discordapp.com/embed/avatars/${fallback[1]}.png`;
+  }
+  return null;
+}
 function environment(): AuthEnv { return (globalThis as unknown as { process?: { env?: AuthEnv } }).process?.env ?? {}; }
 function config(env: AuthEnv) {
   if (env.BUD_AUTH_ENABLED !== 'true' || env.SUPABASE_URL !== PROJECT || !env.SUPABASE_PUBLISHABLE_KEY
@@ -91,7 +142,7 @@ async function verifiedUser(access: string, settings: Config, transport: Transpo
   if (!discord) return null;
   // Display data is never authorization authority. Ignore editable user_metadata entirely.
   const display = discord.identity_data?.full_name;
-  return { id: user.id, displayName: typeof display === 'string' && display.trim() ? display.trim().slice(0, 80) : 'Host' };
+  return { id: user.id, displayName: typeof display === 'string' && display.trim() ? display.trim().slice(0, 80) : 'Host', avatarUrl: discordAvatar(discord) };
 }
 type Session = { access: string; refresh: string; accessExp: number; exp: number; hostId: string };
 function tokens(data: Record<string, unknown>, exp: number): Omit<Session, 'hostId'> | null {
@@ -117,7 +168,7 @@ async function resolve(request: Request, settings: Config, transport: Transport)
   if (!user || user.id !== session.hostId) return null;
   const responseHeaders = new Headers();
   if (rotated) responseHeaders.append('Set-Cookie', cookie(SESSION, await seal(session, SESSION, settings), Math.max(0, Math.floor(session.exp - Date.now() / 1000))));
-  return { hostId: user.id, displayName: user.displayName, headers: responseHeaders, access: session.access };
+  return { hostId: user.id, displayName: user.displayName, avatarUrl: user.avatarUrl, headers: responseHeaders, access: session.access };
 }
 /** Protected APIs must forward returned Set-Cookie headers after a refresh. Never return tokens. */
 export async function resolveSession(request: Request, env: AuthEnv, transport: Transport = fetch): Promise<{ hostId: string; headers: Headers } | null> {
@@ -142,6 +193,7 @@ export async function handleAuth(request: Request, env: AuthEnv = environment(),
   }
   try {
     if (action === 'signin') {
+      const destination = await signInDestination(request); if (destination instanceof Response) return destination;
       const state = random(); const verifier = random();
       const callback = new URL('/api/auth', settings.origin); callback.searchParams.set('action', 'callback'); callback.searchParams.set('bud_state', state);
       const authorize = new URL(PROJECT + '/auth/v1/authorize');
@@ -149,7 +201,7 @@ export async function handleAuth(request: Request, env: AuthEnv = environment(),
       authorize.searchParams.set('code_challenge', b64(new Uint8Array(await crypto.subtle.digest('SHA-256', encoder.encode(verifier)))));
       authorize.searchParams.set('code_challenge_method', 's256');
       const responseHeaders = new Headers();
-      responseHeaders.append('Set-Cookie', cookie(FLOW, await seal({ state, verifier, exp: Math.floor(Date.now() / 1000) + 300 }, FLOW, settings), 300));
+      responseHeaders.append('Set-Cookie', cookie(FLOW, await seal({ state, verifier, ...destination, exp: Math.floor(Date.now() / 1000) + 300 }, FLOW, settings), 300));
       return result(200, 'OK', { url: authorize.href }, responseHeaders);
     }
     if (action === 'callback') {
@@ -165,13 +217,16 @@ export async function handleAuth(request: Request, env: AuthEnv = environment(),
       const user = session ? await verifiedUser(session.access, settings, transport) : null;
       if (!session || !user) return result(401, 'DISCORD_AUTH_REQUIRED', undefined, responseHeaders);
       responseHeaders.append('Set-Cookie', cookie(SESSION, await seal({ ...session, hostId: user.id }, SESSION, settings), WEEK));
-      const finalHeaders = headers(); finalHeaders.set('Location', settings.origin + '/?screen=host');
+      const destination = new URL('/', settings.origin); const page = returnPage(flow.page);
+      if (page !== 'home') destination.searchParams.set('screen', page);
+      destination.searchParams.set('lang', returnLocale(flow.locale));
+      const finalHeaders = headers(); finalHeaders.set('Location', destination.href);
       for (const value of responseHeaders.getSetCookie()) finalHeaders.append('Set-Cookie', value);
       return new Response(null, { status: 303, headers: finalHeaders });
     }
     if (action === 'session') {
       const session = await resolve(request, settings, transport);
-      return session ? result(200, 'OK', { id: session.hostId, displayName: session.displayName }, session.headers) : result(401, 'DISCORD_AUTH_REQUIRED');
+      return session ? result(200, 'OK', { id: session.hostId, displayName: session.displayName, avatarUrl: session.avatarUrl }, session.headers) : result(401, 'DISCORD_AUTH_REQUIRED');
     }
     if (action === 'logout') {
       const responseHeaders = new Headers(); responseHeaders.append('Set-Cookie', cookie(SESSION)); responseHeaders.append('Set-Cookie', cookie(FLOW));

@@ -1,4 +1,6 @@
-# Discord host authentication — disabled sandbox integration
+# Discord account authentication — contextual public journey
+
+Owner direction, 2026-10-23: login returns to the originating Home/Events/Bots/Designs gallery and locale. It does not open a generic host dashboard. The header shows verified Discord identity and a safe static Discord CDN avatar, with History and Sign out. Event keys are read from the protected dashboard and shown on the Question & Condition product card; this is the only launch product backed by the current wallet. Unknown/unavailable balances are not rendered as zero. History and event setup reuse the protected event components inside the public site; only persisted server events can open the production game. Buying uses the direct protected checkout endpoint and remains unavailable until Whop sandbox configuration is supplied. No production payment is enabled.
 
 Launch-hardening requirement: public Auth/host handlers now require `BUD_RATE_LIMIT_ENABLED=true`, a private `BUD_RATE_LIMIT_SECRET` of at least 32 UTF-8 bytes, the fixed project's service key and the actual Vercel runtime (`VERCEL=1` supplied by the platform). Only `x-vercel-forwarded-for` is trusted there. Missing limiter/edge evidence returns 503; exhausted budgets return 429 with Retry-After. Logout clears local cookies even when the limiter refuses the request. Deploy the rate-limit migration before enabling Auth; no setting is enabled by committing `.env.example`.
 
@@ -10,9 +12,9 @@ Launch-hardening requirement: public Auth/host handlers now require `BUD_RATE_LI
 
 | Request | Result |
 | --- | --- |
-| `POST /api/auth?action=signin`, exact `Origin` | `200 {code:"OK",data:{url}}`; fixed Supabase Discord authorize URL and encrypted 5-minute PKCE/state cookie |
-| `GET /api/auth?action=callback&bud_state=…&code=…` | Validate browser-bound flow, exchange one-time PKCE code, verify Supabase `/user` Discord identity, set session cookie, `303` to exact configured origin `/?screen=host` |
-| `GET /api/auth?action=session` | `200 {code:"OK",data:{id,displayName}}`, `401 DISCORD_AUTH_REQUIRED`, or sanitized `503` unavailable/configuration response |
+| `POST /api/auth?action=signin`, exact `Origin` | Optional JSON `{page,locale}`, page limited to home/events/bots/designs and locale ar/en; fixed Supabase authorize URL, encrypted 5-minute PKCE/state/return-context cookie |
+| `GET /api/auth?action=callback&bud_state=…&code=…` | Validate browser-bound flow, exchange one-time PKCE code, verify Discord identity, set session cookie, `303` to the sealed gallery and locale at the exact configured origin; no arbitrary return URL |
+| `GET /api/auth?action=session` | `200 {code:"OK",data:{id,displayName,avatarUrl}}`, `401 DISCORD_AUTH_REQUIRED`, or sanitized `503` unavailable/configuration response |
 | `POST /api/auth?action=logout`, exact `Origin` | Revoke current Supabase session, clear both cookies. An upstream failure returns `503 AUTH_REVOCATION_UNAVAILABLE` while still clearing local cookies. |
 
 `resolveSession(request, env, transport?)` returns `{hostId,headers}` or `null`. Protected handlers must forward every `headers.getSetCookie()` entry after refresh and must map thrown upstream errors to sanitized service-unavailable responses. It never returns access/refresh tokens. Authorization uses verified Auth user ID with a Discord entry in `identities`; editable `user_metadata` is ignored. Display name is bounded to 80 characters from the returned Discord identity display data and has no authority.
@@ -40,7 +42,7 @@ Before activation configure Discord application credentials in Supabase, Discord
 
 ## Verification and remaining evidence
 
-`node --test tests/auth.test.ts`: 8/8 PASS. Covers disabled/malformed configuration, exact origin and method, provider/PKCE construction, missing/forged/expired flow cookie, state rejection, token exchange binding, encrypted session/duplicate cookies, no token exposure, ignored metadata, email-only/anonymous/changed identity denial, refresh rotation and absolute expiry, logout CSRF/revocation failure, sanitized upstream errors.
+`node --test tests/auth.test.ts`: 12/12 PASS. Covers disabled/malformed configuration, exact origin and method, provider/PKCE construction, missing/forged/expired flow cookie, state rejection, token exchange binding, encrypted session/duplicate cookies, no token exposure, ignored metadata, email-only/anonymous/changed identity denial, refresh rotation and absolute expiry, logout CSRF/revocation failure, sanitized upstream errors, sealed gallery/locale return context, malformed/oversized return payloads, legacy cookies and verified Discord avatar paths.
 
 Explicit TypeScript check of `server/auth.ts api/auth.ts`: PASS using the repository's ES2022/DOM server target. No dependency added. These are mock-transport tests, not evidence of live Discord login. Pending: real provider round-trip, callback allowlist, secret installation, multi-tab refresh behavior, upstream outage UX, and revocation behavior. No stage gate is closed by these tests alone.
 

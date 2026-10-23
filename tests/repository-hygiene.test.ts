@@ -14,7 +14,7 @@ test('public entrypoint uses the platform and requires a server event for produc
   assert.match(app, /import Platform from '.\/Platform'/);
   assert.match(app, /screen === 'game' && \(event \|\| import\.meta\.env\.DEV\)/);
   assert.match(app, /import\('\.\/Game'\)/);
-  assert.doesNotMatch(platform, /onPlay/);
+  assert.doesNotMatch(platform, /initialManualState|manualGameReducer/);
   assert.match(game, /manualGameReducer/);
   assert.match(platform, /platform-product-card/);
   for (const s of [app,main,game,platform]) {

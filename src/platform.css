@@ -321,3 +321,25 @@
  .platform-home[dir=ltr] .platform-art::after { background:linear-gradient(to bottom,#f6f0e2 0%,#f6f0e290 15%,transparent 40%),linear-gradient(to right,#f6f0e2 0%,#f6f0e2ef 44%,transparent 80%); }
  .platform-home .platform-footer { min-height:38px; }
 }
+
+/* Account identity stays in the existing header on every public page. */
+.platform-account { position:relative; min-width:0; }
+.platform-account-trigger { display:flex; align-items:center; gap:8px; min-height:44px; max-width:210px; padding:5px 10px; border:1.5px solid #333; border-radius:8px; background:#fffdf6; color:#333; font:inherit; font-size:13px; }
+.platform-account-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+.platform-avatar { display:grid; place-items:center; width:32px; height:32px; border-radius:50%; background:#eee5d5; flex:none; overflow:hidden; }
+.platform-avatar img { width:100%; height:100%; object-fit:cover; }
+.platform-account-menu { position:absolute; z-index:30; top:100%; left:0; padding:8px; width:190px; max-width:calc(100vw - 32px); background:#fffdfb; border:1.5px solid #333; border-radius:10px; box-shadow:3px 4px 0 #333; display:grid; gap:4px; direction:inherit; }
+.platform-account-menu button { min-height:44px; border:0; background:transparent; text-align:start; border-radius:6px; padding:8px 12px; color:#333; font:inherit; font-size:13px; }
+.platform-account-menu button:hover,.platform-account-menu button:focus-visible { background:#fff0c9; }
+.platform-account-notice { position:relative; z-index:2; margin:8px 0; padding:10px 14px; border-inline-start:3px solid #d39a2b; border-radius:6px; background:#fff7e1; font-size:13px; }
+.platform-event-ownership { margin-top:16px; }
+.platform-event-keys { display:inline-flex; align-items:center; gap:6px; background:#fff0c9; border-radius:8px; padding:6px 12px; margin:0 0 14px; font-size:14px; }
+.platform-event-keys bdi { font-weight:700; }
+.platform-event-actions { display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+.platform-inline-retry { background:none; border:0; text-decoration:underline; font:inherit; color:inherit; }
+@media(max-width:600px) {
+ .platform-account-trigger { max-width:168px; font-size:11px; padding:4px 7px; gap:6px; }
+ .platform-avatar { width:28px; height:28px; }
+ .platform-event-actions { flex-direction:column; align-items:stretch; }
+ .platform-event-actions .platform-action { width:100%; }
+}
