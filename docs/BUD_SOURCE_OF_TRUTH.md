@@ -2,6 +2,8 @@
 
 Version1.0 ·2026-10-22. Project: BU'D — Platform Production. User confirms a new project; ChatGPT memory mode UNKNOWN, strict isolation not asserted. Earlier conversation memories are not specifications.
 
+> Current override, 23 October 2026: this file retains historical infrastructure observations below. Use `BUD_STAGE_RECONCILIATION_20261023.md` for current ADR-001–005 and scope, and `BUD_PLATFORM_FOUNDATION.md` for the actual development DB/host increment. The owner explicitly adopts the current website as visual authority, Code-first without Figma, authorizes this implementation and Notion documentation, and has authorized tested publication. Historical Preview-only and Figma-first clauses below cannot override those later instructions. External live billing/OAuth activation is not claimed.
+
 ## Operating specification
 
 Use original Expert Department OS complete AUTOBOOT v1.6.9:
@@ -13,7 +15,7 @@ Release verification:1NZmiUmXdDnA9js-Mqt9n0hk_044HPE1x. It reports121/121 runtim
 
 1. Applicable host/platform/tool constraints.
 2. Latest explicit owner decision for exact scope, with source/date.
-3. Latest owner-approved Figma or original game for visuals, subject to newer owner changes.
+3. Current owner-approved website and supplied visual references; Code-first without Figma under ADR-005. Archived Figma/original game are historical evidence only.
 4. Reconciled PRD/Registry functional/security policy.
 5. Verified current Notion stage/gate/test/decision records.
 6. Existing code, branches and database as historical evidence.

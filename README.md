@@ -10,7 +10,7 @@ BU’D is a Saudi Discord-first digital products brand. The official website inc
 - Light-only, Retro Modern/Arcade identity, Readex Pro, AR/EN with RTL/LTR, responsive layouts and reduced-motion support.
 - Public browsing. Product CTAs may show coming-soon or unavailable integration states.
 - Public Question & Condition sample inside Events: two fixed interactive cards and a five-second circular timer, with replay of the same pair. No host setup, winner management or prizes are exposed.
-- Full host workspace is retained only in local development (`npm run dev`, `?screen=game`). Production builds omit the host module; future paid access requires a server-verified entitlement before reintroducing it.
+- The protected host workspace is available at `?screen=host`, with honest unavailable/sign-in states. A full event requires a verified server session, published content/product and a transactional run entitlement. Direct public `?screen=game` remains the limited sample; local development retains its rehearsal route.
 - **No Discord bot, participant registration/tracking, verified participant identity, or production Dark Mode.**
 - Discord purchaser OAuth, Whop checkout, paid Slots and authoritative server-side gameplay are **not enabled**. Never simulate a successful charge or entitlement.
 
@@ -32,8 +32,9 @@ Work in a feature branch, open a PR, and require green **Website checks / verify
 | Item | Authoritative reference |
 | --- | --- |
 | Current decisions | [Approved spec](docs/BUD_CURRENT_APPROVED_SPEC.md), [superseded decisions](docs/BUD_SUPERSEDED_DECISIONS.md) |
-| Front-end visual evidence | [Figma mapping](docs/BUD_FIGMA_COMPONENT_MATRIX.md), [verification report](docs/BUD_VERIFICATION_REPORT.md) |
-| Server contracts & environment | [Backend contract](docs/BUD_BACKEND_CONTRACT.md), `supabase/migrations/` |
+| Front-end visual evidence | Current approved website and owner screenshots; Code-first, no Figma; [verification report](docs/BUD_VERIFICATION_REPORT.md) is historical evidence |
+| Server contracts & environment | [Platform foundation](docs/BUD_PLATFORM_FOUNDATION.md), [Auth setup](docs/auth-setup.md), `.env.example`, `supabase/migrations/` |
+| Stage acceptance and operations | [Detailed reconciliation](docs/BUD_STAGE_RECONCILIATION_20261023.md), [runbook](docs/BUD_OPERATIONS_RUNBOOK.md), [unpublished policies](docs/policy-drafts.md) |
 | CI → Notion historical evidence | [Governance automation](docs/BUD_GOVERNANCE_AUTOMATION.md) |
 | Historical branches and files | [Archive manifest](docs/BUD_REPOSITORY_ARCHIVE.md) |
 | Notion Stage 00 | [Decision reconciliation gate](https://app.notion.com/p/401b475e25f181909556f65d42e19590) |

@@ -184,7 +184,8 @@ test('desktop navigation flips on hover and keyboard focus, Discord uses officia
   await expect(login).toHaveCSS('color','rgb(255, 255, 255)');
   await expect(login.locator('img')).toHaveAttribute('src','/assets/discord-symbol-white.svg');
   await login.click();
-  await expect(page.getByRole('dialog')).toContainText('تسجيل الدخول والشراء غير متاحين');
+  await expect(page).toHaveURL(/screen=host/);
+  await expect(page.locator('.host-portal')).toBeVisible();
 });
 
 test('timer is optional and setup tooltips work with keyboard and touch', async ({page,browser}) => {

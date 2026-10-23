@@ -24,16 +24,18 @@ test('Auth server rejection and email-only identities cannot purchase or mutate'
     assert.equal(count, 1);
   }
 });
-test('verified server user controls host binding; stable start key reaches one transactional RPC', async () => {
+test('verified server user controls balance binding; legacy start cannot bypass host content gates', async () => {
   const calls: { url: string; init?: RequestInit }[] = [];
   const transport = (async (url, init) => { calls.push({ url: String(url), init });
     return String(url).endsWith('/auth/v1/user') ? Response.json({ id: host, identities: [{ provider: 'discord' }] }) : Response.json({ id: event }); }) as Fetcher;
-  const body = { action: 'start', title: '  Game  ', idempotencyKey: 'stable-start-key-12345678' };
+  const body = { action: 'balance' };
   for (let i = 0; i < 2; i++) assert.equal((await handleCommerce(request(body), env, transport)).status, 200);
   const rpc = calls.filter(c => c.url.includes('/rpc/'));
   assert.equal(rpc.length, 2);
-  assert.deepEqual(JSON.parse(String(rpc[0].init?.body)), { p_key: body.idempotencyKey, p_title: 'Game', p_host: host });
+  assert.deepEqual(JSON.parse(String(rpc[0].init?.body)), { p_host: host });
   assert.equal(rpc[0].init?.body, rpc[1].init?.body);
+  assert.equal((await handleCommerce(request({action:'start',title:'Game',idempotencyKey:'stable-start-key-12345678'}),env,transport)).status,410);
+  assert.equal(calls.filter(c=>c.url.includes('/rpc/')).length,2);
   // Transport contract is tested; this does NOT claim actual SQL concurrency was run.
 });
 test('client identity/credit/payment injection is rejected after auth; checkout is unavailable', async () => {
@@ -46,14 +48,12 @@ test('client identity/credit/payment injection is rejected after auth; checkout 
     assert.equal((await handleCommerce(request({ action }), env, auth)).status, 400);
   }
 });
-test('resume uses separate read-only RPC, preserving host ownership and event ID', async () => {
+test('legacy resume directs callers to the single protected host contract', async () => {
   const transport = (async (url, init) => {
     if (String(url).endsWith('/auth/v1/user')) return Response.json({ id: host, identities: [{ provider: 'discord' }] });
-    assert.ok(String(url).endsWith('/rpc/bud_resume_event'));
-    assert.deepEqual(JSON.parse(String(init?.body)), { p_event: event, p_host: host });
-    return Response.json({ id: event });
+    assert.fail('Legacy resume must not call any RPC');
   }) as Fetcher;
-  assert.equal((await handleCommerce(request({ action: 'resume', eventId: event }), env, transport)).status, 200);
+  assert.equal((await handleCommerce(request({ action: 'resume', eventId: event }), env, transport)).status, 410);
 });
 test('provider-looking webhook cannot issue credits without reviewed verifier', async () => {
   const reply = await handleWhopWebhook(new Request('https://preview.example/api/whop-webhook', { method: 'POST',
