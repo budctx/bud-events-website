@@ -1,6 +1,10 @@
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 
+test.beforeEach(async ({page}) => {
+  await page.route('**/api/auth**', route => route.fulfill({status:route.request().url().includes('action=session') ? 401 : 503,json:{code:'AUTH_UNAVAILABLE'}}));
+});
+
 const sizes = [ {width:1440,height:900}, {width:1366,height:768}, {width:390,height:844}, {width:375,height:667}, {width:360,height:800} ];
 
 test('built application renders and navigates under the configured production CSP',async({page})=>{
@@ -20,7 +24,8 @@ test('built application renders and navigates under the configured production CS
   await expect(page.getByTestId('event-preview')).toBeVisible();
   await page.getByTestId('event-preview').getByRole('button').first().click();
   await page.getByRole('button',{name:'سجّل دخولك عبر Discord'}).click();
-  await expect(page.locator('.host-access')).toBeVisible();
+  await expect(page.locator('.platform-account-notice')).toContainText('تعذر إتمام الطلب');
+  await expect(page.getByTestId('event-preview')).toBeVisible();
   expect(violations).toEqual([]);
 });
 for (const locale of ['ar','en']) for (const size of sizes) {
@@ -47,17 +52,9 @@ for (const locale of ['ar','en']) for (const size of sizes) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth+1)).toBeTruthy();
     await page.screenshot({path:info.outputPath(`home-${locale}-${size.width}.png`),fullPage:true,animations:'disabled'});
     await page.getByTestId('nav-events').click();
-    await page.getByTestId('product-card-qc').click();
-    const dialog=page.getByTestId('product-dialog');
-    await expect(dialog).toBeVisible();
-    await expect(page.getByTestId('product-try')).toHaveCount(0);
-    for (let i=0;i<8;i++) { await page.keyboard.press('Tab'); expect(await dialog.evaluate(el=>el.contains(document.activeElement))).toBeTruthy(); }
-    await page.keyboard.press('Shift+Tab');
-    expect(await dialog.evaluate(el=>el.contains(document.activeElement))).toBeTruthy();
-    await page.screenshot({path:info.outputPath(`modal-${locale}-${size.width}.png`),fullPage:true,animations:'disabled'});
-    await page.keyboard.press('Escape');
-    await expect(dialog).not.toBeVisible();
-    await expect(page.getByTestId('product-card-qc')).toBeFocused();
+    await expect(page.getByTestId('product-card-qc')).toHaveText(locale==='ar'?'اشترِ الآن':'Buy now');
+    await expect(page.getByTestId('product-dialog')).toHaveCount(0);
+    await page.screenshot({path:info.outputPath(`events-${locale}-${size.width}.png`),fullPage:true,animations:'disabled'});
     await page.getByTestId('nav-bots').click();
     await expect(page.getByTestId('platform-root')).toContainText(locale==='ar'?'قريبًا':'Coming soon');
     expect(errors).toEqual([]);
@@ -112,21 +109,19 @@ test('reduced motion and retired participant route',async({page})=>{
 });
 
 
-test('buy CTA reports unavailable integration without pretending payment succeeded',async({page})=>{
- await page.goto('/?lang=en');
- await page.getByTestId('nav-events').click();
- // Navigation deliberately focuses main on the next animation frame.
- // Wait for that handoff before testing keyboard activation of the product.
- await expect(page.locator('#platform-content')).toBeFocused();
- const trigger=page.getByTestId('product-card-qc');
- await trigger.focus(); await page.keyboard.press('Enter');
- await expect(page.getByTestId('product-dialog')).toBeVisible();
- await page.getByTestId('product-buy').click();
- await expect(page.getByTestId('product-dialog').getByRole('status')).toContainText('Purchasing is currently unavailable');
- await page.keyboard.press('Escape');
- await expect(trigger).toBeFocused();
+test('direct buy CTA reports unavailable checkout without product modal or credit changes',async({page})=>{
+ await page.route('**/api/auth?action=session', route=>route.fulfill({status:200,json:{code:'OK',data:{id:'host',displayName:'Host'}}}));
+ await page.route('**/api/host',route=>route.fulfill({status:200,json:{code:'OK',data:{credits:0,events:[],products:[],contentVersions:[]}}}));
+ let checkoutCalls=0;
+ await page.route('**/api/checkout', route=>{checkoutCalls++;return route.fulfill({status:503,json:{code:'SANDBOX_CHECKOUT_NOT_CONFIGURED'}});});
+ await page.goto('/?screen=events&lang=en');
+ await expect(page.getByTestId('event-keys')).toContainText('0');
+ await page.getByTestId('product-card-qc').click();
+ await expect(page.locator('.platform-account-notice')).toContainText('Purchasing is currently unavailable');
+ expect(checkoutCalls).toBe(1);
+ await expect(page.getByRole('dialog')).not.toBeVisible();
+ await expect(page.getByTestId('event-keys')).toContainText('0');
 });
-
 
 test('game fills short viewport without clipping controls',async({page})=>{
  await page.setViewportSize({width:375,height:667});
@@ -206,8 +201,8 @@ test('desktop navigation flips on hover and keyboard focus, Discord uses officia
   await expect(login).toHaveCSS('color','rgb(255, 255, 255)');
   await expect(login.locator('img')).toHaveAttribute('src','/assets/discord-symbol-white.svg');
   await login.click();
-  await expect(page).toHaveURL(/screen=host/);
-  await expect(page.locator('.host-portal')).toBeVisible();
+  await expect(page).not.toHaveURL(/screen=host/);
+  await expect(page.locator('.platform-account-notice')).toContainText('تعذر إتمام الطلب');
 });
 
 test('timer is optional and setup tooltips work with keyboard and touch', async ({page,browser}) => {

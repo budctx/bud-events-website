@@ -47,3 +47,10 @@
 .host-summary-actions { display: flex; gap: 16px; justify-content: space-between; margin: 24px 0 8px; }
 @media(max-width: 760px) { .host-portal { padding-top: 12px; }.host-grid { grid-template-columns: minmax(0,1fr); }.host-heading { align-items: start; gap: 12px; }.host-heading > button { font-size: 11px; }.host-options { gap: 16px; }.host-session-lists li { flex-wrap: wrap; }.host-session-lists li button { width: 100%; }.host-header button { font-size: 11px; padding: 8px; }.host-balance { gap: 16px; } }
 @media(max-width: 760px) { .host-session-lists { grid-row: 1; } }
+
+.host-portal.host-embedded { width:100%; max-width:100%; min-height:0; padding:0; margin:28px 0; background:transparent; }
+.host-embedded .host-heading { margin-block:20px; }
+.host-embedded .host-heading h1 { font-size:clamp(24px,4vw,34px); }
+.host-embedded .host-header { margin-bottom:12px; }
+.host-single { display:grid; gap:24px; }
+.host-embedded .host-single > .host-panel { max-width:680px; width:100%; }
