@@ -43,6 +43,8 @@ The historical `docs/implementation.md`, `docs/verification.md` and `docs/bot-im
 
 ## Security and delivery boundaries
 
+Commercial launch work is tracked in [the ordered launch plan](docs/COMMERCIAL_LAUNCH_PLAN.md), [sandbox commerce](docs/commerce-sandbox.md) and [data inventory](docs/data-inventory.md). `npm run launch:check -- --sha FULL_SHA` fails until all required attestations exist; engineering CI records blockers without approving launch. `npm run launch:smoke -- --mode maintenance` checks public/unauthenticated boundaries only. Sandbox adapters and Auth remain disabled until configured; production billing is unsupported.
+
 - Do not commit secrets; use CI/hosting secrets with the minimum access required. `.env*` and `supabase/.temp` are gitignored.
 - The Notion evidence publisher may write **historical run records only** when secrets are configured. It does **not** auto-PASS detailed tests or close stages.
 - A production front-end release was approved by the owner on 2026-10-22. **Stage 00 and all 14 official stage completion gates remain open** until separately verified and approved.

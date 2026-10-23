@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "releaseSha": "0000000000000000000000000000000000000000",
+  "environment": "production",
+  "gates": [
+    {
+      "id": "scope-approval",
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "policy-approval",
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "auth-provider",
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "payment-provider",
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "provider-config",
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "schema-security",
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "concurrency",
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "restore",
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "monitoring",
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "content",
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "integration",
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "field-trial",
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "ci",
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "release",
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "smoke",
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "commercial-approval",
+      "status": "pending",
+      "evidence": []
+    }
+  ]
+}
