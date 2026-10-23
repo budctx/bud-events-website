@@ -30,7 +30,7 @@ Advisors after application: informational RLS-without-policy findings for nine d
 
 Node tests cover Auth/session/CSRF, input authority, reducers, transactional SQL, replay/CAS/isolation, four-hour closing and restoring an actual PGlite data-directory dump into a second isolated database. Browser tests cover Arabic/English public regression, protected access states, uncertain start retry, history and mobile layout. Counts and exact candidate SHA belong in the release evidence, not inferred from this document.
 
-PGlite restore proves only isolated local restore, not remote backups, PITR, recovery objectives or production recovery. Provider traffic is mocked in tests. A fresh independent review of the completed integration remains a stage gate; the parallel authors did not approve their own code. No stage is closed by these tests.
+PGlite restore proves only isolated local restore, not remote backups, PITR, recovery objectives or production recovery. Provider traffic is mocked in tests. An independent reviewer inspected candidate `ed06c59ddea943b9d3630f4a6b437b5ef3c861ac`, independently passed 16 Auth/host/SQL tests, and found no blocker to merging the disabled foundation. Their nonblocking logout-cache finding was fixed with a focused browser fault test; the follow-up SHA/review/CI are recorded in Notion. This is not activation approval or review of the reviewer's authored governance documents. No stage is closed by these tests.
 
 ## Remaining external/launch gates
 

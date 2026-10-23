@@ -56,6 +56,17 @@ test('host history summary is read only and fits a narrow viewport', async ({ pa
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
 });
 
+test('logout clears cached host data when upstream revocation is unavailable',async({page})=>{
+  await session(page);
+  await page.route('**/api/host',route=>route.fulfill(ok(dashboard)));
+  await page.route('**/api/auth?action=logout',route=>route.fulfill({status:503,json:{code:'AUTH_REVOCATION_UNAVAILABLE'}}));
+  await page.goto('/?screen=host&lang=ar');
+  await page.getByRole('button',{name:'تسجيل الخروج',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'سجّل دخولك',exact:true})).toBeVisible();
+  await expect(page.getByText('مقدم المجتمع',{exact:true})).toHaveCount(0);
+  await expect(page.getByRole('button',{name:'استكمال الفعالية',exact:true})).toHaveCount(0);
+});
+
 test('persisted host game recovers an acknowledged reveal after a lost response', async ({ page }, info) => {
   await session(page);
   let current = { ...active, state: structuredClone(initialState) as ManualState, cards: { question: 'دولة', condition: 'تبدأ بحرف س' }, serverNow: Date.now() };
