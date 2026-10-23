@@ -1,0 +1,48 @@
+# Current database preparation — owner approved, not live
+
+2026-10-23 · Asia/Riyadh.
+
+## Owner decision
+
+The owner explicitly approved preparing the existing BU'D database for production after checks, while preserving their account and data. The owner did not authorize deletion, paid resources or public selling. A separate Supabase project is not technically mandatory. Reuse of `cepmvqqrjcvhyzszqand` is now approved for preparation; its name remains **BU'D Discord Events — Development** until an actual reviewed transition. Do not rename it as evidence of readiness.
+
+The owner also requested complete documentation and a handoff to a new conversation because the current conversation is heavy. No new conversation has been created by the agent.
+
+## Remote read-only inspection
+
+- One Auth user; no user identity, credentials, sessions or metadata were read.
+- Zero saved events, checkout orders, wallets, wallet credits or credit ledger entries. No cleanup is needed or authorized.
+- Ten private bud_platform tables have RLS enabled; anon and authenticated lack direct SELECT privileges.
+- The security advisor reports INFO for RLS without public policies on the private tables (intentional server-only model), and WARN for disabled leaked-password protection. The current application uses Discord sign-in; this warning is recorded, not automatically dismissed or silently changed. Review password sign-in configuration before accepting password accounts.
+- Four remote migrations are present; the last is `20261023085539 launch_sandbox_hardening`. Local historical filenames differ from remote history. Never repair history or push all local migrations blindly.
+- No remote schema or data changed during this increment. No existing account, event or ledger was deleted. No paid feature was enabled.
+
+## Prepared additive migration (not remotely applied)
+
+Supabase CLI v2.121.0 generated `20261023173930_production_commerce_foundation.sql`. It adds five private tables in the current bud_platform schema:
+
+- live_commerce_control: disabled by default; the runtime service role cannot enable it.
+- live_orders: immutable commercial snapshot through the intended RPC contract, unique host/request, checkout and fulfilled payment bindings.
+- live_wallets: separate from the existing Sandbox wallet.
+- live_deliveries: unique message IDs linked to payment and order, retaining separate deliveries without granting another key.
+- live_credit_ledger: append-only grants with unique order and payment IDs.
+
+Service-only invoker RPCs create/reuse an order, attach its exact Whop checkout, read it, read the live balance and atomically grant one purchased key. The database rejects wrong price/currency/plan/product/company/checkout, reusing a message for another order, reusing a payment across orders and a second distinct payment for an already fulfilled order. Failed transactions roll back receipt/wallet changes together. Foreign keys restrict deletion of accounts referenced by financial records instead of cascading away the audit history.
+
+No new public grants or SECURITY DEFINER functions are used. The existing Sandbox schema/constraints remain unchanged. The migration is a foundation, **not** a live event consumption or refund ledger: those need a reviewed follow-up before the full flow can be enabled.
+
+## Tests and limits
+
+`tests/live-commerce-sql.test.ts` exercises the actual migration in isolated PGlite PostgreSQL, with fixtures for two Auth users and an existing Sandbox balance. It verifies preservation, public permission denial, disabled control, inability of the service role to enable commerce, request/checkout conflicts, amount mismatches, same-message replay, another delivery for the same payment, cross-order payment/message reuse and transaction rollback. It also exports/restores a local PGlite snapshot and rechecks Auth/ledger/isolated balances. This does not prove remote backups or multi-connection PostgreSQL concurrency.
+
+An initial test exposed that SELECT FOR SHARE on the control row requires UPDATE privilege. Rather than granting the runtime UPDATE access, the check now uses SELECT only; the operator-only switch must be changed under a separately reviewed activation procedure. All runtime writes remain disabled by default.
+
+Complete local verification of this increment: server typecheck PASS, production build PASS, **87 Node +65 browser =152 tests PASS**, with the existing Chrome test executable. Final commit/CI evidence is recorded in Notion and PR19. No remote migration, credit or backup claim follows from those local results.
+
+## Backup gate
+
+The connected Supabase toolset has no backup inventory or download operation. There is no evidence yet of this project's plan, backup schedule, last successful backup, retention or a remote restore drill. A healthy Postgres project and local snapshot test do not prove those facts.
+
+[Supabase's current backup documentation](https://supabase.com/docs/guides/platform/backups) says paid plans have scheduled daily backups and recommends off-site CLI exports for free projects. Do not infer the project's actual plan from that generic documentation. Before applying the prepared remote migration or describing this environment as commercially ready, inspect the actual **Database → Backups** status and establish a verified secure backup/restore path. Do not buy a plan or PITR, ask for a secret in chat, or restore over the live account without explicit authorization. Database backups do not include Storage object contents.
+
+Next: obtain backup evidence; test remote concurrency safely; apply only the new reviewed migration; implement server-owned pilot preflight/checkout/webhook/receipts, locale-preserving return and separate live balance/consumption; verify actual Whop subscription version, product ID and pilot host; then perform an owner-only SAR 2 purchase. General sales remain closed.
