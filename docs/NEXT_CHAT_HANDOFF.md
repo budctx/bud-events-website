@@ -4,6 +4,8 @@ Updated 2026-10-23, Asia/Riyadh. Read this file, AGENTS.md and the latest Notion
 
 ## Latest continuation delta
 
+- Owner accepted preparing a free encrypted external backup after the explanation. `scripts/database-backup.ps1` is a local masked-input prompt; `scripts/database-backup.mjs` fixes the source project, enforces TLS verification/read-only source sessions, encrypts the dump and verifies Auth/application restoration in a separate local cluster. Official portable PostgreSQL 17.11 is downloaded in ignored `.temp`; no service or paid tier installed. Fixture self-test passed; **real export still depends on owner input and actual successful receipt**. Read `docs/DATABASE_BACKUP_OPERATOR.md` before using or interpreting it. Never request a password in chat or infer real-backup success from the fixture test.
+
 - Connected Chrome UI now works. Owner completed Whop sign-in. Do not repeat the earlier kernel-failure assumption. Opera is not connected; it is unnecessary while Chrome works.
 - Actual Supabase organization plan is Free. Database → Backups explicitly says Free Plan does not include project backups. No scheduled backup exists in this UI; no external export/restore yet. Local `pg_dump`/`psql`/Docker and a prepared database connection are absent. A secure external export/recovery path remains the remote-migration gate; no paid upgrade is authorized.
 - Remote read-only counts repeated: Auth 1, Sandbox orders/wallets/credits/saved events 0; four migration versions unchanged. API project name is now BU'D Discord Website; this continuation did not rename it.
