@@ -1,6 +1,28 @@
 import { test, expect } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 
 const sizes = [ {width:1440,height:900}, {width:1366,height:768}, {width:390,height:844}, {width:375,height:667}, {width:360,height:800} ];
+
+test('built application renders and navigates under the configured production CSP',async({page})=>{
+  const config=JSON.parse(readFileSync('vercel.json','utf8'));
+  const headers=Object.fromEntries(config.headers.find((rule:any)=>rule.source==='/(.*)').headers.map((entry:any)=>[entry.key,entry.value]));
+  const violations:string[]=[];
+  page.on('console',message=>{if(message.type()==='error'&&/Content Security Policy|violates.*directive/i.test(message.text()))violations.push(message.text());});
+  page.on('pageerror',error=>violations.push(error.message));
+  await page.route('http://127.0.0.1:4175/**',async route=>{
+    if(route.request().url().includes('/api/auth'))return route.fulfill({status:503,json:{code:'AUTH_NOT_CONFIGURED'},headers});
+    const response=await route.fetch();return route.fulfill({response,headers:{...response.headers(),...headers}});
+  });
+  await page.goto('http://127.0.0.1:4175/?lang=ar');
+  await expect(page.getByTestId('hero-explore')).toBeVisible();
+  await page.locator('.platform-art img').evaluate((img:HTMLImageElement)=>img.decode());
+  await page.getByTestId('hero-explore').click();
+  await expect(page.getByTestId('event-preview')).toBeVisible();
+  await page.getByTestId('event-preview').getByRole('button').first().click();
+  await page.getByRole('button',{name:'سجّل دخولك عبر Discord'}).click();
+  await expect(page.locator('.host-access')).toBeVisible();
+  expect(violations).toEqual([]);
+});
 for (const locale of ['ar','en']) for (const size of sizes) {
   test(`platform ${locale} ${size.width}x${size.height}`, async ({ page }, info) => {
     await page.setViewportSize(size);
