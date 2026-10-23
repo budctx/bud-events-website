@@ -24,6 +24,8 @@ $backupForm = [Windows.Forms.Form]::new()
 $backupForm.Text = 'BUD - Secure database backup'
 $backupForm.Size = [Drawing.Size]::new(620,440)
 $backupForm.StartPosition = 'CenterScreen'
+$backupForm.TopMost = $true
+$backupForm.ShowInTaskbar = $true
 $backupForm.FormBorderStyle = 'FixedDialog'
 $backupForm.MaximizeBox = $false
 $backupForm.Font = [Drawing.Font]::new('Segoe UI',11)
@@ -47,7 +49,7 @@ $backupButton.Add_Click({
     $backupForm.DialogResult = 'OK'; $backupForm.Close()
 })
 $backupForm.Controls.Add($backupButton); $backupForm.Controls.Add($backupCancel)
-$backupForm.Add_Shown({ [IO.File]::WriteAllText((Join-Path $backupPrivateRoot 'prompt-status.json'),'{"status":"WAITING_FOR_LOCAL_INPUT"}') })
+$backupForm.Add_Shown({ $backupForm.Activate(); [IO.File]::WriteAllText((Join-Path $backupPrivateRoot 'prompt-status.json'),'{"status":"WAITING_FOR_LOCAL_INPUT"}') })
 if ($backupForm.ShowDialog() -ne 'OK') { exit 0 }
 try {
     $backupNodePath = (Get-Command node.exe -ErrorAction Stop).Source
