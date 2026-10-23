@@ -60,10 +60,8 @@ try {
     $backupProcessInfo.Arguments = '"' + (Join-Path $PSScriptRoot 'database-backup.mjs') + '" --run'
     $backupProcessInfo.UseShellExecute = $false; $backupProcessInfo.CreateNoWindow = $true
     $backupProcessInfo.RedirectStandardInput = $true; $backupProcessInfo.RedirectStandardOutput = $true; $backupProcessInfo.RedirectStandardError = $true
-    $backupProcessInfo.StandardInputEncoding = [System.Text.UTF8Encoding]::new($false)
     $backupProcess = [Diagnostics.Process]::Start($backupProcessInfo)
-    $backupProcess.StandardInput.Write(($backupInputState.Payload | ConvertTo-Json -Compress))
-    $backupProcess.StandardInput.Close()
+    Send-BudBackupPromptInput $backupProcess $backupInputState.Payload
     $backupInputState.Payload.Clear()
     foreach ($backupField in $backupFields) { $backupField.Clear() }
     $backupOutput = $backupProcess.StandardOutput.ReadToEnd(); $backupErrors = $backupProcess.StandardError.ReadToEnd()
