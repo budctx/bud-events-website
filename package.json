@@ -8,7 +8,9 @@
     "typecheck": "tsc --noEmit",
     "preview": "vite preview --host 0.0.0.0",
     "test": "node --test tests/*.test.ts && playwright test tests/browser/production.spec.ts tests/browser/prize-draw.spec.ts tests/browser/event-preview.spec.ts tests/browser/host-portal.spec.ts",
-    "typecheck:server": "tsc --ignoreConfig --noEmit --target ES2022 --module ESNext --moduleResolution bundler --lib ES2022,DOM --allowImportingTsExtensions server/commerce.ts server/auth.ts server/host.ts api/auth.ts api/host.ts api/commerce.ts api/whop-webhook.ts"
+    "typecheck:server": "tsc --ignoreConfig --noEmit --types node --target ES2022 --module ESNext --moduleResolution bundler --lib ES2022,DOM --allowImportingTsExtensions server/commerce.ts server/auth.ts server/host.ts server/rate-limit.ts server/checkout.ts server/whop.ts api/auth.ts api/host.ts api/commerce.ts api/checkout.ts api/sandbox-webhook.ts api/whop-webhook.ts",
+    "launch:check": "node scripts/launch-readiness.mjs",
+    "launch:smoke": "node scripts/launch-smoke.mjs"
   },
   "repository": {
     "type": "git",
@@ -30,6 +32,7 @@
   "devDependencies": {
     "@electric-sql/pglite": "0.5.11",
     "@playwright/test": "1.64.0",
+    "@types/node": "24.19.2",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "typescript": "7.0.2",

@@ -1,5 +1,6 @@
 // Protected, sandbox-only host orchestration. Browser actions never supply wallet or host authority.
 import { resolveSession } from './auth.ts';
+import { enforceRateLimit } from './rate-limit.ts';
 import type { AuthEnv } from './auth.ts';
 import { initialManualState, manualGameReducer, validDuration } from '../src/manual-game.ts';
 import type { ManualAction, ManualConfig, ManualState } from '../src/manual-game.ts';
@@ -81,6 +82,8 @@ export async function handleHost(request: Request, env: AuthEnv = environment(),
   const config = configuration(env); if (!config) return response(503, 'BACKEND_NOT_CONFIGURED');
   if (new URL(request.url).origin !== config.origin || request.headers.get('origin') !== config.origin) return response(403, 'ORIGIN_DENIED');
   if (request.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== 'application/json') return response(415, 'JSON_REQUIRED');
+  const limited = await enforceRateLimit(request, env, transport, 'host');
+  if (limited) return limited;
   let refreshed: Headers | undefined;
   try {
     const session = await resolveSession(request, env, transport);

@@ -5,16 +5,18 @@ import { handleAuth, resolveSession } from '../server/auth.ts';
 const origin = 'https://bud-events-website.vercel.app';
 const project = 'https://cepmvqqrjcvhyzszqand.supabase.co';
 const env = { BUD_AUTH_ENABLED: 'true', BUD_APP_ORIGIN: origin, SUPABASE_URL: project,
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_mock', BUD_AUTH_COOKIE_SECRET: 'test-only-secret-not-a-real-secret-0123456789' };
+  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_mock', BUD_AUTH_COOKIE_SECRET: 'test-only-secret-not-a-real-secret-0123456789', VERCEL:'1',BUD_RATE_LIMIT_ENABLED:'true', BUD_RATE_LIMIT_SECRET:'test-rate-secret-never-live-0123456789',SUPABASE_SERVICE_ROLE_KEY:'test-service-key' };
 const id = '11111111-1111-4111-8111-111111111111';
 function req(action: string, method = 'GET', cookie?: string, requestOrigin = origin) {
-  return new Request(origin + '/api/auth?action=' + action, { method, headers: { Origin: requestOrigin, ...(cookie ? { cookie } : {}) } });
+  return new Request(origin + '/api/auth?action=' + action, { method, headers: { Origin: requestOrigin,'x-vercel-forwarded-for':'192.0.2.1', ...(cookie ? { cookie } : {}) } });
 }
 function cookies(response: Response) { return response.headers.getSetCookie().map(value => value.split(';')[0]).join('; '); }
 const user = { id, identities: [{ provider: 'discord', identity_data: { full_name: 'Verified Host' } }], user_metadata: { id: 'ATTACKER', full_name: 'Untrusted Name' } };
 function transportFor(options: { expires?: number; user?: unknown; onRequest?: (url: string, options?: RequestInit) => void } = {}): typeof fetch {
   return async (input, init) => {
-    const url = String(input); assert.ok(url.startsWith(project + '/auth/v1/'));
+    const url = String(input);
+    if(url.endsWith('/rpc/bud_consume_rate_limit'))return Response.json({allowed:true,retryAfter:0});
+    assert.ok(url.startsWith(project + '/auth/v1/'));
     options.onRequest?.(url, init);
     if (url.endsWith('/user')) return Response.json(options.user ?? user);
     if (url.includes('/logout')) return new Response(null, { status: 204 });
@@ -26,7 +28,7 @@ async function login(transport = transportFor()) {
   const authorize = new URL((await begin.json()).data.url);
   const callback = new URL(authorize.searchParams.get('redirect_to')!);
   callback.searchParams.set('code', 'auth-code');
-  const complete = await handleAuth(new Request(callback, { headers: { cookie: cookies(begin) } }), env, transport);
+  const complete = await handleAuth(new Request(callback, { headers: { 'x-vercel-forwarded-for':'192.0.2.1', cookie: cookies(begin) } }), env, transport);
   return { begin, authorize, callback, complete, cookie: cookies(complete) };
 }
 
@@ -51,17 +53,17 @@ test('signin requires exact origin and POST; redirect is fixed Discord PKCE', as
 });
 test('callback validates encrypted state, expiry, nonce and PKCE binding', async () => {
   let calls = 0;
-  const begin = await handleAuth(req('signin', 'POST'), env);
+  const begin = await handleAuth(req('signin', 'POST'), env, transportFor());
   const authorize = new URL((await begin.json()).data.url);
   const callback = new URL(authorize.searchParams.get('redirect_to')!); callback.searchParams.set('code', 'code');
-  const never: typeof fetch = async () => { calls++; throw new Error('unexpected'); };
-  assert.equal((await handleAuth(new Request(callback), env, never)).status, 400);
+  const never: typeof fetch = async input => { if(String(input).endsWith('/rpc/bud_consume_rate_limit'))return Response.json({allowed:true,retryAfter:0}); calls++; throw new Error('unexpected'); };
+  assert.equal((await handleAuth(new Request(callback,{headers:{'x-vercel-forwarded-for':'192.0.2.1'}}), env, never)).status, 400);
   callback.searchParams.set('bud_state', 'forged');
-  assert.equal((await handleAuth(new Request(callback, { headers: { cookie: cookies(begin) } }), env, never)).status, 400);
+  assert.equal((await handleAuth(new Request(callback, { headers: { 'x-vercel-forwarded-for':'192.0.2.1', cookie: cookies(begin) } }), env, never)).status, 400);
   const forgedCookie = cookies(begin).slice(0, -8) + 'AAAAAAAA';
-  assert.equal((await handleAuth(new Request(callback, { headers: { cookie: forgedCookie } }), env, never)).status, 400);
+  assert.equal((await handleAuth(new Request(callback, { headers: { 'x-vercel-forwarded-for':'192.0.2.1', cookie: forgedCookie } }), env, never)).status, 400);
   const originalNow = Date.now; Date.now = () => originalNow() + 301000;
-  try { assert.equal((await handleAuth(new Request(callback, { headers: { cookie: cookies(begin) } }), env, never)).status, 400); }
+  try { assert.equal((await handleAuth(new Request(callback, { headers: { 'x-vercel-forwarded-for':'192.0.2.1', cookie: cookies(begin) } }), env, never)).status, 400); }
   finally { Date.now = originalNow; }
   assert.equal(calls, 0);
   const bodies: Record<string, unknown>[] = [];
@@ -114,9 +116,9 @@ test('logout checks CSRF, revokes upstream and clears both cookies even on failu
 });
 test('upstream failures are sanitized and unavailable session is not successful', async () => {
   const { cookie } = await login();
-  const response = await handleAuth(req('session', 'GET', cookie), env, async () => new Response('private', { status: 500 }));
+  const response = await handleAuth(req('session', 'GET', cookie), env, async input => String(input).endsWith('/rpc/bud_consume_rate_limit') ? Response.json({allowed:true,retryAfter:0}) : new Response('private', { status: 500 }));
   assert.equal(response.status, 503); assert.equal(await response.text(), '{"code":"AUTH_UNAVAILABLE"}');
   assert.equal((await handleAuth(req('session'), env, transportFor())).status, 401);
-  const oversized = await handleAuth(req('session', 'GET', cookie), env, async () => new Response('x'.repeat(65537)));
+  const oversized = await handleAuth(req('session', 'GET', cookie), env, async input => String(input).endsWith('/rpc/bud_consume_rate_limit') ? Response.json({allowed:true,retryAfter:0}) : new Response('x'.repeat(65537)));
   assert.equal(oversized.status, 503);
 });

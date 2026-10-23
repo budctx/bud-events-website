@@ -1,4 +1,5 @@
 // Server only: no Auth tokens or cookie secret are exposed to browser JavaScript.
+import { enforceRateLimit } from './rate-limit.ts';
 export type AuthEnv = Record<string, string | undefined>;
 type Transport = typeof fetch;
 const PROJECT = 'https://cepmvqqrjcvhyzszqand.supabase.co';
@@ -132,6 +133,13 @@ export async function handleAuth(request: Request, env: AuthEnv = environment(),
   if (request.method === 'POST' && request.headers.get('origin') !== settings.origin) return result(403, 'ORIGIN_DENIED');
   if ((action === 'signin' || action === 'logout') && request.method !== 'POST'
     || (action === 'session' || action === 'callback') && request.method !== 'GET') return result(405, 'METHOD_NOT_ALLOWED');
+  if (action === 'signin' || action === 'session' || action === 'callback' || action === 'logout') {
+    const limited = await enforceRateLimit(request, env, transport, `auth-${action}`);
+    if (limited) {
+      if (action === 'logout') { limited.headers.append('Set-Cookie',cookie(SESSION)); limited.headers.append('Set-Cookie',cookie(FLOW)); }
+      return limited;
+    }
+  }
   try {
     if (action === 'signin') {
       const state = random(); const verifier = random();

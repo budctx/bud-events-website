@@ -8,7 +8,7 @@ const project = 'https://cepmvqqrjcvhyzszqand.supabase.co';
 const id = '11111111-1111-4111-8111-111111111111';
 const eventId = '22222222-2222-4222-8222-222222222222';
 const env = { BUD_AUTH_ENABLED: 'true', BUD_BACKEND_ENABLED: 'true', BUD_APP_ORIGIN: origin, SUPABASE_URL: project,
-  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_mock', SUPABASE_SERVICE_ROLE_KEY: 'server-only-test-secret', BUD_AUTH_COOKIE_SECRET: 'test-only-secret-not-a-real-secret-0123456789' };
+  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_mock', SUPABASE_SERVICE_ROLE_KEY: 'server-only-test-secret', BUD_AUTH_COOKIE_SECRET: 'test-only-secret-not-a-real-secret-0123456789',VERCEL:'1', BUD_RATE_LIMIT_ENABLED:'true',BUD_RATE_LIMIT_SECRET:'test-rate-secret-never-live-0123456789' };
 const key = 'test-idempotency-key-12345';
 const state = manualGameReducer(initialManualState(), { type: 'start', config: { duration: 5, timerEnabled: true, attempts: 2 }, prizeText: 'Gift\nGift' });
 const event = { eventId, title: 'Event', phase: 'active', version: 1, state };
@@ -17,6 +17,7 @@ type Call = { name: string; body: Record<string, unknown> };
 function mock(handler: (name: string, body: Record<string, unknown>) => Response | Promise<Response> = () => Response.json({}), calls: Call[] = []): typeof fetch {
   return async (input, init) => {
     const url = String(input); assert.ok(url.startsWith(project));
+    if(url.endsWith('/rpc/bud_consume_rate_limit'))return Response.json({allowed:true,retryAfter:0});
     if (url.endsWith('/auth/v1/user')) return Response.json(user);
     if (url.includes('/auth/v1/token')) return Response.json({ access_token: 'valid-test-access-token-long-enough', refresh_token: 'valid-test-refresh-token', expires_in: 3600 });
     assert.equal(new Headers(init?.headers).get('authorization'), 'Bearer ' + env.SUPABASE_SERVICE_ROLE_KEY);
@@ -27,20 +28,20 @@ function mock(handler: (name: string, body: Record<string, unknown>) => Response
 }
 async function session() {
   const transport = mock();
-  const begin = await handleAuth(new Request(origin + '/api/auth?action=signin', { method: 'POST', headers: { origin } }), env, transport);
+  const begin = await handleAuth(new Request(origin + '/api/auth?action=signin', { method: 'POST', headers: { origin, 'x-vercel-forwarded-for':'192.0.2.1' } }), env, transport);
   const redirect = new URL(new URL((await begin.json()).data.url).searchParams.get('redirect_to')!); redirect.searchParams.set('code', 'code');
-  const callback = await handleAuth(new Request(redirect, { headers: { cookie: begin.headers.getSetCookie()[0].split(';')[0] } }), env, transport);
+  const callback = await handleAuth(new Request(redirect, { headers: { 'x-vercel-forwarded-for':'192.0.2.1', cookie: begin.headers.getSetCookie()[0].split(';')[0] } }), env, transport);
   return callback.headers.getSetCookie().find(value => value.startsWith('__Host-bud-session='))!.split(';')[0];
 }
 function request(payload: unknown, cookie?: string, requestOrigin = origin) {
-  return new Request(origin + '/api/host', { method: 'POST', headers: { origin: requestOrigin, 'Content-Type': 'application/json', ...(cookie ? { cookie } : {}) }, body: JSON.stringify(payload) });
+  return new Request(origin + '/api/host', { method: 'POST', headers: { 'x-vercel-forwarded-for':'192.0.2.1', origin: requestOrigin, 'Content-Type': 'application/json', ...(cookie ? { cookie } : {}) }, body: JSON.stringify(payload) });
 }
 test('host APIs fail closed and enforce POST, exact origin, JSON and session', async () => {
   assert.equal((await handleHost(new Request(origin + '/api/host'), env)).status, 405);
   assert.equal((await handleHost(request({ action: 'dashboard' }), { ...env, BUD_BACKEND_ENABLED: 'false' })).status, 503);
   assert.equal((await handleHost(request({ action: 'dashboard' }, undefined, 'https://evil.example'), env)).status, 403);
-  assert.equal((await handleHost(new Request(origin + '/api/host', { method: 'POST', headers: { origin } }), env)).status, 415);
-  assert.equal((await handleHost(request({ action: 'dashboard' }), env)).status, 401);
+  assert.equal((await handleHost(new Request(origin + '/api/host', { method: 'POST', headers: { origin, 'x-vercel-forwarded-for':'192.0.2.1' } }), env)).status, 415);
+  assert.equal((await handleHost(request({ action: 'dashboard' }), env, mock())).status, 401);
 });
 test('dashboard and resume derive tenant from verified cookie, reject client authority and extra fields', async () => {
   const cookie = await session(); const calls: Call[] = [];

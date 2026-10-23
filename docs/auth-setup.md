@@ -1,5 +1,7 @@
 # Discord host authentication — disabled sandbox integration
 
+Launch-hardening requirement: public Auth/host handlers now require `BUD_RATE_LIMIT_ENABLED=true`, a private `BUD_RATE_LIMIT_SECRET` of at least 32 UTF-8 bytes, the fixed project's service key and the actual Vercel runtime (`VERCEL=1` supplied by the platform). Only `x-vercel-forwarded-for` is trusted there. Missing limiter/edge evidence returns 503; exhausted budgets return 429 with Retry-After. Logout clears local cookies even when the limiter refuses the request. Deploy the rate-limit migration before enabling Auth; no setting is enabled by committing `.env.example`.
+
 2026-10-23, Asia/Riyadh. Implementation evidence, not provider activation or commercial readiness.
 
 ## Delivered contract
