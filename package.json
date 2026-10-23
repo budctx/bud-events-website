@@ -8,7 +8,7 @@
     "typecheck": "tsc --noEmit",
     "preview": "vite preview --host 0.0.0.0",
     "test": "node --test tests/*.test.ts && playwright test tests/browser/production.spec.ts tests/browser/prize-draw.spec.ts tests/browser/event-preview.spec.ts tests/browser/host-portal.spec.ts",
-    "typecheck:server": "tsc --ignoreConfig --noEmit --types node --target ES2022 --module ESNext --moduleResolution bundler --lib ES2022,DOM --allowImportingTsExtensions server/commerce.ts server/auth.ts server/host.ts server/rate-limit.ts server/checkout.ts server/whop.ts server/whop-production.ts api/auth.ts api/host.ts api/commerce.ts api/checkout.ts api/sandbox-webhook.ts api/whop-webhook.ts",
+    "typecheck:server": "tsc --ignoreConfig --noEmit --types node --target ES2022 --module ESNext --moduleResolution bundler --lib ES2022,DOM --allowImportingTsExtensions server/commerce.ts server/auth.ts server/host.ts server/rate-limit.ts server/checkout.ts server/whop.ts server/whop-production.ts server/whop-preflight.ts api/whop-preflight.ts api/auth.ts api/host.ts api/commerce.ts api/checkout.ts api/sandbox-webhook.ts api/whop-webhook.ts",
     "launch:check": "node scripts/launch-readiness.mjs",
     "launch:smoke": "node scripts/launch-smoke.mjs",
     "whop:preflight": "node scripts/whop-production-preflight.mjs"

@@ -11,7 +11,7 @@ export type ProductionPlanExpectation = { token: string; company: string; plan: 
 export type ProductionPlan = { companyId: string; productId: string; planId: string; currency: 'sar'; amountMinor: number };
 export type ProductionConfig = ProductionPlanExpectation & { product: string; origin: string; pilotHostId: string; secret: string; webhookVersion: string };
 export type ProductionOrder = { orderId: string; hostId: string; environment: 'production'; companyId: string; productId: string;
-  planId: string; currency: string; amountMinor: number; checkoutId: string | null; checkoutUrl: string | null };
+  planId: string; currency: string; amountMinor: number; locale: 'ar' | 'en'; checkoutId: string | null; checkoutUrl: string | null };
 
 function money(value: unknown): number | null {
   if (typeof value !== 'number' || !Number.isFinite(value)) return null;
@@ -67,7 +67,7 @@ export async function inspectProductionPlan(config: ProductionPlanExpectation, t
 export function productionOrderMatches(order: ProductionOrder, config: ProductionConfig): boolean {
   return uuid.test(order.orderId) && uuid.test(order.hostId) && order.hostId === config.pilotHostId && order.environment === 'production'
     && order.companyId === config.company && order.productId === config.product && order.planId === config.plan
-    && order.currency === config.currency && order.amountMinor === config.amount;
+    && order.currency === config.currency && order.amountMinor === config.amount && (order.locale === 'ar' || order.locale === 'en');
 }
 export function assertProductionCheckoutUrl(checkoutId: string, value: string): void {
   let url: URL; try { url = new URL(value); } catch { throw new WhopError('INVALID_PRODUCTION_CHECKOUT_URL'); }
@@ -81,7 +81,7 @@ export async function createProductionCheckout(order: ProductionOrder, config: P
   const checkout = await provider('/checkout_configurations', config, transport, { method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Idempotency-Key': 'bud-production-' + order.orderId },
     body: JSON.stringify({ plan_id: config.plan, mode: 'payment', metadata: { bud_order_id: order.orderId, bud_environment: 'production' },
-      redirect_url: config.origin + '/?screen=events' }) });
+      redirect_url: config.origin + '/?screen=events&lang=' + order.locale }) });
   if (typeof checkout.id !== 'string' || typeof checkout.purchase_url !== 'string' || checkout.company_id !== config.company
     || !object(checkout.plan) || checkout.plan.id !== config.plan || checkout.plan.currency !== config.currency
     || (checkout.currency != null && checkout.currency !== config.currency) || checkout.mode !== 'payment' || !object(checkout.metadata)

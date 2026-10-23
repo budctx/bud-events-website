@@ -9,6 +9,7 @@ create table bud_platform.live_orders (
  id uuid primary key default gen_random_uuid(),
  host_id uuid not null references auth.users(id) on delete restrict,
  request_key text not null check(request_key ~ '^[A-Za-z0-9_-]{16,100}$'),
+ locale text not null check(locale in ('ar','en')),
  company_id text not null check(company_id ~ '^biz_[A-Za-z0-9]{5,80}$'),
  product_id text not null check(product_id ~ '^prod_[A-Za-z0-9]{5,80}$'),
  plan_id text not null check(plan_id ~ '^plan_[A-Za-z0-9]{5,80}$'),
@@ -60,21 +61,22 @@ grant usage,select on sequence bud_platform.live_credit_ledger_id_seq to service
 create function bud_platform.live_order(p_order uuid) returns jsonb
 language sql stable security invoker set search_path='' as $$
  select jsonb_build_object('orderId',id,'hostId',host_id,'environment','production','companyId',company_id,'productId',product_id,
- 'planId',plan_id,'currency',currency,'amountMinor',amount_minor,'checkoutId',checkout_id,'checkoutUrl',checkout_url,'fulfilled',fulfilled_payment_id is not null)
+ 'planId',plan_id,'currency',currency,'amountMinor',amount_minor,'locale',locale,'checkoutId',checkout_id,'checkoutUrl',checkout_url,'fulfilled',fulfilled_payment_id is not null)
  from bud_platform.live_orders where id=p_order;
 $$;
-create function public.bud_live_create_order(p_host uuid,p_key text,p_company text,p_product text,p_plan text,p_currency text,p_amount bigint) returns jsonb
+create function public.bud_live_create_order(p_host uuid,p_key text,p_company text,p_product text,p_plan text,p_currency text,p_amount bigint,p_locale text) returns jsonb
 language plpgsql security invoker set search_path='' as $$
 declare v_order bud_platform.live_orders;
 begin
  if not coalesce((select enabled from bud_platform.live_commerce_control where singleton),false) then raise exception 'BUD_LIVE_COMMERCE_DISABLED'; end if;
  if p_host is null or p_key is null or p_key !~ '^[A-Za-z0-9_-]{16,100}$' or p_company is null or p_company !~ '^biz_[A-Za-z0-9]{5,80}$'
  or p_product is null or p_product !~ '^prod_[A-Za-z0-9]{5,80}$' or p_plan is null or p_plan !~ '^plan_[A-Za-z0-9]{5,80}$'
- or p_currency is distinct from 'sar' or p_amount is null or p_amount not between 1 and 99999999 then raise exception 'BUD_INVALID_LIVE_ORDER'; end if;
- insert into bud_platform.live_orders(host_id,request_key,company_id,product_id,plan_id,currency,amount_minor)
- values(p_host,p_key,p_company,p_product,p_plan,p_currency,p_amount) on conflict(host_id,request_key) do nothing;
+ or p_currency is distinct from 'sar' or p_amount is null or p_amount not between 1 and 99999999
+ or p_locale is null or p_locale not in ('ar','en') then raise exception 'BUD_INVALID_LIVE_ORDER'; end if;
+ insert into bud_platform.live_orders(host_id,request_key,company_id,product_id,plan_id,currency,amount_minor,locale)
+ values(p_host,p_key,p_company,p_product,p_plan,p_currency,p_amount,p_locale) on conflict(host_id,request_key) do nothing;
  select * into v_order from bud_platform.live_orders where host_id=p_host and request_key=p_key for update;
- if v_order.company_id<>p_company or v_order.product_id<>p_product or v_order.plan_id<>p_plan or v_order.currency<>p_currency or v_order.amount_minor<>p_amount then raise exception 'BUD_KEY_REUSED'; end if;
+ if v_order.company_id<>p_company or v_order.product_id<>p_product or v_order.plan_id<>p_plan or v_order.currency<>p_currency or v_order.amount_minor<>p_amount or v_order.locale<>p_locale then raise exception 'BUD_KEY_REUSED'; end if;
  return bud_platform.live_order(v_order.id);
 end;
 $$;
@@ -125,6 +127,6 @@ begin
  return jsonb_build_object('credited',true,'replayed',false);
 end;
 $$;
-revoke all on function bud_platform.live_order(uuid),public.bud_live_create_order(uuid,text,text,text,text,text,bigint),public.bud_live_attach_checkout(uuid,uuid,text,text),public.bud_live_order(uuid),public.bud_live_balance(uuid),public.bud_live_credit_purchase(uuid,text,text,text,text,bigint,text,text,text) from public,anon,authenticated;
-grant execute on function bud_platform.live_order(uuid),public.bud_live_create_order(uuid,text,text,text,text,text,bigint),public.bud_live_attach_checkout(uuid,uuid,text,text),public.bud_live_order(uuid),public.bud_live_balance(uuid),public.bud_live_credit_purchase(uuid,text,text,text,text,bigint,text,text,text) to service_role;
+revoke all on function bud_platform.live_order(uuid),public.bud_live_create_order(uuid,text,text,text,text,text,bigint,text),public.bud_live_attach_checkout(uuid,uuid,text,text),public.bud_live_order(uuid),public.bud_live_balance(uuid),public.bud_live_credit_purchase(uuid,text,text,text,text,bigint,text,text,text) from public,anon,authenticated;
+grant execute on function bud_platform.live_order(uuid),public.bud_live_create_order(uuid,text,text,text,text,text,bigint,text),public.bud_live_attach_checkout(uuid,uuid,text,text),public.bud_live_order(uuid),public.bud_live_balance(uuid),public.bud_live_credit_purchase(uuid,text,text,text,text,bigint,text,text,text) to service_role;
 commit;

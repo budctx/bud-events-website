@@ -1,6 +1,6 @@
 # Whop production preparation — billing remains closed
 
-2026-10-23 · Asia/Riyadh. Owner selected an existing official Whop account and approved a **SAR 2 one-time pilot price**, to be changed before commercial launch. This supersedes the earlier Sandbox onboarding direction, but does not approve general sales or repurpose the development database as production.
+2026-10-23 · Asia/Riyadh. Owner selected an existing official Whop account and approved a **SAR 2 one-time pilot price**, to be changed before commercial launch. The owner subsequently approved preparing the existing Supabase project while preserving account/data. General sales remain closed; remote backup and migration review gates remain.
 
 ## Verified setup evidence
 
@@ -41,7 +41,7 @@ Do not paste a secret into a terminal command, process arguments, logs or Notion
 
 ## Remaining work before owner pilot
 
-1. Approve an isolated production database target and authentication migration strategy. Current `cepmvqqrjcvhyzszqand` remains development; existing Auth/host/rate-limit code and sandbox ledger are explicitly tied to it. No live ledger migrations were applied here, and no live money is to be credited into that development wallet.
+1. Prepare the already approved existing project `cepmvqqrjcvhyzszqand`, preserving Auth/data and isolating the live ledger from Sandbox. Do not ask for the database-target decision again. Establish a real backup/recovery path before applying the additive migration. No live money may be credited into the Sandbox wallet.
 2. Execute the GET-only probe in a secure runtime, bind its verified product ID, and independently verify the webhook subscription/version and pilot host ID. Installed variable names do not prove credential validity.
 3. Implement and review production-only durable order/checkout bindings, receipts, unique payment/message constraints and atomic one-key ledger credit, without broadening existing Sandbox constraints or mixing wallets. Add actual concurrent duplicate delivery and crash/retry tests.
 4. Wire pilot-only checkout and webhook routes, checkout URL acceptance in the client, receipt/pending/failed states and refresh of the actual key balance. Preserve originating locale. No direct public Whop plan link may bypass the server order.
@@ -55,3 +55,17 @@ Do not paste a secret into a terminal command, process arguments, logs or Notion
 Local verification on this candidate: server typecheck PASS; application build PASS; all **86 Node tests PASS**; all **65 browser tests PASS** using the existing Chrome executable through `BUD_BROWSER_EXECUTABLE` (151 total). The first full test attempt passed Node but could not start any browser because Playwright's expected headless-shell binary was absent. Re-running the browser suite with installed Chrome passed all 65. No source repair or browser installation was required. These are local regression results, not remote provider or database-production evidence.
 
 Official references inspected: [Whop API versioning](https://docs.whop.com/developer/api/versioning), [legacy Payment resource](https://docs.whop.com/api-reference/payments/payment), [webhook signing and independent pins](https://docs.whop.com/developer/guides/webhooks). The checkout configuration reference was previously inspected for the existing adapter; a fresh fetch timed out during this increment, so no new contract was inferred from that failed fetch.
+
+## Continuation — authenticated dashboard inspection and secure-runtime preflight
+
+The connected Chrome browser now works. After owner sign-in, the actual company dashboard showed `bud-website-production` with API-key version `2026-10-15-1`. This is **not** a webhook payload-date confirmation. The website webhook existed at the expected URL, subscribed to `payment.succeeded`, connected-account events off, but was **Active**, contrary to the intended disabled preparation state. It was switched to **Disabled** and saved; readback and the success notification confirmed the change. URL, secret and events were preserved. The unrelated `b6olh` integration was left Active and unchanged.
+
+The webhook table/editor exposes **v1** only; no dated subscription pin was visible. Do not infer its date from the API key or install a guessed value in runtime configuration.
+
+The product editor for **مفتاح فعالية سؤال وشرط**, `prod_vaq6H0Lz1ID3h`, showed a hidden SAR 2 one-time pricing option, no visible purchasable plans, and local-currency conversion off. More than one per order is currently allowed. No product/plan/price setting was saved. This is authenticated **UI evidence**, not a successful GET of `plan_9ztA5kXWGC73u`, and not sufficient to install that product ID as API-verified configuration. Verify one-unit checkout behavior before any pilot payment.
+
+Added `/api/whop-preflight`: a separately disabled server diagnostic that uses the existing Production API secret inside the hosting runtime. It accepts only an empty same-origin POST, a verified Discord session for the configured pilot host, and distributed edge/host rate limits. Expectations come from server configuration. Its only Whop operation is the existing plan GET. It returns sanitized commercial IDs/amount and explicit false checkout/payment/credit flags. It does not need a live ledger or enable selling, and does not expose the raw provider response, customer fields, API key or webhook secret. A POST to this diagnostic can use Auth refresh and limiter RPCs; “GET-only” describes the Whop operation, not every internal HTTP request.
+
+Operator use after review/deployment: retain sales disabled; configure `BUD_WHOP_PREFLIGHT_ENABLED=true`, the exact pilot host UUID, currency `sar` and amount `200` alongside the saved company/plan/key. From an authenticated same-origin page, send an empty POST to `/api/whop-preflight`; record only its sanitized result. Disable the diagnostic after inspection. No new credentials or public plan links are needed. **The diagnostic has not been deployed or executed against Whop.**
+
+Locale is now persisted in the prepared live order and bound to request reuse; provider checkout return retains `screen=events&lang=ar|en`. No public UI, purchase route or fulfillment activation changed. Full checkout/webhook/queue/consumption/refund integration and actual provider proof remain pending.

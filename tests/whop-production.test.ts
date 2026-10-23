@@ -14,7 +14,7 @@ const config = whopProductionConfig(env)!;
 const plan = { id: config.plan, company: { id: config.company }, product: { id: config.product }, plan_type: 'one_time', currency: 'sar',
   initial_price: 2, renewal_price: 0, adaptive_pricing_enabled: false, collect_tax: false };
 const order = { orderId: '11111111-1111-4111-8111-111111111111', hostId: config.pilotHostId, environment: 'production' as const,
-  companyId: config.company, productId: config.product, planId: config.plan, currency: 'sar', amountMinor: 200,
+  companyId: config.company, productId: config.product, planId: config.plan, currency: 'sar', amountMinor: 200, locale: 'en' as const,
   checkoutId: 'ch_production123', checkoutUrl: 'https://whop.com/checkout/ch_production123/' };
 const payment = { id: 'pay_production123', status: 'paid', substatus: 'succeeded', paid_at: '2026-10-23T10:00:00Z',
   company: { id: config.company }, product: { id: config.product }, plan: { id: config.plan }, total: 2, currency: 'sar',
@@ -57,21 +57,23 @@ test('production plan rejects wrong identity, price, recurring charge, automatic
 test('pilot rejects sandbox orders and another host without making provider requests', async () => {
   let calls = 0; const transport: typeof fetch = async () => { calls++; return Response.json(plan); };
   for (const change of [{ environment: 'sandbox' as 'production' }, { hostId: '33333333-3333-4333-8333-333333333333' },
-    { amountMinor: 1800 }, { productId: 'prod_other123' }]) await assert.rejects(createProductionCheckout({ ...order, ...change }, config, transport));
+    { amountMinor: 1800 }, { productId: 'prod_other123' }, { locale: 'https://evil.test' as 'en' }]) await assert.rejects(createProductionCheckout({ ...order, ...change }, config, transport));
   assert.equal(calls, 0);
 });
 test('production checkout binds environment, server order, verified product and deterministic idempotency key', async () => {
+ for (const locale of ['ar', 'en'] as const) {
   let calls = 0;
-  const result = await createProductionCheckout(order, config, async (input, init) => {
+  const result = await createProductionCheckout({ ...order, locale }, config, async (input, init) => {
     assert.ok(String(input).startsWith('https://api.whop.com/api/v1/')); calls++;
     if (calls === 1) return Response.json(plan);
     assert.equal(init?.method, 'POST'); assert.equal(new Headers(init?.headers).get('idempotency-key'), 'bud-production-' + order.orderId);
-    const body = JSON.parse(String(init?.body)); assert.equal(body.plan_id, config.plan); assert.equal(body.redirect_url, config.origin + '/?screen=events');
+    const body = JSON.parse(String(init?.body)); assert.equal(body.plan_id, config.plan); assert.equal(body.redirect_url, config.origin + '/?screen=events&lang=' + locale);
     assert.deepEqual(body.metadata, { bud_order_id: order.orderId, bud_environment: 'production' });
     return Response.json({ id: order.checkoutId, company_id: config.company, plan: { id: config.plan, currency: 'sar' }, currency: null,
       purchase_url: order.checkoutUrl, mode: 'payment', metadata: body.metadata });
   });
   assert.deepEqual(result, { checkoutId: order.checkoutId, url: order.checkoutUrl }); assert.equal(calls, 2);
+ }
 });
 test('production checkout rejects sandbox hosts, hostile URLs, unbound checkout IDs and query redirects', () => {
   for (const url of ['https://sandbox.whop.com/checkout/ch_production123/', 'https://whop.com.evil.test/checkout/ch_production123/',

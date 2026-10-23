@@ -18,15 +18,15 @@ test('live commerce SQL preserves Auth and sandbox data, denies public access, b
   assert.equal((await value('select public.bud_live_balance($1) as result',[host])).credits,0);
   const privileges=await db.query<{name:string;rls:boolean;a:boolean;b:boolean}>(`select c.relname name,c.relrowsecurity rls,has_table_privilege('anon',c.oid,'SELECT') a,has_table_privilege('authenticated',c.oid,'SELECT') b from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='bud_platform' and c.relname like 'live_%' and c.relkind='r'`);
   assert.equal(privileges.rows.length,5);for(const row of privileges.rows){assert.equal(row.rls,true);assert.equal(row.a,false);assert.equal(row.b,false);}
-  const create='select public.bud_live_create_order($1,$2,$3,$4,$5,$6,$7) as result';
-  const args=[host,'live-checkout-request-123','biz_fixture123','prod_fixture123','plan_fixture123','sar',200];
+  const create='select public.bud_live_create_order($1,$2,$3,$4,$5,$6,$7,$8) as result';
+  const args=[host,'live-checkout-request-123','biz_fixture123','prod_fixture123','plan_fixture123','sar',200,'en'];
   await db.exec('set role service_role');
   await assert.rejects(value(create,args),/BUD_LIVE_COMMERCE_DISABLED/);
   await assert.rejects(db.exec('update bud_platform.live_commerce_control set enabled=true'),/permission denied/);
   await db.exec('reset role;update bud_platform.live_commerce_control set enabled=true;set role service_role');
-  const first=await value(create,args);assert.equal(first.environment,'production');assert.equal(first.checkoutId,null);
+  const first=await value(create,args);assert.equal(first.environment,'production');assert.equal(first.checkoutId,null);assert.equal(first.locale,'en');
   assert.deepEqual(await value(create,args),first);
-  for(const bad of [[...args.slice(0,6),1800],[...args.slice(0,5),'usd',200]])await assert.rejects(value(create,bad),/BUD_KEY_REUSED|BUD_INVALID_LIVE_ORDER/);
+  for(const bad of [[...args.slice(0,6),1800,'en'],[...args.slice(0,5),'usd',200,'en'],[...args.slice(0,7),'ar'],[...args.slice(0,7),'https://evil.test'],[...args.slice(0,7),null]])await assert.rejects(value(create,bad),/BUD_KEY_REUSED|BUD_INVALID_LIVE_ORDER/);
   const attach='select public.bud_live_attach_checkout($1,$2,$3,$4) as result';
   await assert.rejects(value(attach,[other,first.orderId,'ch_fixture123','https://whop.com/checkout/ch_fixture123/']),/BUD_ORDER_NOT_FOUND/);
   await assert.rejects(value(attach,[host,first.orderId,'ch_fixture123','https://sandbox.whop.com/checkout/ch_fixture123/']),/BUD_INVALID_LIVE_CHECKOUT/);

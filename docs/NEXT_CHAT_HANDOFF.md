@@ -2,6 +2,17 @@
 
 Updated 2026-10-23, Asia/Riyadh. Read this file, AGENTS.md and the latest Notion work log before continuing. This is continuation context, not evidence that pending work is complete.
 
+## Latest continuation delta
+
+- Connected Chrome UI now works. Owner completed Whop sign-in. Do not repeat the earlier kernel-failure assumption. Opera is not connected; it is unnecessary while Chrome works.
+- Actual Supabase organization plan is Free. Database → Backups explicitly says Free Plan does not include project backups. No scheduled backup exists in this UI; no external export/restore yet. Local `pg_dump`/`psql`/Docker and a prepared database connection are absent. A secure external export/recovery path remains the remote-migration gate; no paid upgrade is authorized.
+- Remote read-only counts repeated: Auth 1, Sandbox orders/wallets/credits/saved events 0; four migration versions unchanged. API project name is now BU'D Discord Website; this continuation did not rename it.
+- PR19 head `70bad7d48075f51726d020b8196999875234a770` had exact-head CI success [run 39997730597](https://github.com/budctx/bud-events-website/actions/runs/39997730597). Later continuation edits require their own checks.
+- Whop website webhook was actually **Active**. Switched that subscription only to **Disabled**, saved and verified. Existing URL/secret/payment.succeeded and unrelated active b6olh integration preserved. Dashboard shows webhook `v1`, with no dated pin visible; API key's `2026-10-15-1` is independent.
+- Product editor `prod_vaq6H0Lz1ID3h` shows سؤال وشرط / hidden SAR 2 one-time option / conversion off / multi-quantity allowed. UI evidence only; plan-to-product API validation remains unrun. No product setting changed.
+- Added separately gated owner-only `/api/whop-preflight` for an empty same-origin POST from a verified pilot Discord host. Uses hosting's existing secret, distributed limits, and only a Whop GET; returns sanitized plan/amount/IDs with no checkout/payment/credit. Not deployed, not an actual provider result. Enable diagnostic independently of sales only after review.
+- Review fix: prepared live order persists locale (`ar`/`en`), idempotency rejects locale changes, and checkout return keeps Events and language. Migration is still unapplied. See reports for pause/drain and reconciliation limits before real payments.
+
 ## Owner's latest instructions and authorization
 
 - Continue preparing commercial launch without asking again for already approved work. Arabic-first, Code-first; preserve the current site identity. No Figma.
