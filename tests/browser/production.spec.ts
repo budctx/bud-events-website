@@ -37,7 +37,7 @@ for (const locale of ['ar','en']) for (const size of sizes) {
     await expect(page.locator('html')).toHaveAttribute('dir',locale==='ar'?'rtl':'ltr');
     await expect(page.getByTestId('nav-events')).toBeVisible();
     await expect(page.getByTestId('nav-designs')).toBeVisible();
-    expect(await page.locator('.platform-art img').evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBeTruthy();
+    await expect.poll(() => page.locator('.platform-art img').evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBeTruthy();
     await page.locator('.platform-art img').evaluate((el: HTMLImageElement) => el.decode());
     for (const selector of ['.platform-login', '.platform-language', '[data-testid="nav-events"]', '[data-testid="hero-explore"]']) {
       const control = page.locator(selector);

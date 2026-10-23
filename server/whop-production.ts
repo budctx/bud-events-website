@@ -28,8 +28,13 @@ export function productionPlanExpectation(env: CommerceEnv): ProductionPlanExpec
 }
 /** Additional explicit pilot gates. Existing saved credentials alone cannot enable checkout. */
 export function whopProductionConfig(env: CommerceEnv): ProductionConfig | null {
+  if (env.BUD_WHOP_PRODUCTION_ENABLED !== 'true') return null;
+  return whopProductionProcessingConfig(env);
+}
+/** Receipt ingestion/drain remains separately enabled when NEW checkout creation is paused. */
+export function whopProductionProcessingConfig(env: CommerceEnv): ProductionConfig | null {
   const plan = productionPlanExpectation(env);
-  if (!plan || env.BUD_WHOP_PRODUCTION_ENABLED !== 'true' || env.WHOP_ENVIRONMENT !== 'production'
+  if (!plan || env.BUD_WHOP_PRODUCTION_PROCESSING_ENABLED !== 'true' || env.WHOP_ENVIRONMENT !== 'production'
     || env.BUD_WHOP_PRODUCTION_MODE !== 'pilot' || !uuid.test(env.BUD_WHOP_PILOT_HOST_ID ?? '')
     || !/^prod_[A-Za-z0-9]{5,80}$/.test(env.WHOP_PRODUCTION_PRODUCT_ID ?? '')
     || !/^ws_[A-Za-z0-9]{32,128}$/.test(env.WHOP_PRODUCTION_WEBHOOK_SECRET ?? '')

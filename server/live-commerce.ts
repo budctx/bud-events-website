@@ -4,7 +4,7 @@ import { enforceRateLimit } from './rate-limit.ts';
 import { boundedProviderText, WhopError } from './whop.ts';
 import type { CommerceEnv } from './whop.ts';
 import { assertProductionCheckoutUrl, assertProductionPaymentMatches, createProductionCheckout, lookupProductionPayment,
-  productionOrderMatches, verifyProductionWebhook, whopProductionConfig } from './whop-production.ts';
+  productionOrderMatches, verifyProductionWebhook, whopProductionConfig, whopProductionProcessingConfig } from './whop-production.ts';
 import type { ProductionConfig, ProductionOrder } from './whop-production.ts';
 
 const PROJECT = 'https://cepmvqqrjcvhyzszqand.supabase.co';
@@ -94,23 +94,53 @@ export async function handleProductionCheckout(request: Request, env: CommerceEn
   }
 }
 
-/** Future synchronous pilot fulfillment. No 2xx until the SQL receipt has committed. Not a durable queue. */
+/** Future pilot intake. Acknowledge only durable signed references; worker rechecks authoritative payment. */
 export async function handleProductionWebhook(request: Request, env: CommerceEnv = environment(), transport: typeof fetch = fetch): Promise<Response> {
   if (request.method !== 'POST') return result(405, 'METHOD_NOT_ALLOWED');
-  const config = whopProductionConfig(env), secret = backend(env);
+  const config = whopProductionProcessingConfig(env), secret = backend(env);
   if (!config || !secret) return result(503, 'LIVE_WEBHOOK_NOT_CONFIGURED');
   try {
     const limited = await enforceRateLimit(request, env, transport, 'webhook'); if (limited) return limited;
     const envelope = await verifyProductionWebhook(request, config);
-    const { orderId, payment } = await lookupProductionPayment(envelope.paymentId, config, transport);
+    const receipt = await rpc('bud_live_enqueue_payment', { p_message: envelope.messageId, p_payment: envelope.paymentId }, secret, transport);
+    if (!object(receipt) || receipt.queued !== true) throw new WhopError('LIVE_QUEUE_UNCONFIRMED');
+    return result(202, 'PAYMENT_QUEUED', { received: true, credited: false, environment: 'production' });
+  } catch (error) { return error instanceof WhopError ? result(error.status, error.code) : result(503, 'LIVE_WEBHOOK_UNAVAILABLE'); }
+}
+
+/** Internal bounded worker. No public endpoint or scheduler is installed by this module. */
+export async function runProductionPaymentJob(env: CommerceEnv, transport: typeof fetch = fetch) {
+  const config = whopProductionProcessingConfig(env), secret = backend(env);
+  if (!config || !secret) throw new WhopError('LIVE_WORKER_NOT_CONFIGURED');
+  const jobs = await rpc('bud_live_claim_payments', { p_limit: 1 }, secret, transport);
+  if (!Array.isArray(jobs) || jobs.length > 1) throw new WhopError('LIVE_QUEUE_UNCONFIRMED');
+  if (jobs.length === 0) return { processed: 0, completed: 0, retryRecorded: 0, unconfirmed: 0 };
+  const job: unknown = jobs[0];
+  if (!object(job) || typeof job.messageId !== 'string' || !/^msg_[A-Za-z0-9]{5,100}$/.test(job.messageId)
+    || typeof job.paymentId !== 'string' || !/^pay_[A-Za-z0-9]{5,80}$/.test(job.paymentId)
+    || typeof job.leaseToken !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(job.leaseToken))
+    throw new WhopError('LIVE_QUEUE_UNCONFIRMED');
+  try {
+    const { orderId, payment } = await lookupProductionPayment(job.paymentId, config, transport);
     const stored = order(await rpc('bud_live_order', { p_order: orderId }, secret, transport), config);
     if (stored.orderId !== orderId) throw new WhopError('LIVE_ORDER_MISMATCH', 409);
     assertProductionPaymentMatches(payment, stored, config);
-    const receipt = await rpc('bud_live_credit_purchase', { p_order: stored.orderId, p_company: stored.companyId, p_product: stored.productId,
-      p_plan: stored.planId, p_currency: stored.currency, p_amount: stored.amountMinor, p_checkout: stored.checkoutId,
-      p_payment: envelope.paymentId, p_message: envelope.messageId }, secret, transport);
+    const receipt = await rpc('bud_live_finish_payment', { p_message: job.messageId, p_lease: job.leaseToken, p_order: stored.orderId,
+      p_company: stored.companyId, p_product: stored.productId, p_plan: stored.planId, p_currency: stored.currency,
+      p_amount: stored.amountMinor, p_checkout: stored.checkoutId, p_payment: job.paymentId }, secret, transport);
     if (!object(receipt) || !((receipt.credited === true && receipt.replayed === false) || (receipt.credited === false && receipt.replayed === true)))
       throw new WhopError('LIVE_FULFILLMENT_UNCONFIRMED');
-    return result(200, 'OK', { received: true, environment: 'production' });
-  } catch (error) { return error instanceof WhopError ? result(error.status, error.code) : result(503, 'LIVE_WEBHOOK_UNAVAILABLE'); }
+    return { processed: 1, completed: 1, retryRecorded: 0, unconfirmed: 0 };
+  } catch (error) {
+    const code = error instanceof WhopError && error.code.startsWith('WHOP_PRODUCTION') ? 'PROVIDER_RETRY'
+      : error instanceof WhopError && error.status === 409 ? 'PAYMENT_RETRY' : 'BACKEND_RETRY';
+    try {
+      const retry = await rpc('bud_live_retry_payment', { p_message: job.messageId, p_lease: job.leaseToken, p_code: code }, secret, transport);
+      if (!object(retry) || retry.recorded !== true) throw new Error();
+      return { processed: 1, completed: 0, retryRecorded: 1, unconfirmed: 0 };
+    } catch {
+      // A lost response may have committed. Do not guess: a done receipt or lease expiry resolves the next run.
+      return { processed: 1, completed: 0, retryRecorded: 0, unconfirmed: 1 };
+    }
+  }
 }

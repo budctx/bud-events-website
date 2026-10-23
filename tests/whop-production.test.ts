@@ -1,14 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { assertProductionCheckoutUrl, assertProductionPaymentMatches, createProductionCheckout, inspectProductionPlan,
-  lookupProductionPayment, productionPlanExpectation, verifyProductionWebhook, whopProductionConfig } from '../server/whop-production.ts';
+  lookupProductionPayment, productionPlanExpectation, verifyProductionWebhook, whopProductionConfig, whopProductionProcessingConfig } from '../server/whop-production.ts';
 import { WhopError } from '../server/whop.ts';
 
 const env = { WHOP_PRODUCTION_API_KEY: 'test-only-production-key', WHOP_PRODUCTION_COMPANY_ID: 'biz_production123',
   WHOP_PRODUCTION_PLAN_ID: 'plan_production123', WHOP_PRODUCTION_PRODUCT_ID: 'prod_production123', WHOP_PRODUCTION_CURRENCY: 'sar',
   WHOP_PRODUCTION_AMOUNT_MINOR: '200', WHOP_PRODUCTION_WEBHOOK_SECRET: 'ws_0123456789abcdef0123456789abcdef0123456789abcdef',
   WHOP_PRODUCTION_WEBHOOK_API_VERSION: '2026-10-15-1', BUD_APP_ORIGIN: 'https://bud-events-website.vercel.app',
-  WHOP_ENVIRONMENT: 'production', BUD_WHOP_PRODUCTION_ENABLED: 'true', BUD_WHOP_PRODUCTION_MODE: 'pilot',
+  WHOP_ENVIRONMENT: 'production', BUD_WHOP_PRODUCTION_ENABLED: 'true', BUD_WHOP_PRODUCTION_PROCESSING_ENABLED: 'true', BUD_WHOP_PRODUCTION_MODE: 'pilot',
   BUD_WHOP_PILOT_HOST_ID: '22222222-2222-4222-8222-222222222222' };
 const config = whopProductionConfig(env)!;
 const plan = { id: config.plan, company: { id: config.company }, product: { id: config.product }, plan_type: 'one_time', currency: 'sar',
@@ -27,10 +27,17 @@ test('production credentials alone cannot activate pilot configuration; all envi
     WHOP_PRODUCTION_PLAN_ID: env.WHOP_PRODUCTION_PLAN_ID, WHOP_PRODUCTION_WEBHOOK_SECRET: env.WHOP_PRODUCTION_WEBHOOK_SECRET };
   assert.equal(whopProductionConfig(installed), null);
   assert.equal(productionPlanExpectation(installed), null);
-  for (const change of [{ BUD_WHOP_PRODUCTION_ENABLED: 'false' }, { WHOP_ENVIRONMENT: 'sandbox' }, { BUD_WHOP_PRODUCTION_MODE: 'public' },
+  for (const change of [{ BUD_WHOP_PRODUCTION_ENABLED: 'false' }, { BUD_WHOP_PRODUCTION_PROCESSING_ENABLED: 'false' }, { WHOP_ENVIRONMENT: 'sandbox' }, { BUD_WHOP_PRODUCTION_MODE: 'public' },
     { BUD_WHOP_PILOT_HOST_ID: '' }, { WHOP_PRODUCTION_WEBHOOK_API_VERSION: '' }, { WHOP_PRODUCTION_PRODUCT_ID: '' },
     { WHOP_PRODUCTION_WEBHOOK_SECRET: '' }, { WHOP_PRODUCTION_CURRENCY: 'usd' }, { WHOP_PRODUCTION_AMOUNT_MINOR: '2.00' },
     { BUD_APP_ORIGIN: env.BUD_APP_ORIGIN + '/' }, { BUD_APP_ORIGIN: 'http://localhost' }]) assert.equal(whopProductionConfig({ ...env, ...change }), null);
+});
+
+test('stopping new purchases preserves separately configured signed intake and processing', () => {
+  const paused = { ...env, BUD_WHOP_PRODUCTION_ENABLED: 'false' };
+  assert.equal(whopProductionConfig(paused), null);
+  assert.ok(whopProductionProcessingConfig(paused));
+  assert.equal(whopProductionProcessingConfig({ ...paused, BUD_WHOP_PRODUCTION_PROCESSING_ENABLED: 'false' }), null);
 });
 test('read-only plan discovery uses only production GET, pins the legacy shape and returns no token or customer details', async () => {
   const calls: string[] = [];

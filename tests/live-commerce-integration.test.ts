@@ -3,14 +3,15 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import { handleAuth } from '../server/auth.ts';
-import { handleProductionCheckout, handleProductionWebhook } from '../server/live-commerce.ts';
+import { handleProductionCheckout, handleProductionWebhook, runProductionPaymentJob } from '../server/live-commerce.ts';
+import { handleHost, handleLiveHost } from '../server/host.ts';
 
 const origin = 'https://bud-events-website.vercel.app', host = '11111111-1111-4111-8111-111111111111';
 const other = '22222222-2222-4222-8222-222222222222';
 const edge = { 'x-vercel-forwarded-for': '192.0.2.1' };
 const env = { VERCEL: '1', BUD_AUTH_ENABLED: 'true', BUD_BACKEND_ENABLED: 'true', BUD_RATE_LIMIT_ENABLED: 'true',
   BUD_RATE_LIMIT_SECRET: 'fixture-rate-secret-with-at-least-32-bytes', BUD_AUTH_COOKIE_SECRET: 'fixture-cookie-secret-with-at-least-32-bytes',
-  BUD_APP_ORIGIN: origin, SUPABASE_URL: 'https://cepmvqqrjcvhyzszqand.supabase.co', SUPABASE_PUBLISHABLE_KEY: 'fixture-public',
+  BUD_APP_ORIGIN: origin, BUD_LIVE_HOST_ENABLED: 'true', BUD_WHOP_PRODUCTION_PROCESSING_ENABLED: 'true', SUPABASE_URL: 'https://cepmvqqrjcvhyzszqand.supabase.co', SUPABASE_PUBLISHABLE_KEY: 'fixture-public',
   SUPABASE_SERVICE_ROLE_KEY: 'fixture-service', BUD_WHOP_PRODUCTION_ENABLED: 'true', BUD_WHOP_PRODUCTION_MODE: 'pilot', WHOP_ENVIRONMENT: 'production',
   BUD_WHOP_PILOT_HOST_ID: host, WHOP_PRODUCTION_API_KEY: 'fixture-production-key', WHOP_PRODUCTION_COMPANY_ID: 'biz_fixture123',
   WHOP_PRODUCTION_PLAN_ID: 'plan_fixture123', WHOP_PRODUCTION_PRODUCT_ID: 'prod_fixture123', WHOP_PRODUCTION_CURRENCY: 'sar',
@@ -22,6 +23,7 @@ test('isolated production orchestration: real SQL, authenticated pilot, durable 
   let cookie = '', orderId = '', checkoutPosts = 0, providerCalls = 0;
   let attachFailure: 'before' | 'after' | null = null, creditFailure: 'before' | 'after' | null = null;
   let total = 2, paymentId = 'pay_fixture123', refund = 0, badReceipt = false;
+  let loseHostResponse = false, queueFailure: 'before' | 'after' | null = null;
   const providerKeys: string[] = [];
   const transport: typeof fetch = async (input, init) => {
     const url = new URL(String(input));
@@ -32,17 +34,18 @@ test('isolated production orchestration: real SQL, authenticated pilot, durable 
       assert.equal(new Headers(init?.headers).get('authorization'), 'Bearer ' + env.SUPABASE_SERVICE_ROLE_KEY);
       const name = url.pathname.split('/').at(-1)!;
       assert.match(name, /^bud_[a-z_]+$/);
-      const isAttach = name === 'bud_live_attach_checkout', isCredit = name === 'bud_live_credit_purchase';
-      if ((isAttach && attachFailure === 'before') || (isCredit && creditFailure === 'before')) {
-        attachFailure = null; creditFailure = null; throw Error('fixture-lost-before-commit');
+      const isAttach = name === 'bud_live_attach_checkout', isCredit = name === 'bud_live_finish_payment', isQueue = name === 'bud_live_enqueue_payment';
+      if ((isAttach && attachFailure === 'before') || (isCredit && creditFailure === 'before') || (isQueue && queueFailure === 'before')) {
+        attachFailure = null; creditFailure = null; queueFailure = null; throw Error('fixture-lost-before-commit');
       }
       const entries = Object.entries(JSON.parse(String(init?.body)));
       try {
         const data = await db.query<{ result: unknown }>(`select public.${name}(${entries.map(([key], i) => {
           assert.match(key, /^p_[a-z_]+$/); return key + ' => $' + (i + 1);
         }).join(',')}) as result`, entries.map(([, value]) => value));
-        if ((isAttach && attachFailure === 'after') || (isCredit && creditFailure === 'after')) {
-          attachFailure = null; creditFailure = null; throw Error('fixture-lost-after-commit');
+        if ((isAttach && attachFailure === 'after') || (isCredit && creditFailure === 'after') || (isQueue && queueFailure === 'after')
+          || (name === 'bud_live_host_start' && loseHostResponse)) {
+          attachFailure = null; creditFailure = null; queueFailure = null; loseHostResponse = false; throw Error('fixture-lost-after-commit');
         }
         if (isCredit && badReceipt) return Response.json({ credited: true, replayed: true });
         return Response.json(data.rows[0].result);
@@ -82,10 +85,14 @@ test('isolated production orchestration: real SQL, authenticated pilot, durable 
   };
   const deliver = async (messageId?: string, changes?: object) => handleProductionWebhook(await webhook(messageId, changes), env, transport);
   const resetLimits = async () => { await db.exec('reset role;delete from bud_platform.rate_limits;set role service_role'); };
+  const due = async () => { await db.exec("reset role;update bud_platform.live_payment_jobs set available_at=clock_timestamp()-interval '1 second' where status='pending';set role service_role"); };
+  const work = () => runProductionPaymentJob(env, transport);
+  const hostAction = (body: unknown, live = true, changedEnv = env) => (live ? handleLiveHost : handleHost)(new Request(origin + '/api/host', {
+    method: 'POST', headers: { origin, ...edge, cookie, 'content-type': 'application/json' }, body: JSON.stringify(body) }), changedEnv, transport);
   const credits = async () => (await db.query<{ credits: number }>('select credits from bud_platform.live_wallets where host_id=$1', [host])).rows[0]?.credits ?? 0;
   try {
     await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key);insert into auth.users values('${host}'),('${other}');`);
-    for (const name of ['20261022215208_host_persistence_foundation.sql', '20261023083912_launch_sandbox_hardening.sql', '20261023173930_production_commerce_foundation.sql'])
+    for (const name of ['20261022215208_host_persistence_foundation.sql', '20261023083912_launch_sandbox_hardening.sql', '20261023173930_production_commerce_foundation.sql', '20261023193330_live_payment_queue_and_event_consumption.sql'])
       await db.exec(await readFile(new URL('../supabase/migrations/' + name, import.meta.url), 'utf8'));
     await db.query('insert into bud_platform.wallets(host_id,credits) values($1,5)', [host]);
     await db.exec('set role service_role');
@@ -100,7 +107,7 @@ test('isolated production orchestration: real SQL, authenticated pilot, durable 
       assert.equal((await handleProductionCheckout(checkoutRequest(undefined, { origin: 'https://evil.test' }), env, noNetwork)).status, 403);
       assert.equal((await handleProductionCheckout(checkoutRequest(), { ...env, BUD_WHOP_PILOT_HOST_ID: other }, transport)).status, 403);
       assert.equal((await checkout()).status, 503); assert.equal(providerCalls, 0);
-      await db.exec('reset role;update bud_platform.live_commerce_control set enabled=true;set role service_role');
+      await db.exec('reset role;update bud_platform.live_commerce_control set enabled=true,fulfillment_enabled=true;set role service_role');
       await resetLimits();
     });
     await t.test('browser cannot supply price, host, quantity or success; request locale is bound durably', async () => {
@@ -121,16 +128,22 @@ test('isolated production orchestration: real SQL, authenticated pilot, durable 
     await t.test('bad signatures, wrong amount and refunded payments grant nothing', async () => {
       const request = await webhook(); request.headers.set('webhook-signature', 'v1,invalid');
       const before = providerCalls; assert.equal((await handleProductionWebhook(request, env, transport)).status, 401); assert.equal(providerCalls, before);
-      total = 1.99; assert.equal((await deliver()).status, 409); total = 2;
-      refund = 0.01; assert.equal((await deliver()).status, 409); refund = 0;
+      queueFailure = 'before'; assert.equal((await deliver()).status, 503);
+      queueFailure = 'after'; assert.equal((await deliver()).status, 503);
+      assert.equal((await deliver()).status, 202);
+      total = 1.99; assert.equal((await work()).retryRecorded, 1); total = 2; await due();
+      refund = 0.01; assert.equal((await work()).retryRecorded, 1); refund = 0; await due();
       assert.equal(await credits(), 0);
     });
     await t.test('commit failure retries and lost committed response each result in exactly one live credit', async () => {
-      creditFailure = 'before'; assert.equal((await deliver()).status, 503); assert.equal(await credits(), 0);
-      creditFailure = 'after'; assert.equal((await deliver()).status, 503); assert.equal(await credits(), 1);
-      assert.equal((await deliver()).status, 200); assert.equal((await deliver('msg_another123')).status, 200); assert.equal(await credits(), 1);
+      creditFailure = 'before'; assert.equal((await work()).retryRecorded, 1); assert.equal(await credits(), 0); await due();
+      creditFailure = 'after'; assert.equal((await work()).unconfirmed, 1); assert.equal(await credits(), 1);
+      assert.equal((await deliver()).status, 202); assert.equal((await work()).processed, 0);
+      assert.equal((await deliver('msg_another123')).status, 202); assert.equal((await work()).completed, 1); assert.equal(await credits(), 1);
       const many = await Promise.all(Array.from({ length: 3 }, (_, i) => deliver('msg_parallel' + i)));
-      for (const response of many) assert.equal(response.status, 200);
+      for (const response of many) assert.equal(response.status, 202);
+      const workers = await Promise.all(Array.from({ length: 3 }, () => work()));
+      assert.equal(workers.reduce((n, r) => n + r.completed, 0), 3);
       assert.equal(await credits(), 1);
       assert.equal((await checkout()).status, 409); assert.equal(checkoutPosts, 2);
       assert.equal((await db.query<{ n: number }>('select count(*)::int n from bud_platform.live_credit_ledger')).rows[0].n, 1);
@@ -140,9 +153,51 @@ test('isolated production orchestration: real SQL, authenticated pilot, durable 
       await db.exec('set role service_role');
     });
     await t.test('conflicting payments and unconfirmed SQL response never receive a successful acknowledgment', async () => {
-      paymentId = 'pay_other123'; assert.equal((await deliver('msg_conflict123')).status, 503); paymentId = 'pay_fixture123';
-      badReceipt = true; assert.equal((await deliver()).status, 503); badReceipt = false;
+      paymentId = 'pay_other123'; assert.equal((await deliver('msg_conflict123')).status, 202); assert.equal((await work()).retryRecorded, 1); paymentId = 'pay_fixture123';
+      assert.equal((await deliver('msg_receipt123')).status, 202);
+      badReceipt = true; assert.equal((await work()).unconfirmed, 1); badReceipt = false;
       assert.equal(await credits(), 1);
+    });
+    await t.test('checkout can be paused while signed intake and already paid orders continue draining', async () => {
+      const paused = { ...env, BUD_WHOP_PRODUCTION_ENABLED: 'false' };
+      await db.exec('reset role;update bud_platform.live_commerce_control set enabled=false;set role service_role');
+      assert.equal((await handleProductionCheckout(checkoutRequest(), paused, transport)).status, 503);
+      assert.equal((await handleProductionWebhook(await webhook('msg_draining123'), paused, transport)).status, 202);
+      assert.equal((await runProductionPaymentJob(paused, transport)).completed, 1);
+      assert.equal(await credits(), 1);
+    });
+    await t.test('live start spends one live key once, lost response and resume never debit again, sandbox stays isolated', async () => {
+      await resetLimits();
+      const start = { action: 'start', idempotencyKey: 'fixture-live-event-request-123', title: 'Fixture event',
+        config: { duration: 5, timerEnabled: true, attempts: 2 }, prizeText: 'Gift' };
+      assert.equal((await hostAction(start)).status, 503); assert.equal(await credits(), 1);
+      await db.exec("reset role;update bud_platform.live_commerce_control set host_enabled=true;set role service_role");
+      // Draft inventory stays blocked even with a purchased live key.
+      assert.equal((await hostAction(start)).status, 503); assert.equal(await credits(), 1);
+      await db.exec("reset role;update bud_platform.content_versions set status='published';update bud_platform.products set status='published';set role service_role");
+      assert.equal((await hostAction(start, true, { ...env, BUD_WHOP_PILOT_HOST_ID: other })).status, 403);
+      assert.equal((await hostAction({ ...start, environment: 'sandbox' })).status, 400);
+      loseHostResponse = true; assert.equal((await hostAction(start)).status, 503); assert.equal(await credits(), 0);
+      const replay = await hostAction(start); assert.equal(replay.status, 200); const event = (await replay.json()).data;
+      assert.equal((await hostAction(start)).status, 200);
+      assert.equal((await hostAction({ ...start, title: 'Changed' })).status, 409);
+      assert.equal((await hostAction({ ...start, idempotencyKey: 'fixture-other-start-request' })).status, 409);
+      assert.equal((await hostAction({ action: 'resume', eventId: event.eventId }, true, { ...env, BUD_WHOP_PILOT_HOST_ID: other })).status, 403);
+      await db.exec('reset role;update bud_platform.live_commerce_control set host_enabled=false;set role service_role');
+      assert.equal((await hostAction(start)).status, 200);
+      assert.equal((await hostAction({ action: 'resume', eventId: event.eventId })).status, 200);
+      const dispatch = { action: 'dispatch', eventId: event.eventId, version: 1, idempotencyKey: 'fixture-live-command-request', command: { type: 'add-winner', name: 'Fixture' } };
+      assert.equal((await hostAction(dispatch)).status, 200); assert.equal((await hostAction(dispatch)).status, 200);
+      assert.equal(await credits(), 0);
+      assert.equal((await db.query<{ n: number }>('select count(*)::int n from bud_platform.live_event_debits')).rows[0].n, 1);
+      assert.equal((await (await hostAction({ action: 'dashboard' }, false)).json()).data.credits, 5);
+      assert.equal((await (await hostAction({ action: 'dashboard' })).json()).data.credits, 0);
+      await db.exec('reset role');
+      await db.query("update bud_platform.live_events set started_at=clock_timestamp()-interval '4 hours 1 second' where id=$1", [event.eventId]);
+      await db.exec('set role service_role');
+      const expired = await hostAction({ action: 'resume', eventId: event.eventId }); assert.equal(expired.status, 200);
+      assert.equal((await expired.json()).data.phase, 'completed');
+      assert.equal(await credits(), 0);
     });
     await t.test('public production route stays disabled regardless of preparation handler flags', async () => {
       const { POST } = await import('../api/whop-webhook.ts');
