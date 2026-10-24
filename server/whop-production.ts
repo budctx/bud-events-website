@@ -20,6 +20,30 @@ export class ProductionPlanMismatch extends WhopError {
   readonly settings: Record<string, string>;
   constructor(fields: string[], settings: Record<string, string>) { super('PRODUCTION_PLAN_MISMATCH', 409); this.fields = fields; this.settings = settings; }
 }
+export class ProductionProviderRejection extends WhopError {
+  request:{operation:'plan_read'|'quote_preview'|'checkout'|'payment_read'|'other';apiVersion:string;providerStatus:number;reason:string;field:string|null};
+  constructor(code:string,path:string,apiVersion:string,providerStatus:number,reason='unclassified',field:string|null=null) {
+    super(code);
+    this.request={operation:path==='/payment_quotes'?'quote_preview':path.startsWith('/variants/')?'plan_read':path==='/checkout_configurations'?'checkout':path.startsWith('/payments/')?'payment_read':'other',
+      apiVersion,providerStatus,reason,field};
+  }
+}
+/** Classify a rejected request in memory. Return only fixed enums, never provider text. */
+export function classifyProductionRejection(data:unknown):{reason:string;field:string|null} {
+  const error=object(data)&&object(data.error)?data.error:object(data)?data:{};
+  const message=typeof error.message==='string'?error.message.slice(0,2048):'';
+  const codes:Record<string,string>={invalid_api_version:'version',unsupported_api_version:'version',quote_location_required:'location',
+    quote_currency_unsupported:'currency',quote_currency_not_supported:'currency',quote_tax_unavailable:'tax',promo_invalid:'promo'};
+  let reason=typeof error.code==='string'&&Object.hasOwn(codes,error.code)?codes[error.code]:'unclassified';
+  if(reason==='unclassified'&&/api[-_ ]?version|api-version-date/i.test(message)&&/unsupported|unknown|invalid|not supported/i.test(message))reason='version';
+  const fields=['account_id','company_id','plan_id','line_items','presentment_country','presentment_currency','address','currency','amount'];
+  let field=typeof error.param==='string'&&fields.includes(error.param)?error.param:null;
+  if(/required|missing|must be provided/i.test(message)) {
+    field??=fields.find(value=>new RegExp('\\b'+value+'\\b').test(message))??null;
+    if(reason==='unclassified'&&field)reason='required_field';
+  }
+  return {reason,field};
+}
 export type ProductionConfig = ProductionPlanExpectation & { product: string; origin: string; pilotHostId: string; audience: 'pilot' | 'public'; secret: string; webhookVersion: string };
 export type ProductionOrder = { orderId: string; hostId: string; environment: 'production'; companyId: string; productId: string;
   planId: string; currency: string; amountMinor: number; locale: 'ar' | 'en'; checkoutId: string | null; checkoutUrl: string | null };
@@ -67,10 +91,14 @@ export async function productionProvider(path: string, config: ProductionPlanExp
   try { response = await transport(API + path, { ...init, headers, cache:'no-store', redirect: 'error', signal: AbortSignal.timeout(8000) }); }
   catch { throw new WhopError('WHOP_PRODUCTION_UNAVAILABLE'); }
   if (!response.ok) {
-    if (response.status === 401 || response.status === 403) throw new WhopError('WHOP_PRODUCTION_ACCESS_DENIED');
+    if (response.status === 401 || response.status === 403) throw new ProductionProviderRejection('WHOP_PRODUCTION_ACCESS_DENIED',path,version,response.status,'access');
     if (response.status === 404) throw new WhopError('WHOP_PRODUCTION_RESOURCE_NOT_FOUND');
     if (response.status === 429) throw new WhopError('WHOP_PRODUCTION_RATE_LIMITED');
-    if (response.status === 400 || response.status === 422) throw new WhopError('WHOP_PRODUCTION_REQUEST_REJECTED');
+    if (response.status === 400 || response.status === 422) {
+      let classification={reason:'unclassified',field:null as string|null};
+      try {classification=classifyProductionRejection(JSON.parse(await boundedProviderText(response.body)));}catch{/* Never echo an invalid rejection body. */}
+      throw new ProductionProviderRejection('WHOP_PRODUCTION_REQUEST_REJECTED',path,version,response.status,classification.reason,classification.field);
+    }
     throw new WhopError('WHOP_PRODUCTION_UNAVAILABLE');
   }
   observe?.(response);

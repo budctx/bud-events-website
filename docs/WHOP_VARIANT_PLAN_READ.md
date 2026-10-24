@@ -25,3 +25,5 @@ Country-only quotes are previews; according to Whop a payment cannot consume a q
 The implemented quote contract still needs a real deployment and authenticated provider verification. Local tests use mocked Whop responses. Do not call a mock preview actual Whop evidence or rerun the failed backup prompt as part of this inspection.
 
 Quote source: https://docs.whop.com/api-reference/beta/payment-quotes/create-payment-quote
+
+The real first quote attempt returned access denied. After owner-approved addition of Charge payments, it advanced to a request-format rejection. Quote diagnostics now identify the failing operation (plan GET versus quote POST), provider status, pinned version, fixed reason and an allowlisted request-field name if present. Error bodies/messages are classified only in server memory; unknown reasons stay unclassified. No raw provider response, key, buyer details or arbitrary error text is exposed. A 400/422 is not treated as another missing permission or automatically retried on a different version.

@@ -17,6 +17,16 @@ export default function WhopPreflight({ locale, onAuthLost }: { locale:Locale; o
       const body = await response.json().catch(() => null), data = body?.data;
       if (controller.signal.aborted) return;
       if (response.status === 401) { onAuthLost(); return; }
+      if(quote&&['WHOP_PRODUCTION_REQUEST_REJECTED','WHOP_PRODUCTION_ACCESS_DENIED'].includes(body?.code)
+        &&['quote_preview','plan_read'].includes(data?.request?.operation)&&[400,401,403,422].includes(data?.request?.providerStatus)) {
+        const reasons:Record<string,string>=ar?{access:'صلاحية الوصول',version:'إصدار واجهة Whop',location:'موقع التسعير',currency:'عملة التسعير',tax:'حساب الضريبة',promo:'رمز الخصم',required_field:'حقل مطلوب',unclassified:'سبب غير مصنف'}
+          :{access:'access permission',version:'Whop API version',location:'quote location',currency:'quote currency',tax:'tax calculation',promo:'promo code',required_field:'required field',unclassified:'unclassified reason'};
+        const fields=['account_id','company_id','plan_id','line_items','presentment_country','presentment_currency','address','currency','amount'];
+        const reason=Object.hasOwn(reasons,data.request.reason)?reasons[data.request.reason]:reasons.unclassified;
+        const field=fields.includes(data.request.field)?' ('+data.request.field+')':'';
+        setMessage((ar?'رفض Whop ':'Whop rejected ')+(data.request.operation==='quote_preview'?(ar?'طلب التسعير: ':'the quote request: '):(ar?'قراءة الخطة: ':'the plan read: '))+reason+field);
+        return;
+      }
       const evidence=data?.evidence;
       if(evidence?.apiVersion==='2026-10-15-1'&&evidence.resource==='variants'&&evidence.quoteChecked===false) {
         const refs=['API: '+evidence.apiVersion];
