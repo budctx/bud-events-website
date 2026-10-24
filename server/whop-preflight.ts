@@ -44,7 +44,7 @@ export async function handleWhopPreflight(request: Request, env: CommerceEnv = e
     const plan = await inspectProductionPlan(config, transport);
     return result(200, 'OK', { ...plan, checkoutCreated: false, paymentCreated: false, creditGranted: false });
   } catch (error) {
-    if (error instanceof ProductionPlanMismatch) return result(409, error.code, { mismatches: error.fields });
+    if (error instanceof ProductionPlanMismatch) return result(409, error.code, { mismatches: error.fields, settings:error.settings });
     return error instanceof WhopError ? result(error.status, error.code) : result(503, 'WHOP_PREFLIGHT_UNAVAILABLE');
   }
 }

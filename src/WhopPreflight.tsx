@@ -21,7 +21,16 @@ export default function WhopPreflight({ locale, onAuthLost }: { locale:Locale; o
         : { plan:'Plan ID',company:'Seller account',product:'Product',billing:'Billing type',currency:'Currency',price:'Price',renewal:'Renewal charge',conversion:'Currency conversion',tax:'Tax' };
       if (response.status === 409 && body?.code === 'PRODUCTION_PLAN_MISMATCH' && Array.isArray(data?.mismatches)
         && data.mismatches.length > 0 && data.mismatches.length <= 9 && data.mismatches.every((field:unknown) => typeof field === 'string' && Object.hasOwn(fields, field))) {
-        setMessage((ar ? 'حقول لم تجتز المطابقة: ' : 'Fields that did not pass verification: ') + data.mismatches.map((field:string) => fields[field]).join(ar ? '، ' : ', ')); return;
+        const states: Record<string,string> = ar
+          ? { enabled:'مفعّل',disabled:'معطّل',missing:'غير متاح في الرد',invalid:'صيغة غير متوافقة',inclusive:'شاملة للسعر',exclusive:'تضاف إلى السعر',unspecified:'غير محددة' }
+          : { enabled:'Enabled',disabled:'Disabled',missing:'Absent from response',invalid:'Incompatible format',inclusive:'Included in price',exclusive:'Added to price',unspecified:'Unspecified' };
+        const labels: Record<string,string> = ar
+          ? {conversion:'تحويل العملة',taxCollection:'تحصيل الضريبة',taxType:'أسلوب الضريبة'}
+          : {conversion:'Currency conversion',taxCollection:'Tax collection',taxType:'Tax treatment'};
+        const settings = Object.keys(labels).flatMap(key => typeof data.settings?.[key] === 'string' && Object.hasOwn(states,data.settings[key])
+          ? [labels[key] + ': ' + states[data.settings[key]]] : []);
+        setMessage((ar ? 'حقول لم تجتز المطابقة: ' : 'Fields that did not pass verification: ') + data.mismatches.map((field:string) => fields[field]).join(ar ? '، ' : ', ')
+          + (settings.length ? ' — ' + settings.join(ar ? '؛ ' : '; ') : '')); return;
       }
       const reasons: Record<string, string> = ar ? {
         WHOP_PRODUCTION_ACCESS_DENIED: 'رفض Whop صلاحية الوصول إلى الخطة. يلزم مراجعة صلاحية المفتاح المحفوظ.',

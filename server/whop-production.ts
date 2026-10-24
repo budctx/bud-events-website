@@ -5,13 +5,16 @@ import type { CommerceEnv } from './whop.ts';
 const API = 'https://api.whop.com/api/v1';
 // Explicit compatibility pin: never inherit the API key's changing response model.
 const VERSION = '2025-01-01';
+// Variant reads use the documented Account model; financial writes/reads retain their existing pin.
+const PLAN_VERSION = '2026-10-15-1';
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 export type ProductionPlanExpectation = { token: string; company: string; plan: string; currency: 'sar'; amount: number };
 export type ProductionPlan = { companyId: string; productId: string; planId: string; currency: 'sar'; amountMinor: number };
 export class ProductionPlanMismatch extends WhopError {
   readonly fields: string[];
-  constructor(fields: string[]) { super('PRODUCTION_PLAN_MISMATCH', 409); this.fields = fields; }
+  readonly settings: Record<string, string>;
+  constructor(fields: string[], settings: Record<string, string>) { super('PRODUCTION_PLAN_MISMATCH', 409); this.fields = fields; this.settings = settings; }
 }
 export type ProductionConfig = ProductionPlanExpectation & { product: string; origin: string; pilotHostId: string; secret: string; webhookVersion: string };
 export type ProductionOrder = { orderId: string; hostId: string; environment: 'production'; companyId: string; productId: string;
@@ -50,9 +53,9 @@ export function whopProductionProcessingConfig(env: CommerceEnv): ProductionConf
       secret: env.WHOP_PRODUCTION_WEBHOOK_SECRET!, webhookVersion: env.WHOP_PRODUCTION_WEBHOOK_API_VERSION! };
   } catch { return null; }
 }
-async function provider(path: string, config: ProductionPlanExpectation, transport: typeof fetch, init: RequestInit = {}) {
+async function provider(path: string, config: ProductionPlanExpectation, transport: typeof fetch, init: RequestInit = {}, version = VERSION) {
   const headers = new Headers(init.headers);
-  headers.set('Authorization', 'Bearer ' + config.token); headers.set('Api-Version-Date', VERSION);
+  headers.set('Authorization', 'Bearer ' + config.token); headers.set('Api-Version-Date', version);
   let response: Response;
   try { response = await transport(API + path, { ...init, headers, redirect: 'error', signal: AbortSignal.timeout(8000) }); }
   catch { throw new WhopError('WHOP_PRODUCTION_UNAVAILABLE'); }
@@ -71,10 +74,10 @@ async function provider(path: string, config: ProductionPlanExpectation, transpo
 }
 /** GET only: discover the product from the verified plan, without requesting broad catalogue access or logging the raw response. */
 export async function inspectProductionPlan(config: ProductionPlanExpectation, transport: typeof fetch = fetch): Promise<ProductionPlan> {
-  const plan = await provider('/plans/' + encodeURIComponent(config.plan), config, transport);
+  const plan = await provider('/variants/' + encodeURIComponent(config.plan), config, transport, {}, PLAN_VERSION);
   const checks: Record<string, boolean> = {
     plan: plan.id === config.plan,
-    company: object(plan.company) && plan.company.id === config.company,
+    company: object(plan.account) && plan.account.id === config.company,
     product: object(plan.product) && typeof plan.product.id === 'string' && /^prod_[A-Za-z0-9]{5,80}$/.test(plan.product.id),
     billing: plan.plan_type === 'one_time', currency: plan.currency === config.currency,
     price: money(plan.initial_price) === config.amount, renewal: money(plan.renewal_price) === 0,
@@ -82,7 +85,11 @@ export async function inspectProductionPlan(config: ProductionPlanExpectation, t
       && (!plan.collect_tax || plan.tax_type === 'inclusive'),
   };
   const mismatches = Object.keys(checks).filter(field => !checks[field]);
-  if (mismatches.length) throw new ProductionPlanMismatch(mismatches);
+  if (mismatches.length) {
+    const flag = (value: unknown) => value === true ? 'enabled' : value === false ? 'disabled' : value === undefined ? 'missing' : 'invalid';
+    throw new ProductionPlanMismatch(mismatches, { conversion: flag(plan.adaptive_pricing_enabled), taxCollection: flag(plan.collect_tax),
+      taxType: ['inclusive','exclusive','unspecified'].includes(String(plan.tax_type)) ? String(plan.tax_type) : plan.tax_type === undefined ? 'missing' : 'invalid' });
+  }
   // The product shape has been checked above; expose only its validated identifier.
   const product = plan.product as { id: string };
   return { companyId: config.company, productId: product.id, planId: config.plan, currency: config.currency, amountMinor: config.amount };
