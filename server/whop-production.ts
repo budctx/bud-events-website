@@ -53,7 +53,7 @@ function money(value: unknown): number | null {
   const match = /^(0|[1-9][0-9]{0,6})(?:\.([0-9]{1,2}))?$/.exec(String(value));
   return match ? Number(match[1]) * 100 + Number((match[2] ?? '').padEnd(2, '0')) : null;
 }
-/** Read-only expectations. The owner adopted SAR 2 as the official one-time price. */
+/** Read-only expectations. The owner adopted SAR 3 as the current official one-time price. */
 export function productionPlanExpectation(env: CommerceEnv): ProductionPlanExpectation | null {
   if (!env.WHOP_PRODUCTION_API_KEY || !/^biz_[A-Za-z0-9]{5,80}$/.test(env.WHOP_PRODUCTION_COMPANY_ID ?? '')
     || !/^plan_[A-Za-z0-9]{5,80}$/.test(env.WHOP_PRODUCTION_PLAN_ID ?? '')

@@ -1,5 +1,7 @@
 # Whop plan read contract
 
+Current owner override,24October2026: official Question and Condition price is now SAR3 (300minor), superseding SAR2 for new purchases. The same stored plan/product remain; historical order amounts and the earlier real SAR2/tax0 preview evidence are preserved. Coordinate Whop saved price, Production expected amount and AR/EN CTA; keep all financial controls off. The SAR2 preview had already succeeded, so a minimum-charge explanation for the earlier request rejection is unproven. Quote/checkout acceptance remains separate from this price change.
+
 The actual protected inspection after PR23 failed only currency conversion and tax. Plan/account/product/billing/currency/price/renewal predicates passed. This does not identify whether the failed fields were enabled, missing or incompatible, and does not justify changing merchant tax settings.
 
 The follow-up uses a single GET `/variants/{stored plan ID}` pinned to `2026-10-15-1`, with the documented `account` identity model. No fallback accepts a mixture of company/account response models. Price remains the approved SAR2 in major units, zero renewal, one-time billing, conversion explicitly false and tax explicitly not collected or inclusive. Missing fields still fail closed.
