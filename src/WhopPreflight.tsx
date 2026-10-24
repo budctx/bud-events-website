@@ -16,6 +16,22 @@ export default function WhopPreflight({ locale, onAuthLost }: { locale:Locale; o
       const body = await response.json().catch(() => null), data = body?.data;
       if (controller.signal.aborted) return;
       if (response.status === 401) { onAuthLost(); return; }
+      const reasons: Record<string, string> = ar ? {
+        WHOP_PRODUCTION_ACCESS_DENIED: 'رفض Whop صلاحية الوصول إلى الخطة. يلزم مراجعة صلاحية المفتاح المحفوظ.',
+        WHOP_PRODUCTION_RESOURCE_NOT_FOUND: 'لم يجد Whop الخطة المطلوبة. يلزم مراجعة ربط الخطة بالحساب.',
+        WHOP_PRODUCTION_RATE_LIMITED: 'طلب Whop الانتظار قبل إعادة الفحص.',
+        WHOP_PRODUCTION_REQUEST_REJECTED: 'رفض Whop صيغة طلب الفحص. يلزم مراجعة توافق إصدار الربط.',
+        INVALID_PRODUCTION_PROVIDER_RESPONSE: 'وصل رد غير متوافق من Whop. يلزم مراجعة صيغة بيانات الربط.',
+        PRODUCTION_PLAN_MISMATCH: 'تم الوصول إلى Whop، لكن بيانات الخطة لا تطابق شروط التجربة المعتمدة.',
+      } : {
+        WHOP_PRODUCTION_ACCESS_DENIED: 'Whop denied plan access. Review the saved key permissions.',
+        WHOP_PRODUCTION_RESOURCE_NOT_FOUND: 'Whop could not find the requested plan. Review its account binding.',
+        WHOP_PRODUCTION_RATE_LIMITED: 'Whop requested a pause before another check.',
+        WHOP_PRODUCTION_REQUEST_REJECTED: 'Whop rejected the inspection request format. Review API version compatibility.',
+        INVALID_PRODUCTION_PROVIDER_RESPONSE: 'Whop returned an incompatible response. Review the integration data format.',
+        PRODUCTION_PLAN_MISMATCH: 'Whop responded, but the plan does not match the approved pilot requirements.',
+      };
+      if (!response.ok && typeof body?.code === 'string' && Object.hasOwn(reasons, body.code)) { setMessage(reasons[body.code]); return; }
       if (!response.ok || body?.code !== 'OK' || !data || typeof data.companyId !== 'string' || !/^biz_[A-Za-z0-9]{5,80}$/.test(data.companyId)
         || typeof data.productId !== 'string' || !/^prod_[A-Za-z0-9]{5,80}$/.test(data.productId) || typeof data.planId !== 'string' || !/^plan_[A-Za-z0-9]{5,80}$/.test(data.planId) || data.currency !== 'sar'
         || data.amountMinor !== 200 || data.checkoutCreated !== false || data.paymentCreated !== false || data.creditGranted !== false) throw Error();

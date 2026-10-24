@@ -58,4 +58,9 @@ test('explicit pilot inspection performs an empty protected POST and creates no 
   const inspection=page.getByTestId('whop-preflight');await inspection.getByRole('button').click();
   await expect(inspection.getByRole('status')).toContainText('لم يُنشأ طلب شراء');
   expect(inspections).toBe(1);expect(checkouts).toBe(0);
+  await page.unroute('**/api/whop-preflight');
+  await page.route('**/api/whop-preflight',route=>route.fulfill({status:503,json:{code:'WHOP_PRODUCTION_ACCESS_DENIED',privateDetails:'must-not-display'}}));
+  await inspection.getByRole('button').click();
+  await expect(inspection.getByRole('status')).toContainText('رفض Whop صلاحية الوصول');
+  await expect(inspection).not.toContainText('must-not-display');expect(checkouts).toBe(0);
 });
