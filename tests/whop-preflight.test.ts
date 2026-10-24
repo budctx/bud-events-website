@@ -50,6 +50,7 @@ test('preflight requires independent opt-in, backend, exact origin, POST and no 
 test('preflight rejects guests, a different verified pilot host and unavailable/rate-limited requests without contacting Whop', async () => {
   const noProvider: typeof fetch = async () => { assert.fail('provider must not run'); };
   assert.equal((await handleWhopPreflight(request(), env, mock(noProvider))).status, 401);
+  assert.equal((await handleWhopPreflight(request(undefined, { body: '' }), env, mock(noProvider))).status, 401);
   const cookie = await session();
   assert.equal((await handleWhopPreflight(request(cookie), { ...env, BUD_WHOP_PILOT_HOST_ID: '33333333-3333-4333-8333-333333333333' }, mock(noProvider))).status, 403);
   assert.equal((await handleWhopPreflight(request(cookie), env, mock(noProvider, false))).status, 429);
@@ -58,7 +59,7 @@ test('preflight rejects guests, a different verified pilot host and unavailable/
 
 test('authenticated pilot preflight performs only a provider GET with stored expectations while selling is disabled', async () => {
   const cookie = await session(); let providerCalls = 0;
-  const response = await handleWhopPreflight(request(cookie), env, mock(async (input, init) => {
+  const response = await handleWhopPreflight(request(cookie, { body: '' }), env, mock(async (input, init) => {
     providerCalls++;
     assert.equal(String(input), 'https://api.whop.com/api/v1/plans/' + env.WHOP_PRODUCTION_PLAN_ID);
     assert.equal(init?.method ?? 'GET', 'GET');

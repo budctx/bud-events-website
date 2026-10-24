@@ -1,7 +1,7 @@
 import { resolveSession } from './auth.ts';
 import { enforceRateLimit } from './rate-limit.ts';
 import { inspectProductionPlan, productionPlanExpectation } from './whop-production.ts';
-import { WhopError } from './whop.ts';
+import { boundedProviderText, WhopError } from './whop.ts';
 import type { CommerceEnv } from './whop.ts';
 
 const PROJECT = 'https://cepmvqqrjcvhyzszqand.supabase.co';
@@ -25,7 +25,10 @@ export async function handleWhopPreflight(request: Request, env: CommerceEnv = e
   try { origin = new URL(env.BUD_APP_ORIGIN ?? ''); } catch { return result(503, 'WHOP_PREFLIGHT_NOT_CONFIGURED'); }
   if (origin.protocol !== 'https:' || origin.origin !== env.BUD_APP_ORIGIN) return result(503, 'WHOP_PREFLIGHT_NOT_CONFIGURED');
   if (new URL(request.url).origin !== origin.origin || request.headers.get('origin') !== origin.origin) return result(403, 'ORIGIN_DENIED');
-  if (new URL(request.url).search || request.body !== null) return result(400, 'EMPTY_PREFLIGHT_REQUIRED');
+  if (new URL(request.url).search) return result(400, 'EMPTY_PREFLIGHT_REQUIRED');
+  // Hosting adapters may provide an empty stream for a zero-byte POST.
+  try { if (request.body && await boundedProviderText(request.body, 0) !== '') return result(400, 'EMPTY_PREFLIGHT_REQUIRED'); }
+  catch { return result(400, 'EMPTY_PREFLIGHT_REQUIRED'); }
   try {
     const limited = await enforceRateLimit(request, env, transport, 'checkout');
     if (limited) return limited;
