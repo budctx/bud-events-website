@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { encrypt, decrypt, inside, scopedRestoreList, postgresFailureCode } from '../scripts/database-backup.mjs';
+import { encrypt, decrypt, inside, scopedRestoreList, postgresFailureCode, snapshotMismatch, validateRecoveryMetadata } from '../scripts/database-backup.mjs';
 import { readOfficialCa, validateOfficialCa } from '../scripts/backup-tls.mjs';
 
 test('backup trusts only the reviewed official CA and rejects corrupt or expired trust material', async () => {
@@ -53,4 +53,20 @@ test('backup diagnoses failure classes without returning stderr, secrets or unkn
   assert.equal(code,'POSTGRES_PSQL_'+reason); assert.doesNotMatch(code,/password|private|postgres:\/\//);
  }
  assert.equal(postgresFailureCode(secret,{stderr:secret}),'POSTGRES_TOOL_FAILED');
+});
+
+test('recovery comparison preserves all expected tables, counts and contents independent of catalog ordering',()=>{
+ const row={schema:'auth',table:'users',count:1,digest:'a'.repeat(32)};
+ const other={schema:'bud_platform',table:'wallets',count:0,digest:'b'.repeat(32)};
+ assert.equal(snapshotMismatch([row,other],[other,row]),null);
+ assert.equal(snapshotMismatch([row],[{...row,digest:'c'.repeat(32)}]),'CONTENT_MISMATCH');
+ assert.equal(snapshotMismatch([row],[{...row,count:2}]),'ROW_COUNT_MISMATCH');
+ assert.equal(snapshotMismatch([row,other],[row]),'TABLE_SET_MISMATCH');
+ assert.equal(snapshotMismatch([row],[row,other]),'TABLE_SET_MISMATCH');
+ const metadata={source:{host:'aws-0-ap-south-1.pooler.supabase.com',port:'5432',user:'postgres.cepmvqqrjcvhyzszqand',database:'postgres'},roles:[],before:[row,other],after:[other,row],dumpSha256:'d'.repeat(64)};
+ assert.equal(validateRecoveryMetadata(metadata),metadata);
+ assert.throws(()=>validateRecoveryMetadata({...metadata,source:{...metadata.source,host:'other'}}),/BACKUP_METADATA_INVALID/);
+ assert.throws(()=>validateRecoveryMetadata({...metadata,before:[row,row]}),/BACKUP_METADATA_INVALID/);
+ assert.throws(()=>validateRecoveryMetadata({...metadata,before:[{...row,count:-1}]}),/BACKUP_METADATA_INVALID/);
+ assert.throws(()=>validateRecoveryMetadata({...metadata,after:[{...row,digest:'e'.repeat(32)},other]}),/SOURCE_CHANGED/);
 });
