@@ -6,3 +6,12 @@ playwright-report/
 !.env.example
 
 supabase/.temp/
+
+# Commercial card inventory/editorial answers stay local/private; this repository is public.
+content/question-condition/bank.json
+content/question-condition/editorial-answers.json
+docs/QUESTION_CONDITION_COMMERCIAL_CONTENT.md
+docs/CONTENT_OWNER_REVIEW.md
+artifacts/content-bank-typography.log
+artifacts/commercial-content-*.log
+artifacts/commercial-content-*.json
