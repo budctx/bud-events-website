@@ -1,6 +1,6 @@
 import { resolveSession } from './auth.ts';
 import { enforceRateLimit } from './rate-limit.ts';
-import { inspectProductionPlan, productionPlanExpectation } from './whop-production.ts';
+import { inspectProductionPlan, productionPlanExpectation, ProductionPlanMismatch } from './whop-production.ts';
 import { boundedProviderText, WhopError } from './whop.ts';
 import type { CommerceEnv } from './whop.ts';
 
@@ -44,6 +44,7 @@ export async function handleWhopPreflight(request: Request, env: CommerceEnv = e
     const plan = await inspectProductionPlan(config, transport);
     return result(200, 'OK', { ...plan, checkoutCreated: false, paymentCreated: false, creditGranted: false });
   } catch (error) {
+    if (error instanceof ProductionPlanMismatch) return result(409, error.code, { mismatches: error.fields });
     return error instanceof WhopError ? result(error.status, error.code) : result(503, 'WHOP_PREFLIGHT_UNAVAILABLE');
   }
 }

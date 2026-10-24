@@ -16,33 +16,40 @@ export default function WhopPreflight({ locale, onAuthLost }: { locale:Locale; o
       const body = await response.json().catch(() => null), data = body?.data;
       if (controller.signal.aborted) return;
       if (response.status === 401) { onAuthLost(); return; }
+      const fields: Record<string, string> = ar
+        ? { plan:'معرّف الخطة',company:'حساب البيع',product:'المنتج',billing:'نوع الدفع',currency:'العملة',price:'السعر',renewal:'رسوم التجديد',conversion:'تحويل العملة',tax:'الضريبة' }
+        : { plan:'Plan ID',company:'Seller account',product:'Product',billing:'Billing type',currency:'Currency',price:'Price',renewal:'Renewal charge',conversion:'Currency conversion',tax:'Tax' };
+      if (response.status === 409 && body?.code === 'PRODUCTION_PLAN_MISMATCH' && Array.isArray(data?.mismatches)
+        && data.mismatches.length > 0 && data.mismatches.length <= 9 && data.mismatches.every((field:unknown) => typeof field === 'string' && Object.hasOwn(fields, field))) {
+        setMessage((ar ? 'حقول لم تجتز المطابقة: ' : 'Fields that did not pass verification: ') + data.mismatches.map((field:string) => fields[field]).join(ar ? '، ' : ', ')); return;
+      }
       const reasons: Record<string, string> = ar ? {
         WHOP_PRODUCTION_ACCESS_DENIED: 'رفض Whop صلاحية الوصول إلى الخطة. يلزم مراجعة صلاحية المفتاح المحفوظ.',
         WHOP_PRODUCTION_RESOURCE_NOT_FOUND: 'لم يجد Whop الخطة المطلوبة. يلزم مراجعة ربط الخطة بالحساب.',
         WHOP_PRODUCTION_RATE_LIMITED: 'طلب Whop الانتظار قبل إعادة الفحص.',
         WHOP_PRODUCTION_REQUEST_REJECTED: 'رفض Whop صيغة طلب الفحص. يلزم مراجعة توافق إصدار الربط.',
         INVALID_PRODUCTION_PROVIDER_RESPONSE: 'وصل رد غير متوافق من Whop. يلزم مراجعة صيغة بيانات الربط.',
-        PRODUCTION_PLAN_MISMATCH: 'تم الوصول إلى Whop، لكن بيانات الخطة لا تطابق شروط التجربة المعتمدة.',
+        PRODUCTION_PLAN_MISMATCH: 'تم الوصول إلى Whop، لكن بيانات الخطة لا تطابق شروط البيع المعتمدة.',
       } : {
         WHOP_PRODUCTION_ACCESS_DENIED: 'Whop denied plan access. Review the saved key permissions.',
         WHOP_PRODUCTION_RESOURCE_NOT_FOUND: 'Whop could not find the requested plan. Review its account binding.',
         WHOP_PRODUCTION_RATE_LIMITED: 'Whop requested a pause before another check.',
         WHOP_PRODUCTION_REQUEST_REJECTED: 'Whop rejected the inspection request format. Review API version compatibility.',
         INVALID_PRODUCTION_PROVIDER_RESPONSE: 'Whop returned an incompatible response. Review the integration data format.',
-        PRODUCTION_PLAN_MISMATCH: 'Whop responded, but the plan does not match the approved pilot requirements.',
+        PRODUCTION_PLAN_MISMATCH: 'Whop responded, but the plan does not match the approved sale requirements.',
       };
       if (!response.ok && typeof body?.code === 'string' && Object.hasOwn(reasons, body.code)) { setMessage(reasons[body.code]); return; }
       if (!response.ok || body?.code !== 'OK' || !data || typeof data.companyId !== 'string' || !/^biz_[A-Za-z0-9]{5,80}$/.test(data.companyId)
         || typeof data.productId !== 'string' || !/^prod_[A-Za-z0-9]{5,80}$/.test(data.productId) || typeof data.planId !== 'string' || !/^plan_[A-Za-z0-9]{5,80}$/.test(data.planId) || data.currency !== 'sar'
         || data.amountMinor !== 200 || data.checkoutCreated !== false || data.paymentCreated !== false || data.creditGranted !== false) throw Error();
       setResult({ companyId:data.companyId,productId:data.productId,planId:data.planId,currency:data.currency,amountMinor:data.amountMinor });
-      setMessage(ar ? 'تم التحقق من خطة التجربة. لم يُنشأ طلب شراء أو دفعة أو مفتاح.' : 'The pilot plan was verified. No checkout, payment or key was created.');
-    } catch { if (!controller.signal.aborted) setMessage(ar ? 'لم ينجح التحقق. لا تبدأ تجربة الدفع قبل مراجعة الإعدادات.' : 'Verification did not pass. Review the configuration before attempting a payment.'); }
+      setMessage(ar ? 'تم التحقق من خطة الدفع. لم يُنشأ طلب شراء أو دفعة أو مفتاح.' : 'The payment plan was verified. No checkout, payment or key was created.');
+    } catch { if (!controller.signal.aborted) setMessage(ar ? 'لم ينجح التحقق. لا تفعّل الدفع قبل مراجعة الإعدادات.' : 'Verification did not pass. Review the configuration before attempting a payment.'); }
     finally { if (!controller.signal.aborted) setBusy(false); }
   };
   return <section className="platform-payment-status" data-testid="whop-preflight" aria-labelledby="whop-preflight-heading" aria-busy={busy}>
-    <div><h2 id="whop-preflight-heading">{ar ? 'فحص ربط الدفع — حساب التجربة' : 'Payment connection check — pilot account'}</h2>
-      <p>{ar ? 'فحص إعدادات الخطة فقط، قبل تجربة الدفع الفعلية.' : 'Inspect the plan configuration before the real payment test.'}</p>
+    <div><h2 id="whop-preflight-heading">{ar ? 'فحص ربط الدفع — حساب الإدارة' : 'Payment connection check — admin account'}</h2>
+      <p>{ar ? 'فحص إعدادات الخطة فقط، قبل تفعيل الدفع الفعلي.' : 'Inspect the plan configuration before the real payment test.'}</p>
       {message && <p role="status">{message}</p>}
       {result && <><p>{new Intl.NumberFormat(locale,{style:'currency',currency:'sar'}).format(result.amountMinor/100)}</p>
         <details><summary>{ar ? 'مراجع الفحص' : 'Inspection references'}</summary>
