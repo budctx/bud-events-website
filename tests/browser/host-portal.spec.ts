@@ -11,7 +11,7 @@ test('legacy host URL remains the contextual events gallery without a standalone
   await page.goto('/?screen=host&lang=ar');
   await expect(page.getByRole('heading', { name: 'فعاليات بُعد' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'بدء الفعالية', exact: true })).toHaveCount(0);
-  await expect(page.getByTestId('product-card-qc')).toHaveText('اشترِ الآن');
+  await expect(page.getByTestId('product-card-qc')).toHaveText('اشترِ الآن — ٢ ر.س');
   await expect(page).toHaveURL(/screen=events/);
 });
 async function openHistory(page: import('@playwright/test').Page) {

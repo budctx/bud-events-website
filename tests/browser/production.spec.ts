@@ -52,7 +52,7 @@ for (const locale of ['ar','en']) for (const size of sizes) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth+1)).toBeTruthy();
     await page.screenshot({path:info.outputPath(`home-${locale}-${size.width}.png`),fullPage:true,animations:'disabled'});
     await page.getByTestId('nav-events').click();
-    await expect(page.getByTestId('product-card-qc')).toHaveText(locale==='ar'?'اشترِ الآن':'Buy now');
+    await expect(page.getByTestId('product-card-qc')).toHaveText(locale==='ar'?'اشترِ الآن — ٢ ر.س':'Buy now — SAR 2');
     await expect(page.getByTestId('product-dialog')).toHaveCount(0);
     await page.screenshot({path:info.outputPath(`events-${locale}-${size.width}.png`),fullPage:true,animations:'disabled'});
     await page.getByTestId('nav-bots').click();
