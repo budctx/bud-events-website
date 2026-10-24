@@ -52,7 +52,12 @@ async function provider(path: string, config: ProductionPlanExpectation, transpo
   let response: Response;
   try { response = await transport(API + path, { ...init, headers, redirect: 'error', signal: AbortSignal.timeout(8000) }); }
   catch { throw new WhopError('WHOP_PRODUCTION_UNAVAILABLE'); }
-  if (!response.ok) throw new WhopError('WHOP_PRODUCTION_UNAVAILABLE');
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) throw new WhopError('WHOP_PRODUCTION_ACCESS_DENIED');
+    if (response.status === 404) throw new WhopError('WHOP_PRODUCTION_RESOURCE_NOT_FOUND');
+    if (response.status === 429) throw new WhopError('WHOP_PRODUCTION_RATE_LIMITED');
+    throw new WhopError('WHOP_PRODUCTION_UNAVAILABLE');
+  }
   try {
     const data: unknown = JSON.parse(await boundedProviderText(response.body));
     if (!object(data)) throw new Error();
