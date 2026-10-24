@@ -45,6 +45,22 @@ async function removePrivate(path) {
   if (!inside(PRIVATE, path)) throw Error('UNSAFE_CLEANUP_TARGET');
   await rm(path, { recursive: true, force: true });
 }
+// Classify locally; never return stderr, commands, paths, usernames or credentials.
+export function postgresFailureCode(name,error) {
+  const tool=['psql','pg_dump','pg_restore','initdb','pg_ctl'].includes(name)?name.toUpperCase():'TOOL';
+  const code=error?.code;
+  if(code==='ENOENT')return `POSTGRES_${tool}_BINARY_NOT_FOUND`;
+  if(code==='EACCES'||code==='EPERM')return `POSTGRES_${tool}_LOCAL_ACCESS_DENIED`;
+  if(error?.killed===true||code==='ETIMEDOUT')return `POSTGRES_${tool}_TIMEOUT`;
+  const message=typeof error?.stderr==='string'?error.stderr.slice(0,8192):'';
+  const reason=/certificate verify failed|root certificate|SSL error|certificate validation|server certificate/i.test(message)?'TLS_FAILED'
+    :/password authentication failed|no password supplied|SASL authentication failed/i.test(message)?'AUTHENTICATION_FAILED'
+    :/could not translate host name|Name or service not known|No such host/i.test(message)?'DNS_FAILED'
+    :/connection timed out|timeout expired/i.test(message)?'CONNECTION_TIMEOUT'
+    :/connection refused|could not connect to server|network is unreachable/i.test(message)?'CONNECTION_FAILED'
+    :/permission denied|must be owner|insufficient privilege/i.test(message)?'PERMISSION_DENIED':'FAILED';
+  return `POSTGRES_${tool}_${reason}`;
+}
 async function tool(name, args, env) {
   // Native PostgreSQL bootstrap on Windows requires ASCII paths; use the same folder's 8.3 alias.
   const native = value => value.replaceAll(ROOT, postgresRoot);
@@ -56,7 +72,7 @@ async function tool(name, args, env) {
     child.once('exit', code => { clearTimeout(timer); code === 0 ? accept('') : reject(Error('POSTGRES_PG_CTL_FAILED')); });
   });
   try { return (await execute(native(join(BIN, name + '.exe')), args.map(native), { env, windowsHide: true, timeout: 180000, maxBuffer: 8 * 1024 * 1024 })).stdout.trim(); }
-  catch { throw Error('POSTGRES_' + name.toUpperCase() + '_FAILED'); }
+  catch(error) { throw Error(postgresFailureCode(name,error)); }
 }
 function cleanEnv(extra) {
   return { ...Object.fromEntries(Object.entries(process.env).filter(([name]) => !name.toUpperCase().startsWith('PG'))), ...extra };

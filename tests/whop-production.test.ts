@@ -51,6 +51,16 @@ test('read-only variant discovery uses only pinned production GET and returns no
   assert.deepEqual(result, { companyId: config.company, productId: config.product, planId: config.plan, currency: 'sar', amountMinor: 200 });
   assert.equal(calls.length, 1); assert.doesNotMatch(JSON.stringify(result), /token|customer|key/i);
 });
+
+test('plan evidence binds exact configured product and exposes only validated identities and response timing',async()=>{
+ let evidence:unknown;
+ await assert.rejects(inspectProductionPlan(config,async()=>Response.json({...plan,product:{id:'prod_other123'},privateCustomer:'never expose'},
+  {headers:{Date:'Sat, 24 Oct 2026 06:00:00 GMT',Age:'42','x-private':'never expose'}}),value=>{evidence=value;}),/PRODUCTION_PLAN_MISMATCH/);
+ const value=evidence as {productBinding:string;expected:{productId:string};observed:{productId:string};apiVersion:string;providerDate:string;cacheAgeSeconds:number;quoteChecked:boolean};
+ assert.equal(value.productBinding,'mismatched');assert.equal(value.expected.productId,config.product);assert.equal(value.observed.productId,'prod_other123');
+ assert.equal(value.apiVersion,'2026-10-15-1');assert.equal(value.providerDate,'2026-10-24T06:00:00.000Z');assert.equal(value.cacheAgeSeconds,42);assert.equal(value.quoteChecked,false);
+ assert.doesNotMatch(JSON.stringify(value),/never expose|privateCustomer|x-private|fixture-production-key/);
+});
 test('production plan rejects wrong identity, price, recurring charge, automatic conversion and additive tax before checkout', async () => {
   for (const change of [{ id: 'plan_wrong123' }, { account: { id: 'biz_wrong123' } }, { account:undefined,company:{id:config.company} }, { product: null }, { currency: 'usd' },
     { initial_price: 18 }, { initial_price: 2.001 }, { renewal_price: 2 }, { plan_type: 'renewal' }, { adaptive_pricing_enabled: true },

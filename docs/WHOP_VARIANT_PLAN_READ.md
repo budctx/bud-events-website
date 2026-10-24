@@ -11,3 +11,17 @@ On mismatch, the admin endpoint additionally returns only allowlisted states for
 The new provider read must be verified in production before recording the issue as fixed. Sales, workers and all three unapplied live migrations remain gated. Existing official SAR2 CTA and owner data are preserved. Exact head, CI, deployment and actual result belong in the Notion work log.
 
 Sources: [Whop API versions and migration compatibility](https://docs.whop.com/developer/api/versioning), [Variant fields](https://docs.whop.com/api-reference/beta/variants/variant).
+
+## Evidence correction and independent quote preview
+
+The protected plan inspection now supplies validated expected/observed account, plan and product IDs, an explicit API version, inspection time and sanitized provider Date/Age metadata. Provider requests use no-store; this does not prove that a provider has no internal cache. A missing expected product is explicitly `not_configured`, never a product identity match. A configured different product fails before checkout or quote POST.
+
+Raw adaptive pricing is not the processor-effective configuration. Account tax collection and exclusive treatment do not prove a particular buyer owes tax. The UI explains this distinction and says tax is added **if assessed**. The existing strict checkout checks remain in place; no raw mismatch is waived for real purchasing.
+
+`POST /api/whop-quote` is a separate owner-only empty-body diagnostic, with all the same auth/origin/rate limits plus `BUD_WHOP_QUOTE_PREFLIGHT_ENABLED=true` and a configured expected product. Default is disabled. It first verifies plan identity, product, price, currency, one-time billing and zero renewal; only raw conversion/tax mismatches can be bypassed **for this preview**. It then sends only account ID, existing plan ID/quantity 1, presentment_country SA and presentment_currency sar to POST /payment_quotes pinned independently to 2026-10-24. No address, IP, name, buyer registration, card, inline plan, promo code or payment is sent. Permission failure is reported without expanding key scopes.
+
+Country-only quotes are previews; according to Whop a payment cannot consume a quote located by presentment_country. The handler verifies that location mode, a future expiry, unspent state, account/plan/quantity, unconverted SAR money objects, zero discount, line and overall arithmetic and available tax status. It reports an additive-tax total honestly instead of normalizing it to 200. Quote IDs and raw bodies are discarded. Results do not authorize selling, establish tax exemption, prove a customer's final charge, or alter runtime/SQL controls. The existing checkout does not consume this quote. A final buyer quote/payment integration remains separate work before any change to strict checkout acceptance.
+
+The implemented quote contract still needs a real deployment and authenticated provider verification. Local tests use mocked Whop responses. Do not call a mock preview actual Whop evidence or rerun the failed backup prompt as part of this inspection.
+
+Quote source: https://docs.whop.com/api-reference/beta/payment-quotes/create-payment-quote

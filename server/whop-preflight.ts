@@ -3,6 +3,8 @@ import { enforceRateLimit } from './rate-limit.ts';
 import { inspectProductionPlan, productionPlanExpectation, ProductionPlanMismatch } from './whop-production.ts';
 import { boundedProviderText, WhopError } from './whop.ts';
 import type { CommerceEnv } from './whop.ts';
+import type { PlanEvidence } from './whop-production.ts';
+import { previewProductionQuote } from './whop-quote.ts';
 
 const PROJECT = 'https://cepmvqqrjcvhyzszqand.supabase.co';
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -10,7 +12,14 @@ function environment(): CommerceEnv { return (globalThis as unknown as { process
 
 /** Owner-only inspection in the runtime that already owns the secret. Never creates an order, checkout or credit. */
 export async function handleWhopPreflight(request: Request, env: CommerceEnv = environment(), transport: typeof fetch = fetch): Promise<Response> {
+  return handleInspection(request,env,transport,false);
+}
+export async function handleWhopQuote(request: Request, env: CommerceEnv = environment(), transport: typeof fetch = fetch): Promise<Response> {
+  return handleInspection(request,env,transport,true);
+}
+async function handleInspection(request:Request,env:CommerceEnv,transport:typeof fetch,quote:boolean):Promise<Response> {
   let sessionHeaders: Headers | undefined;
+  let evidence:PlanEvidence|undefined;
   const result = (status: number, code: string, data?: unknown) => {
     const headers = new Headers({ 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer' });
     if (sessionHeaders) for (const cookie of sessionHeaders.getSetCookie()) headers.append('Set-Cookie', cookie);
@@ -18,6 +27,7 @@ export async function handleWhopPreflight(request: Request, env: CommerceEnv = e
   };
   if (request.method !== 'POST') return result(405, 'METHOD_NOT_ALLOWED');
   const config = productionPlanExpectation(env);
+  if(quote && (env.BUD_WHOP_QUOTE_PREFLIGHT_ENABLED!=='true'||!config?.product))return result(503,'QUOTE_PREFLIGHT_NOT_CONFIGURED');
   if (env.BUD_WHOP_PREFLIGHT_ENABLED !== 'true' || !config || !uuid.test(env.BUD_WHOP_PILOT_HOST_ID ?? '')
     || env.BUD_BACKEND_ENABLED !== 'true' || env.BUD_AUTH_ENABLED !== 'true' || env.SUPABASE_URL !== PROJECT || !env.SUPABASE_SERVICE_ROLE_KEY) return result(503, 'WHOP_PREFLIGHT_NOT_CONFIGURED');
   // This diagnostic has no dependency on sales flags or an enabled commerce control.
@@ -41,10 +51,11 @@ export async function handleWhopPreflight(request: Request, env: CommerceEnv = e
       if (sessionHeaders) for (const cookie of sessionHeaders.getSetCookie()) hostLimited.headers.append('Set-Cookie', cookie);
       return hostLimited;
     }
-    const plan = await inspectProductionPlan(config, transport);
-    return result(200, 'OK', { ...plan, checkoutCreated: false, paymentCreated: false, creditGranted: false });
+    if(quote)return result(200,'OK',await previewProductionQuote(config,transport));
+    const plan = await inspectProductionPlan(config, transport,value=>{evidence=value;});
+    return result(200, 'OK', { ...plan, evidence, checkoutCreated: false, paymentCreated: false, creditGranted: false });
   } catch (error) {
-    if (error instanceof ProductionPlanMismatch) return result(409, error.code, { mismatches: error.fields, settings:error.settings });
+    if (error instanceof ProductionPlanMismatch) return result(409, error.code, { mismatches: error.fields, settings:error.settings, ...(evidence?{evidence}:{}) });
     return error instanceof WhopError ? result(error.status, error.code) : result(503, 'WHOP_PREFLIGHT_UNAVAILABLE');
   }
 }

@@ -55,19 +55,44 @@ test('explicit pilot inspection performs an empty protected POST and creates no 
     return route.fulfill({json:{code:'OK',data:{companyId:'biz_fixture123',productId:'prod_fixture123',planId:'plan_fixture123',currency:'sar',amountMinor:200,checkoutCreated:false,paymentCreated:false,creditGranted:false}}});
   });
   await page.goto('/?screen=events&lang=ar&check=whop');
-  const inspection=page.getByTestId('whop-preflight');await inspection.getByRole('button').click();
+  const inspection=page.getByTestId('whop-preflight');await inspection.getByRole('button', {name:'التحقق من الخطة', exact:true}).click();
   await expect(inspection.getByRole('status')).toContainText('لم يُنشأ طلب شراء');
   expect(inspections).toBe(1);expect(checkouts).toBe(0);
   await page.unroute('**/api/whop-preflight');
   await page.route('**/api/whop-preflight',route=>route.fulfill({status:503,json:{code:'WHOP_PRODUCTION_ACCESS_DENIED',privateDetails:'must-not-display'}}));
-  await inspection.getByRole('button').click();
+  await inspection.getByRole('button', {name:'التحقق من الخطة', exact:true}).click();
   await expect(inspection.getByRole('status')).toContainText('رفض Whop صلاحية الوصول');
   await expect(inspection).not.toContainText('must-not-display');expect(checkouts).toBe(0);
   await page.unroute('**/api/whop-preflight');
   await page.route('**/api/whop-preflight',route=>route.fulfill({status:409,json:{code:'PRODUCTION_PLAN_MISMATCH',data:{mismatches:['company','tax'],settings:{conversion:'disabled',taxCollection:'enabled',taxType:'exclusive'},private:'must-not-display'}}}));
-  await inspection.getByRole('button').click();
+  await inspection.getByRole('button', {name:'التحقق من الخطة', exact:true}).click();
   await expect(inspection.getByRole('status')).toContainText('حقول لم تجتز المطابقة: حساب البيع، الضريبة');
-  await expect(inspection.getByRole('status')).toContainText('تحويل العملة: معطّل؛ تحصيل الضريبة: مفعّل؛ أسلوب الضريبة: تضاف إلى السعر');
+  await expect(inspection.getByRole('status')).toContainText('تحويل العملة: معطّل؛ تحصيل الضريبة: مفعّل؛ أسلوب الضريبة: تضاف عند احتسابها');
   await expect(inspection).not.toContainText('must-not-display');expect(checkouts).toBe(0);
   await page.screenshot({path:'artifacts/whop-admin-fields.png',fullPage:true});
+});
+
+test('independent quote is explicit, country preview only and never a purchase or launch success',async({page})=>{
+ let quotes=0,checkouts=0;
+ await page.route('**/api/auth**',route=>route.fulfill({json:{code:'OK',data:{id:host,displayName:'Fixture host'}}}));
+ await page.route('**/api/host',route=>route.fulfill({json:{code:'OK',data:{credits:0,events:[],products:[],contentVersions:[]}}}));
+ await page.route('**/api/checkout',route=>{checkouts++;return route.fulfill({status:503,json:{code:'DISABLED'}});});
+ await page.route('**/api/whop-quote',route=>{
+  quotes++;expect(route.request().postData()).toBeNull();
+  return route.fulfill({json:{code:'OK',data:{previewOnly:true,country:'SA',currency:'sar',quantity:1,totalMinor:230,taxAmountMinor:30,
+   paymentCreated:false,checkoutCreated:false,creditGranted:false,privateCustomer:'must-not-display'}}});
+ });
+ await page.setViewportSize({width:390,height:844});
+ await page.goto('/?screen=events&lang=ar&check=whop');
+ const panel=page.getByTestId('whop-preflight');await expect(panel).toBeVisible();expect(quotes).toBe(0);
+ await panel.getByRole('button',{name:'عرض سعر تقديري — السعودية'}).click();
+ await expect(panel.getByRole('status')).toContainText('ليس سعرًا نهائيًا لعميل');
+ await expect(panel).not.toContainText('must-not-display');expect(quotes).toBe(1);expect(checkouts).toBe(0);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
+ await page.screenshot({path:'artifacts/whop-quote-ar390.png',fullPage:true});
+ await page.setViewportSize({width:1440,height:900});
+ await page.getByRole('button',{name:'English',exact:true}).click();
+ await panel.getByRole('button',{name:'Preview price — Saudi Arabia'}).click();
+ await expect(panel.getByRole('status')).toContainText('Not a final buyer quote');expect(checkouts).toBe(0);
+ await page.screenshot({path:'artifacts/whop-quote-en1440.png',fullPage:true});
 });
