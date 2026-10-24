@@ -18,7 +18,8 @@ export async function previewProductionQuote(config:ProductionPlanExpectation, t
     if(!(error instanceof ProductionPlanMismatch)||!error.fields.every(field=>field==='conversion'||field==='tax'))throw error;
   }
   const quote=await productionProvider('/payment_quotes',config,transport,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({account_id:config.company,line_items:[{plan_id:config.plan,quantity:1}],presentment_country:'SA',presentment_currency:'sar'})},QUOTE_VERSION);
+    // Country replaces presentment_currency in Whop's quote contract; response must still be unconverted SAR.
+    body:JSON.stringify({account_id:config.company,line_items:[{plan_id:config.plan,quantity:1}],presentment_country:'SA'})},QUOTE_VERSION);
   const lines=quote.line_items;
   const total=minor(quote.total),baseTotal=minor(quote.base_total),subtotal=minor(quote.subtotal),tax=minor(quote.tax_amount),discount=minor(quote.discount);
   if(quote.account_id!==config.company||quote.currency!=='sar'||quote.base_currency!=='sar'||quote.exchange_rate!==null
