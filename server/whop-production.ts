@@ -56,6 +56,7 @@ async function provider(path: string, config: ProductionPlanExpectation, transpo
     if (response.status === 401 || response.status === 403) throw new WhopError('WHOP_PRODUCTION_ACCESS_DENIED');
     if (response.status === 404) throw new WhopError('WHOP_PRODUCTION_RESOURCE_NOT_FOUND');
     if (response.status === 429) throw new WhopError('WHOP_PRODUCTION_RATE_LIMITED');
+    if (response.status === 400 || response.status === 422) throw new WhopError('WHOP_PRODUCTION_REQUEST_REJECTED');
     throw new WhopError('WHOP_PRODUCTION_UNAVAILABLE');
   }
   try {
