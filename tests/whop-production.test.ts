@@ -11,7 +11,7 @@ const env = { WHOP_PRODUCTION_API_KEY: 'test-only-production-key', WHOP_PRODUCTI
   WHOP_ENVIRONMENT: 'production', BUD_WHOP_PRODUCTION_ENABLED: 'true', BUD_WHOP_PRODUCTION_PROCESSING_ENABLED: 'true', BUD_WHOP_PRODUCTION_MODE: 'pilot',
   BUD_WHOP_PILOT_HOST_ID: '22222222-2222-4222-8222-222222222222' };
 const config = whopProductionConfig(env)!;
-const plan = { id: config.plan, company: { id: config.company }, product: { id: config.product }, plan_type: 'one_time', currency: 'sar',
+const plan = { id: config.plan, account: { id: config.company }, product: { id: config.product }, plan_type: 'one_time', currency: 'sar',
   initial_price: 2, renewal_price: 0, adaptive_pricing_enabled: false, collect_tax: false };
 const order = { orderId: '11111111-1111-4111-8111-111111111111', hostId: config.pilotHostId, environment: 'production' as const,
   companyId: config.company, productId: config.product, planId: config.plan, currency: 'sar', amountMinor: 200, locale: 'en' as const,
@@ -39,12 +39,12 @@ test('stopping new purchases preserves separately configured signed intake and p
   assert.ok(whopProductionProcessingConfig(paused));
   assert.equal(whopProductionProcessingConfig({ ...paused, BUD_WHOP_PRODUCTION_PROCESSING_ENABLED: 'false' }), null);
 });
-test('read-only plan discovery uses only production GET, pins the legacy shape and returns no token or customer details', async () => {
+test('read-only variant discovery uses only pinned production GET and returns no token or customer details', async () => {
   const calls: string[] = [];
   const result = await inspectProductionPlan(config, async (input, init) => {
-    calls.push(String(input)); assert.equal(String(input), 'https://api.whop.com/api/v1/plans/' + config.plan);
+    calls.push(String(input)); assert.equal(String(input), 'https://api.whop.com/api/v1/variants/' + config.plan);
     assert.equal(init?.method ?? 'GET', 'GET'); assert.equal(init?.redirect, 'error');
-    const headers = new Headers(init?.headers); assert.equal(headers.get('api-version-date'), '2025-01-01');
+    const headers = new Headers(init?.headers); assert.equal(headers.get('api-version-date'), '2026-10-15-1');
     assert.equal(headers.get('authorization'), 'Bearer ' + env.WHOP_PRODUCTION_API_KEY);
     return Response.json({ ...plan, customer_email: 'must-not-return@example.test' });
   });
@@ -52,7 +52,7 @@ test('read-only plan discovery uses only production GET, pins the legacy shape a
   assert.equal(calls.length, 1); assert.doesNotMatch(JSON.stringify(result), /token|customer|key/i);
 });
 test('production plan rejects wrong identity, price, recurring charge, automatic conversion and additive tax before checkout', async () => {
-  for (const change of [{ id: 'plan_wrong123' }, { company: { id: 'biz_wrong123' } }, { product: null }, { currency: 'usd' },
+  for (const change of [{ id: 'plan_wrong123' }, { account: { id: 'biz_wrong123' } }, { account:undefined,company:{id:config.company} }, { product: null }, { currency: 'usd' },
     { initial_price: 18 }, { initial_price: 2.001 }, { renewal_price: 2 }, { plan_type: 'renewal' }, { adaptive_pricing_enabled: true },
     { collect_tax: true, tax_type: 'exclusive' }, { collect_tax: undefined }]) {
     let calls = 0;
@@ -60,6 +60,8 @@ test('production plan rejects wrong identity, price, recurring charge, automatic
       (error: WhopError) => error.code === 'PRODUCTION_PLAN_MISMATCH');
     assert.equal(calls, 1);
   }
+  await assert.rejects(inspectProductionPlan(config,async()=>Response.json({...plan,adaptive_pricing_enabled:undefined,collect_tax:true,tax_type:'exclusive',privateCustomer:'never expose'})),
+    (error:unknown)=>error instanceof WhopError && 'settings' in error && JSON.stringify(error.settings) === JSON.stringify({conversion:'missing',taxCollection:'enabled',taxType:'exclusive'}));
 });
 test('pilot rejects sandbox orders and another host without making provider requests', async () => {
   let calls = 0; const transport: typeof fetch = async () => { calls++; return Response.json(plan); };

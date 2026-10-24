@@ -52,8 +52,8 @@ test('isolated production orchestration: real SQL, authenticated pilot, durable 
       } catch (error) { return Response.json({ message: (error as Error).message }, { status: 400 }); }
     }
     assert.equal(url.origin, 'https://api.whop.com'); providerCalls++;
-    assert.equal(new Headers(init?.headers).get('api-version-date'), '2025-01-01');
-    if (url.pathname.includes('/plans/')) return Response.json({ id: env.WHOP_PRODUCTION_PLAN_ID, company: { id: env.WHOP_PRODUCTION_COMPANY_ID },
+    assert.equal(new Headers(init?.headers).get('api-version-date'), url.pathname.includes('/variants/') ? '2026-10-15-1' : '2025-01-01');
+    if (url.pathname.includes('/variants/')) return Response.json({ id: env.WHOP_PRODUCTION_PLAN_ID, account: { id: env.WHOP_PRODUCTION_COMPANY_ID },
       product: { id: env.WHOP_PRODUCTION_PRODUCT_ID }, plan_type: 'one_time', currency: 'sar', initial_price: 2, renewal_price: 0,
       adaptive_pricing_enabled: false, collect_tax: false });
     if (url.pathname.endsWith('/checkout_configurations')) {

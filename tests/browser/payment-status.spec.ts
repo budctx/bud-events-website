@@ -64,8 +64,10 @@ test('explicit pilot inspection performs an empty protected POST and creates no 
   await expect(inspection.getByRole('status')).toContainText('رفض Whop صلاحية الوصول');
   await expect(inspection).not.toContainText('must-not-display');expect(checkouts).toBe(0);
   await page.unroute('**/api/whop-preflight');
-  await page.route('**/api/whop-preflight',route=>route.fulfill({status:409,json:{code:'PRODUCTION_PLAN_MISMATCH',data:{mismatches:['company','tax'],private:'must-not-display'}}}));
+  await page.route('**/api/whop-preflight',route=>route.fulfill({status:409,json:{code:'PRODUCTION_PLAN_MISMATCH',data:{mismatches:['company','tax'],settings:{conversion:'disabled',taxCollection:'enabled',taxType:'exclusive'},private:'must-not-display'}}}));
   await inspection.getByRole('button').click();
-  await expect(inspection.getByRole('status')).toHaveText('حقول لم تجتز المطابقة: حساب البيع، الضريبة');
+  await expect(inspection.getByRole('status')).toContainText('حقول لم تجتز المطابقة: حساب البيع، الضريبة');
+  await expect(inspection.getByRole('status')).toContainText('تحويل العملة: معطّل؛ تحصيل الضريبة: مفعّل؛ أسلوب الضريبة: تضاف إلى السعر');
   await expect(inspection).not.toContainText('must-not-display');expect(checkouts).toBe(0);
+  await page.screenshot({path:'artifacts/whop-admin-fields.png',fullPage:true});
 });
