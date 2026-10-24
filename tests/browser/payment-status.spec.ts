@@ -95,4 +95,9 @@ test('independent quote is explicit, country preview only and never a purchase o
  await panel.getByRole('button',{name:'Preview price — Saudi Arabia'}).click();
  await expect(panel.getByRole('status')).toContainText('Not a final buyer quote');expect(checkouts).toBe(0);
  await page.screenshot({path:'artifacts/whop-quote-en1440.png',fullPage:true});
+ await page.unroute('**/api/whop-quote');
+ await page.route('**/api/whop-quote',route=>route.fulfill({status:503,json:{code:'WHOP_PRODUCTION_REQUEST_REJECTED',data:{request:{operation:'quote_preview',providerStatus:422,reason:'required_field',field:'company_id'},privateDetails:'never-display'}}}));
+ await panel.getByRole('button',{name:'Preview price — Saudi Arabia'}).click();
+ await expect(panel.getByRole('status')).toContainText('Whop rejected the quote request: required field (company_id)');
+ await expect(panel).not.toContainText('never-display');expect(checkouts).toBe(0);
 });
