@@ -7,6 +7,7 @@ import { resolve, join, relative, isAbsolute } from 'node:path';
 import { createServer } from 'node:net';
 import { fileURLToPath } from 'node:url';
 import { officialCaPath, verifySourceTls } from './backup-tls.mjs';
+import { BackupClusterLifecycle } from './backup-cluster-lifecycle.mjs';
 
 const execute = promisify(execFile);
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
@@ -15,6 +16,7 @@ const PRIVATE = join(ROOT, 'supabase', '.temp', 'secure-backups');
 const BIN = join(ROOT, 'supabase', '.temp', 'backup-tools', 'runtime', 'pgsql', 'bin');
 const SOURCE = { host: 'aws-0-ap-south-1.pooler.supabase.com', port: '5432', user: 'postgres.cepmvqqrjcvhyzszqand', database: 'postgres' };
 const MAGIC = Buffer.from('BUDBAK01');
+const clusterLifecycles = new Map();
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const key = (password, salt) => scryptSync(password, salt, 32, { N: 65536, r: 8, p: 1, maxmem: 128 * 1024 * 1024 });
 export function encrypt(bytes, password) {
@@ -44,7 +46,9 @@ export function scopedRestoreList(toc) {
 }
 async function removePrivate(path) {
   if (!inside(PRIVATE, path)) throw Error('UNSAFE_CLEANUP_TARGET');
+  for (const [data,lifecycle] of clusterLifecycles) if (resolve(path) === resolve(data) || inside(path,data)) lifecycle.assertRemovable();
   await rm(path, { recursive: true, force: true });
+  for (const data of clusterLifecycles.keys()) if (resolve(path) === resolve(data) || inside(path,data)) clusterLifecycles.delete(data);
 }
 // Classify locally; never return stderr, commands, paths, usernames or credentials.
 export function postgresFailureCode(name,error) {
@@ -122,9 +126,13 @@ async function localCluster(work, timezone = 'UTC') {
   const password = randomBytes(32).toString('hex'); await writeFile(pwfile, password, { mode: 0o600 });
   const port = await new Promise((accept, reject) => { const server = createServer(); server.once('error', reject); server.listen(0, '127.0.0.1', () => { const value = server.address().port; server.close(() => accept(value)); }); });
   await tool('initdb', ['-D', data, '-U', 'postgres', '--auth=scram-sha-256', '--pwfile=' + pwfile, '--encoding=UTF8', '--locale=C'], cleanEnv({}));
-  await tool('pg_ctl', ['-D', data, '-l', join(work, 'postgres.log'), '-o', `-h 127.0.0.1 -p ${port} -c timezone=${timezone}`, '-w', 'start'], cleanEnv({}));
-  const env = await connection(work, { host: '127.0.0.1', port: String(port), user: 'postgres', database: 'postgres' }, password);
-  return { env, stop: () => tool('pg_ctl', ['-D', data, '-m', 'fast', '-w', 'stop'], cleanEnv({})) };
+  const lifecycle = new BackupClusterLifecycle(() => tool('pg_ctl', ['-D', data, '-m', 'fast', '-w', 'stop'], cleanEnv({})));
+  clusterLifecycles.set(data,lifecycle);
+  const env = await lifecycle.initialize(
+    () => tool('pg_ctl', ['-D', data, '-l', join(work, 'postgres.log'), '-o', `-h 127.0.0.1 -p ${port} -c timezone=${timezone}`, '-w', 'start'], cleanEnv({})),
+    () => connection(work, { host: '127.0.0.1', port: String(port), user: 'postgres', database: 'postgres' }, password),
+  );
+  return { env, stop: () => lifecycle.stop() };
 }
 async function exportArchive(work, source) {
   const archive = join(work, 'database.dump');
@@ -222,6 +230,7 @@ async function backup(input) {
   await protectRoot(); const work = await mkdtemp(join(PRIVATE, 'pending-'));
   const final = join(PRIVATE, 'backup-' + new Date().toISOString().replaceAll(':', '-'));
   await mkdir(final);
+  let receipt;
   try {
     const source = await connection(work, SOURCE, input.password, sslRoot, true);
     const before = await fingerprint(source);
@@ -237,12 +246,12 @@ async function backup(input) {
     if (hash(clear) !== hash(dump.bytes)) throw Error('DECRYPTION_CHECK_FAILED');
     const recovered = join(work, 'recovered.dump'); await writeFile(recovered, clear);
     const verified = await restoreArchive(work, recovered, roles, before);
-    const receipt = { status: 'BACKUP_AND_SCOPED_LOCAL_RESTORE_PASSED', createdAt: new Date().toISOString(), project: 'cepmvqqrjcvhyzszqand',
+    receipt = { status: 'BACKUP_AND_SCOPED_LOCAL_RESTORE_PASSED', createdAt: new Date().toISOString(), project: 'cepmvqqrjcvhyzszqand',
       encryptedSha256: hash(encrypted), ...verified, restoredSchemas: ['auth','bud_platform','public'], fullManagedRestoreTested: false,
       remoteRestoreTested: false, managedAuthSettingsIncluded: false, storageObjectContentsIncluded: false };
-    await writeFile(join(final, 'receipt.json'), JSON.stringify(receipt, null, 2));
-    return { ...receipt, directory: final };
   } finally { input.password = ''; input.passphrase = ''; await removePrivate(work); }
+  await writeFile(join(final, 'receipt.json'), JSON.stringify(receipt, null, 2), {flag:'wx'});
+  return { ...receipt, directory: final };
 }
 export function validateRecoveryMetadata(value) {
   if (value?.fingerprintVersion !== undefined && value.fingerprintVersion !== 2) throw Error('BACKUP_METADATA_INVALID');

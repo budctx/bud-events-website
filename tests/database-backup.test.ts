@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { encrypt, decrypt, inside, scopedRestoreList, postgresFailureCode, snapshotMismatch, validateRecoveryMetadata } from '../scripts/database-backup.mjs';
 import { readOfficialCa, validateOfficialCa } from '../scripts/backup-tls.mjs';
+import { BackupClusterLifecycle } from '../scripts/backup-cluster-lifecycle.mjs';
 
 test('backup trusts only the reviewed official CA and rejects corrupt or expired trust material', async () => {
  const ca = await readOfficialCa();
@@ -69,4 +70,23 @@ test('recovery comparison preserves all expected tables, counts and contents ind
  assert.throws(()=>validateRecoveryMetadata({...metadata,before:[row,row]}),/BACKUP_METADATA_INVALID/);
  assert.throws(()=>validateRecoveryMetadata({...metadata,before:[{...row,count:-1}]}),/BACKUP_METADATA_INVALID/);
  assert.throws(()=>validateRecoveryMetadata({...metadata,after:[{...row,digest:'e'.repeat(32)},other]}),/SOURCE_CHANGED/);
+});
+
+test('ambiguous local cluster shutdown retains work and blocks cleanup/receipt, including failed post-start preparation',async()=>{
+ let stopCalls=0, deleted=false, receipt=false;
+ const lifecycle=new BackupClusterLifecycle(async()=>{stopCalls++;throw Error('fixture stop timed out')});
+ await lifecycle.initialize(async()=>{},async()=>({fixture:true}));
+ await assert.rejects(lifecycle.stop());
+ assert.throws(()=>{lifecycle.assertRemovable();deleted=true;receipt=true},/LOCAL_CLUSTER_STOP_UNVERIFIED_RETAINED/);
+ assert.equal(deleted,false);assert.equal(receipt,false);assert.equal(stopCalls,1);
+ const postStart=new BackupClusterLifecycle(async()=>{stopCalls++;throw Error('fixture stop denied')});
+ await assert.rejects(postStart.initialize(async()=>{},async()=>{throw Error('fixture passfile failure')}),/LOCAL_CLUSTER_STOP_UNVERIFIED_RETAINED/);
+ assert.throws(()=>postStart.assertRemovable(),/LOCAL_CLUSTER_STOP_UNVERIFIED_RETAINED/);
+ const startTimeout=new BackupClusterLifecycle(async()=>{stopCalls++;throw Error('fixture stop uncertain')});
+ await assert.rejects(startTimeout.initialize(async()=>{throw Error('fixture start timed out')},async()=>{}),/LOCAL_CLUSTER_STOP_UNVERIFIED_RETAINED/);
+ assert.throws(()=>startTimeout.assertRemovable(),/LOCAL_CLUSTER_STOP_UNVERIFIED_RETAINED/);
+ assert.equal(stopCalls,3);
+ const recovered=new BackupClusterLifecycle(async()=>{stopCalls++});
+ await assert.rejects(recovered.initialize(async()=>{},async()=>{throw Error('fixture preparation failure')}),/fixture preparation failure/);
+ assert.doesNotThrow(()=>recovered.assertRemovable());assert.equal(stopCalls,4);
 });

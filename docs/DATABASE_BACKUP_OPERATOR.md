@@ -17,6 +17,8 @@ After exact-candidate review and local tests, use `scripts/verify-existing-backu
 
 Recovery budget: at most one real offline revalidation after reviewed prerequisites. Any mismatch, crash, timeout, absent success receipt or cleanup failure stops further prompts/retries and returns to Manager review. A fresh remote export requires a demonstrated reason why the retained archive cannot answer the question. No automatic rerun or migration/payment activation follows any local PASS.
 
+Exact-candidate technical review found a further blocking cleanup path: failed shutdown or failed preparation after startup could fall through to recursive removal of a possibly running local cluster. Cluster lifecycle is now tracked before requesting startup; startup/preparation failures attempt to stop that exact cluster. Recursive removal is guarded by confirmed stop. If stop is uncertain, the private directory is retained with `LOCAL_CLUSTER_STOP_UNVERIFIED_RETAINED`, and no success receipt is written. Failure-injection tests cover stop timeout, preparation failure after start, ambiguous start timeout and successful recovery stop. This fault handling is synthetic evidence; never induce shutdown failures with owner data merely to test it.
+
 ## Verified tooling and boundaries
 
 - Official EDB PostgreSQL Windows binaries 17.11 were downloaded through the link on https://www.enterprisedb.com/download-postgresql-binaries (`fileid=1260616`). Archive SHA-256: `80379B2C04D51C30225532E0AE04509899141E9957ED096FE749D7FD9DF8F82F`. Runtime stays under ignored `supabase/.temp/backup-tools/`; no Windows service or paid resource was installed.
