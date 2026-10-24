@@ -1,4 +1,4 @@
-// Preparation only: no api/ entrypoint imports these handlers.
+// Live handlers require runtime routing, explicit controls and verified customer identity.
 import { resolveSession } from './auth.ts';
 import { enforceRateLimit } from './rate-limit.ts';
 import { boundedProviderText, WhopError } from './whop.ts';
@@ -6,6 +6,7 @@ import type { CommerceEnv } from './whop.ts';
 import { assertProductionCheckoutUrl, assertProductionPaymentMatches, createProductionCheckout, lookupProductionPayment,
   productionOrderMatches, verifyProductionWebhook, whopProductionConfig, whopProductionProcessingConfig } from './whop-production.ts';
 import type { ProductionConfig, ProductionOrder } from './whop-production.ts';
+import { liveHostAllowed } from './live-access.ts';
 
 const PROJECT = 'https://cepmvqqrjcvhyzszqand.supabase.co';
 export { backend as liveBackend, rpc as liveRpc, result as liveResponse };
@@ -64,7 +65,7 @@ export async function handleProductionCheckout(request: Request, env: CommerceEn
     const session = await resolveSession(request, env, transport);
     if (!session) return result(401, 'DISCORD_AUTH_REQUIRED');
     sessionHeaders = session.headers;
-    if (session.hostId !== config.pilotHostId) return result(403, 'PILOT_HOST_REQUIRED', undefined, sessionHeaders);
+    if (!liveHostAllowed(session.hostId, env)) return result(403, 'PILOT_HOST_REQUIRED', undefined, sessionHeaders);
     const hostLimited = await enforceRateLimit(request, env, transport, 'checkout', session.hostId);
     if (hostLimited) {
       for (const cookie of sessionHeaders.getSetCookie()) hostLimited.headers.append('Set-Cookie', cookie);

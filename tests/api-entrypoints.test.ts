@@ -15,6 +15,7 @@ test('deployed fetch entrypoints ignore runtime context and read server environm
     SUPABASE_SERVICE_ROLE_KEY: 'test-service', BUD_AUTH_COOKIE_SECRET: 'test-cookie-secret-at-least-thirty-two-bytes',
     BUD_RATE_LIMIT_ENABLED: 'true', BUD_RATE_LIMIT_SECRET: 'test-rate-secret-at-least-thirty-two-bytes', VERCEL: '1',
     BUD_WHOP_PREFLIGHT_ENABLED: 'true', BUD_WHOP_PILOT_HOST_ID: '22222222-2222-4222-8222-222222222222',
+    BUD_COMMERCE_MODE: 'sandbox', BUD_WHOP_PRODUCTION_MODE: 'pilot',
     WHOP_PRODUCTION_API_KEY: 'test-production-key', WHOP_PRODUCTION_COMPANY_ID: 'biz_fixture123',
     WHOP_PRODUCTION_PLAN_ID: 'plan_fixture123', WHOP_PRODUCTION_CURRENCY: 'sar', WHOP_PRODUCTION_AMOUNT_MINOR: '200',
     BUD_LIVE_RECEIPTS_ENABLED: 'true', CRON_SECRET: 'fixture-only-cron-secret-with-32-characters', BUD_PAYMENT_WORKER_ENABLED: 'false',

@@ -1,4 +1,5 @@
 import type { ManualAction, ManualConfig, ManualState } from './manual-game';
+import { checkoutDestination } from './checkout-destination';
 export type Locale = 'ar' | 'en';
 export type HostEvent = { eventId: string; title: string; phase: string; version: number; state: ManualState; updatedAt?: string; cards?: { question: string; condition: string }; cardsEn?: { question: string; condition: string }; serverNow?: number };
 export type HostSession = { id: string; displayName: string; avatarUrl?: string | null };
@@ -30,11 +31,11 @@ export async function signInHost(context?: LoginContext) {
 }
 export function newHostRequestKey() { return crypto.randomUUID(); }
 
-export async function purchaseEvent(idempotencyKey: string) {
-  const result = await request<{ url: string }>('/api/checkout', { idempotencyKey });
-  const destination = new URL(result.url);
-  if (destination.origin !== 'https://sandbox.whop.com' || destination.username || destination.password || !/^\/checkout\/ch_[A-Za-z0-9]+\/?$/.test(destination.pathname) || destination.search || destination.hash) throw new HostClientError('INVALID_REDIRECT', 503);
-  location.assign(destination.href);
+export async function purchaseEvent(idempotencyKey: string, locale: Locale = 'ar') {
+  const result = await request<{ url: string; environment?: string }>('/api/checkout', { idempotencyKey, locale });
+  const destination = checkoutDestination(result.url, result.environment);
+  if (!destination) throw new HostClientError('INVALID_REDIRECT', 503);
+  location.assign(destination);
 }
 
 export const dispatchHostAction = (event: HostEvent, command: ManualAction, idempotencyKey: string) => request<HostEvent>('/api/host', { action: 'dispatch', eventId: event.eventId, version: event.version, idempotencyKey, command });
