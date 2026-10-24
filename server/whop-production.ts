@@ -1,6 +1,7 @@
 // Server-only provider preparation. No HTTP route or database fulfillment is activated by this module.
 import { boundedProviderText, verifyWhopEnvelope, WhopError } from './whop.ts';
 import type { CommerceEnv } from './whop.ts';
+import { liveAudience } from './live-access.ts';
 
 const API = 'https://api.whop.com/api/v1';
 // Explicit compatibility pin: never inherit the API key's changing response model.
@@ -16,7 +17,7 @@ export class ProductionPlanMismatch extends WhopError {
   readonly settings: Record<string, string>;
   constructor(fields: string[], settings: Record<string, string>) { super('PRODUCTION_PLAN_MISMATCH', 409); this.fields = fields; this.settings = settings; }
 }
-export type ProductionConfig = ProductionPlanExpectation & { product: string; origin: string; pilotHostId: string; secret: string; webhookVersion: string };
+export type ProductionConfig = ProductionPlanExpectation & { product: string; origin: string; pilotHostId: string; audience: 'pilot' | 'public'; secret: string; webhookVersion: string };
 export type ProductionOrder = { orderId: string; hostId: string; environment: 'production'; companyId: string; productId: string;
   planId: string; currency: string; amountMinor: number; locale: 'ar' | 'en'; checkoutId: string | null; checkoutUrl: string | null };
 
@@ -41,15 +42,16 @@ export function whopProductionConfig(env: CommerceEnv): ProductionConfig | null 
 /** Receipt ingestion/drain remains separately enabled when NEW checkout creation is paused. */
 export function whopProductionProcessingConfig(env: CommerceEnv): ProductionConfig | null {
   const plan = productionPlanExpectation(env);
+  const audience = liveAudience(env);
   if (!plan || env.BUD_WHOP_PRODUCTION_PROCESSING_ENABLED !== 'true' || env.WHOP_ENVIRONMENT !== 'production'
-    || env.BUD_WHOP_PRODUCTION_MODE !== 'pilot' || !uuid.test(env.BUD_WHOP_PILOT_HOST_ID ?? '')
+    || !audience
     || !/^prod_[A-Za-z0-9]{5,80}$/.test(env.WHOP_PRODUCTION_PRODUCT_ID ?? '')
     || !/^ws_[A-Za-z0-9]{32,128}$/.test(env.WHOP_PRODUCTION_WEBHOOK_SECRET ?? '')
     || !['2026-08-14', '2026-10-15-1'].includes(env.WHOP_PRODUCTION_WEBHOOK_API_VERSION ?? '')) return null;
   try {
     const origin = new URL(env.BUD_APP_ORIGIN ?? '');
     if (origin.protocol !== 'https:' || origin.origin !== env.BUD_APP_ORIGIN) return null;
-    return { ...plan, product: env.WHOP_PRODUCTION_PRODUCT_ID!, origin: origin.origin, pilotHostId: env.BUD_WHOP_PILOT_HOST_ID!,
+    return { ...plan, product: env.WHOP_PRODUCTION_PRODUCT_ID!, origin: origin.origin, pilotHostId: env.BUD_WHOP_PILOT_HOST_ID ?? '', audience,
       secret: env.WHOP_PRODUCTION_WEBHOOK_SECRET!, webhookVersion: env.WHOP_PRODUCTION_WEBHOOK_API_VERSION! };
   } catch { return null; }
 }
@@ -95,7 +97,7 @@ export async function inspectProductionPlan(config: ProductionPlanExpectation, t
   return { companyId: config.company, productId: product.id, planId: config.plan, currency: config.currency, amountMinor: config.amount };
 }
 export function productionOrderMatches(order: ProductionOrder, config: ProductionConfig): boolean {
-  return uuid.test(order.orderId) && uuid.test(order.hostId) && order.hostId === config.pilotHostId && order.environment === 'production'
+  return uuid.test(order.orderId) && uuid.test(order.hostId) && (config.audience === 'public' || order.hostId === config.pilotHostId) && order.environment === 'production'
     && order.companyId === config.company && order.productId === config.product && order.planId === config.plan
     && order.currency === config.currency && order.amountMinor === config.amount && (order.locale === 'ar' || order.locale === 'en');
 }

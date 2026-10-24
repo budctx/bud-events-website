@@ -1,7 +1,8 @@
-// Protected host orchestration. Published entrypoint stays Sandbox; live wrapper is preparation only.
+// Protected host orchestration. The entrypoint selects its wallet only from trusted server configuration.
 import { resolveSession } from './auth.ts';
 import { enforceRateLimit } from './rate-limit.ts';
 import type { AuthEnv } from './auth.ts';
+import { liveAudience, liveHostAllowed } from './live-access.ts';
 import { initialManualState, manualGameReducer, validDuration } from '../src/manual-game.ts';
 import type { ManualAction, ManualConfig, ManualState } from '../src/manual-game.ts';
 import { parsePrizeLines } from '../src/prize-lines.ts';
@@ -82,10 +83,9 @@ function isEvent(value: unknown, id: string): value is HostEvent {
 export async function handleHost(request: Request, env: AuthEnv = environment(), transport: Transport = fetch): Promise<Response> {
   return handleHostMode(request, env, transport, false);
 }
-/** No api/ route imports this wrapper; environment and wallet cannot be selected by a browser. */
+/** Environment and wallet cannot be selected by a browser. */
 export async function handleLiveHost(request: Request, env: AuthEnv = environment(), transport: Transport = fetch): Promise<Response> {
-  if (env.BUD_LIVE_HOST_ENABLED !== 'true' || env.WHOP_ENVIRONMENT !== 'production' || env.BUD_WHOP_PRODUCTION_MODE !== 'pilot'
-    || !uuid.test(env.BUD_WHOP_PILOT_HOST_ID ?? '')) return response(503, 'LIVE_HOST_NOT_CONFIGURED');
+  if (env.BUD_LIVE_HOST_ENABLED !== 'true' || env.WHOP_ENVIRONMENT !== 'production' || !liveAudience(env)) return response(503, 'LIVE_HOST_NOT_CONFIGURED');
   return handleHostMode(request, env, transport, true);
 }
 async function handleHostMode(request: Request, env: AuthEnv, transport: Transport, live: boolean): Promise<Response> {
@@ -100,7 +100,7 @@ async function handleHostMode(request: Request, env: AuthEnv, transport: Transpo
     const session = await resolveSession(request, env, transport);
     if (!session) return response(401, 'DISCORD_AUTH_REQUIRED');
     refreshed = session.headers;
-    if (live && session.hostId !== env.BUD_WHOP_PILOT_HOST_ID) return response(403, 'PILOT_HOST_REQUIRED', undefined, refreshed);
+    if (live && !liveHostAllowed(session.hostId, env)) return response(403, 'PILOT_HOST_REQUIRED', undefined, refreshed);
     let body: unknown;
     try { body = JSON.parse(await boundedText(request.body, 16384)); } catch (error) { if (error instanceof HostError) throw error; throw new HostError(400, 'INVALID_JSON'); }
     if (!object(body) || typeof body.action !== 'string') throw new HostError(400, 'INVALID_REQUEST');

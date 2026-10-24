@@ -1,4 +1,4 @@
-import { handleWhopWebhook } from '../server/commerce.ts';
-export const POST = (request: Request) => handleWhopWebhook(request);
-export const GET = (request: Request) => handleWhopWebhook(request);
+import { handleWebhookRoute } from '../server/commerce-routing.ts';
+export const POST = (request: Request) => handleWebhookRoute(request);
+export const GET = (request: Request) => handleWebhookRoute(request);
 export default { fetch: POST };

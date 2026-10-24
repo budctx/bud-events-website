@@ -190,16 +190,31 @@ test('real zero keys differs from an unavailable balance and refresh focus updat
   await expect(page.getByTestId('event-keys')).toContainText('7'); await expect(page.getByTestId('event-setup')).toBeVisible();
   credits = 9; await page.evaluate(() => window.dispatchEvent(new Event('focus'))); await expect(page.getByTestId('event-keys')).toContainText('9'); expect(requests).toBeGreaterThanOrEqual(4);
 });
-test('direct checkout retries retain one key without a second product modal', async ({ page }) => {
+test('direct checkout retries retain one key and originating locale without a second product modal', async ({ page }) => {
   await session(page); await page.route('**/api/host', route => route.fulfill(ok({ ...dashboard, events: [] })));
   const payloads: { idempotencyKey: string }[] = [];
   await page.route('**/api/checkout', route => { payloads.push(route.request().postDataJSON()); return payloads.length === 1 ? route.abort('connectionfailed') : route.fulfill({ status: 503, json: { code: 'SANDBOX_CHECKOUT_DISABLED' } }); });
   await page.goto('/?screen=events&lang=ar');
   await page.getByTestId('product-card-qc').click(); await expect(page.locator('.platform-account-notice')).toContainText('تعذر');
+  await page.getByTestId('locale-toggle').click();
   await page.getByTestId('product-card-qc').click(); await expect.poll(() => payloads.length).toBe(2);
   expect(payloads[0]).toEqual(payloads[1]); expect(payloads[0].idempotencyKey).toMatch(/^[a-f0-9-]{36}$/);
-  await expect(page.locator('dialog[open]')).toHaveCount(0); await expect(page.locator('.platform-account-notice')).toContainText('الشراء غير متاح');
+  expect(payloads[0]).toMatchObject({locale:'ar'});
+  await expect(page.locator('dialog[open]')).toHaveCount(0); await expect(page.locator('.platform-account-notice')).toContainText('Purchasing is currently unavailable');
 });
+test('official checkout navigates only with the server production marker and preserves the request locale', async ({page})=>{
+  await session(page);await page.route('**/api/host',route=>route.fulfill(ok({...dashboard,events:[]})));
+  let verified = false;const payloads:unknown[]=[];
+  await page.route('**/api/checkout',route=>{payloads.push(route.request().postDataJSON());return route.fulfill(ok({url:'https://whop.com/checkout/ch_browser123/',...(verified?{environment:'production'}:{})}));});
+  await page.route('https://whop.com/checkout/ch_browser123/',route=>route.fulfill({contentType:'text/html',body:'<h1>Fixture checkout destination</h1>'}));
+  await page.goto('/?screen=events&lang=en');
+  await page.getByTestId('product-card-qc').click();await expect(page.locator('.platform-account-notice')).toContainText('Unable to complete');
+  expect(new URL(page.url()).hostname).toBe('127.0.0.1');
+  verified=true;await page.getByTestId('product-card-qc').click();
+  await expect(page).toHaveURL('https://whop.com/checkout/ch_browser123/');
+  expect(payloads[0]).toEqual(payloads[1]);expect(payloads[1]).toMatchObject({locale:'en'});
+});
+
 test('pending logout suppresses focus refresh and clears private state even after provider failure', async ({ page }) => {
   let sessionReads = 0; let dashboardReads = 0; let loggedOut = false; let logoutStarted = false;
   let releaseLogout!: () => void;

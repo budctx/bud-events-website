@@ -1,4 +1,4 @@
-import { handleHost } from '../server/host.ts';
-export const POST = (request: Request) => handleHost(request);
-export const GET = (request: Request) => handleHost(request);
+import { handleHostRoute } from '../server/commerce-routing.ts';
+export const POST = (request: Request) => handleHostRoute(request);
+export const GET = (request: Request) => handleHostRoute(request);
 export default { fetch: POST };

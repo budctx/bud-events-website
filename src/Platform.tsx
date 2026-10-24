@@ -50,7 +50,7 @@ export default function Platform({ onPlay }: PlatformProps) {
   });
   const [inspectWhop] = useState(() => new URLSearchParams(location.search).get('check') === 'whop');
   const locked = useRef(false);
-  const purchaseKey = useRef<string | null>(null);
+  const purchaseKey = useRef<{key:string;locale:Locale} | null>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const t = copy[locale];
   const main = useRef<HTMLElement>(null);
@@ -85,9 +85,10 @@ export default function Platform({ onPlay }: PlatformProps) {
   const buy = () => perform(async () => {
     if (paymentHold || account.dashboard?.paymentReview) return;
     if (!account.session) { await signInHost({page, locale}); return; }
-    purchaseKey.current ??= newHostRequestKey();
-    try { await purchaseEvent(purchaseKey.current); }
-    catch (reason) { if (reason instanceof HostClientError && reason.status === 503 && reason.code.startsWith('SANDBOX_CHECKOUT_')) { setNotice(t.purchaseUnavailable); return; } throw reason; }
+    purchaseKey.current ??= {key:newHostRequestKey(),locale};
+    try { await purchaseEvent(purchaseKey.current.key, purchaseKey.current.locale); }
+    catch (reason) { if (reason instanceof HostClientError && reason.status === 503 && (reason.code.startsWith('SANDBOX_CHECKOUT_')
+      || ['LIVE_CHECKOUT_NOT_CONFIGURED','LIVE_COMMERCE_DISABLED','COMMERCE_MODE_UNAVAILABLE'].includes(reason.code))) { setNotice(t.purchaseUnavailable); return; } throw reason; }
   });
   const closePanel = () => {
     const target = panel === 'history' ? '.platform-account-trigger' : '[data-testid=event-setup]';

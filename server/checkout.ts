@@ -40,7 +40,8 @@ export async function handleCheckout(request: Request, env: CommerceEnv = enviro
     if (!session) return json(401, 'DISCORD_AUTH_REQUIRED'); sessionHeaders = session.headers;
     let body: unknown; try { body = JSON.parse(await boundedProviderText(request.body, 2048)); } catch (error) { if (error instanceof WhopError) throw error; throw new WhopError('INVALID_JSON', 400); }
     if (!body || typeof body !== 'object' || Array.isArray(body) || !('idempotencyKey' in body) || typeof body.idempotencyKey !== 'string'
-      || !/^[A-Za-z0-9_-]{16,100}$/.test(body.idempotencyKey) || Object.keys(body).some(key => key !== 'idempotencyKey')) throw new WhopError('INVALID_CHECKOUT_REQUEST', 400);
+      || !/^[A-Za-z0-9_-]{16,100}$/.test(body.idempotencyKey) || Object.keys(body).some(key => !['idempotencyKey','locale'].includes(key))
+      || ('locale' in body && body.locale !== 'ar' && body.locale !== 'en')) throw new WhopError('INVALID_CHECKOUT_REQUEST', 400);
     const order = await rpc('bud_create_sandbox_order', { p_host: session.hostId, p_key: body.idempotencyKey, p_company: config.company, p_product: config.product,
       p_plan: config.plan, p_currency: config.currency, p_amount: config.amount }, secret, transport) as SandboxOrder;
     if (!order || !orderMatches(order, config) || order.hostId !== session.hostId) throw new WhopError('ORDER_CONFIGURATION_MISMATCH', 409);
