@@ -9,18 +9,13 @@ New-Item -ItemType Directory -Force -Path $backupPrivateRoot | Out-Null
 $backupSid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 & icacls.exe $backupPrivateRoot /inheritance:r /grant:r "*${backupSid}:(OI)(CI)F" | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'BACKUP_FOLDER_ACL_FAILED' }
-$backupRoots = [System.Text.StringBuilder]::new()
-foreach ($backupLocation in @('CurrentUser','LocalMachine')) {
-    $backupStore = [System.Security.Cryptography.X509Certificates.X509Store]::new('Root',$backupLocation)
-    $backupStore.Open('ReadOnly')
-    foreach ($backupCertificate in $backupStore.Certificates) {
-        [void]$backupRoots.AppendLine('-----BEGIN CERTIFICATE-----')
-        [void]$backupRoots.AppendLine([Convert]::ToBase64String($backupCertificate.RawData,[Base64FormattingOptions]::InsertLineBreaks))
-        [void]$backupRoots.AppendLine('-----END CERTIFICATE-----')
-    }
-    $backupStore.Close()
+$backupNodePath = (Get-Command node.exe -ErrorAction Stop).Source
+$backupTlsOutput = & $backupNodePath (Join-Path $PSScriptRoot 'database-backup.mjs') --check-tls
+if ($LASTEXITCODE -ne 0) {
+    [IO.File]::WriteAllText((Join-Path $backupPrivateRoot 'last-result.json'),($backupTlsOutput -join "`n"))
+    [void][Windows.Forms.MessageBox]::Show('Secure connection check failed before requesting credentials. Return to the chat. No production changes were made.','BUD backup needs attention')
+    exit 1
 }
-[IO.File]::WriteAllText((Join-Path $backupPrivateRoot 'windows-roots.pem'),$backupRoots.ToString())
 $backupForm = [Windows.Forms.Form]::new()
 $backupForm.Text = 'BUD - Secure database backup'
 $backupForm.Size = [Drawing.Size]::new(620,440)

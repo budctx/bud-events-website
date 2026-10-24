@@ -6,6 +6,7 @@ import { mkdir, mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
 import { resolve, join, relative, isAbsolute } from 'node:path';
 import { createServer } from 'node:net';
 import { fileURLToPath } from 'node:url';
+import { officialCaPath, verifySourceTls } from './backup-tls.mjs';
 
 const execute = promisify(execFile);
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
@@ -156,8 +157,8 @@ async function selfTest() {
 }
 async function backup(input) {
   if (typeof input.password !== 'string' || !input.password || /[\r\n]/.test(input.password) || typeof input.passphrase !== 'string' || input.passphrase.length < 16) throw Error('INVALID_LOCAL_INPUT');
-  const sslRoot = join(PRIVATE, 'windows-roots.pem');
-  if (!(await readFile(sslRoot, 'utf8')).includes('BEGIN CERTIFICATE')) throw Error('TRUST_ROOTS_UNAVAILABLE');
+  await verifySourceTls(SOURCE);
+  const sslRoot = fileURLToPath(officialCaPath);
   await protectRoot(); const work = await mkdtemp(join(PRIVATE, 'pending-'));
   const final = join(PRIVATE, 'backup-' + new Date().toISOString().replaceAll(':', '-'));
   await mkdir(final);
@@ -185,7 +186,7 @@ async function backup(input) {
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
-    const result = process.argv[2] === '--self-test' ? await selfTest() : process.argv[2] === '--run'
+    const result = process.argv[2] === '--check-tls' ? await verifySourceTls(SOURCE) : process.argv[2] === '--self-test' ? await selfTest() : process.argv[2] === '--run'
       ? await backup(JSON.parse(await new Promise((accept, reject) => { let text = ''; process.stdin.setEncoding('utf8'); process.stdin.on('data', part => { text += part; if (text.length > 8192) reject(Error('INPUT_TOO_LARGE')); }); process.stdin.on('end', () => accept(text)); })))
       : { status: 'USE_LOCAL_BACKUP_PROMPT' };
     console.log(JSON.stringify(result));

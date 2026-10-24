@@ -1,6 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { encrypt, decrypt, inside, scopedRestoreList, postgresFailureCode } from '../scripts/database-backup.mjs';
+import { readOfficialCa, validateOfficialCa } from '../scripts/backup-tls.mjs';
+
+test('backup trusts only the reviewed official CA and rejects corrupt or expired trust material', async () => {
+ const ca = await readOfficialCa();
+ assert.deepEqual(validateOfficialCa(ca),ca);
+ assert.throws(()=>validateOfficialCa('invalid certificate'),/BACKUP_CA_INVALID/);
+ assert.throws(()=>validateOfficialCa(ca,0),/BACKUP_CA_EXPIRED/);
+ assert.throws(()=>validateOfficialCa(ca,Date.UTC(2100,0,1)),/BACKUP_CA_EXPIRED/);
+});
 
 test('backup encryption restores exact bytes and refuses a wrong passphrase, tampering and truncation', () => {
  const data = Buffer.from('PGDMP fixture containing private account data');
