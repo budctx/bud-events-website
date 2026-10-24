@@ -9,6 +9,10 @@ const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 export type ProductionPlanExpectation = { token: string; company: string; plan: string; currency: 'sar'; amount: number };
 export type ProductionPlan = { companyId: string; productId: string; planId: string; currency: 'sar'; amountMinor: number };
+export class ProductionPlanMismatch extends WhopError {
+  readonly fields: string[];
+  constructor(fields: string[]) { super('PRODUCTION_PLAN_MISMATCH', 409); this.fields = fields; }
+}
 export type ProductionConfig = ProductionPlanExpectation & { product: string; origin: string; pilotHostId: string; secret: string; webhookVersion: string };
 export type ProductionOrder = { orderId: string; hostId: string; environment: 'production'; companyId: string; productId: string;
   planId: string; currency: string; amountMinor: number; locale: 'ar' | 'en'; checkoutId: string | null; checkoutUrl: string | null };
@@ -18,7 +22,7 @@ function money(value: unknown): number | null {
   const match = /^(0|[1-9][0-9]{0,6})(?:\.([0-9]{1,2}))?$/.exec(String(value));
   return match ? Number(match[1]) * 100 + Number((match[2] ?? '').padEnd(2, '0')) : null;
 }
-/** Read-only preparation. The owner approved SAR 2 for a pilot, not an eventual retail price. */
+/** Read-only expectations. The owner adopted SAR 2 as the official one-time price. */
 export function productionPlanExpectation(env: CommerceEnv): ProductionPlanExpectation | null {
   if (!env.WHOP_PRODUCTION_API_KEY || !/^biz_[A-Za-z0-9]{5,80}$/.test(env.WHOP_PRODUCTION_COMPANY_ID ?? '')
     || !/^plan_[A-Za-z0-9]{5,80}$/.test(env.WHOP_PRODUCTION_PLAN_ID ?? '')
@@ -68,12 +72,20 @@ async function provider(path: string, config: ProductionPlanExpectation, transpo
 /** GET only: discover the product from the verified plan, without requesting broad catalogue access or logging the raw response. */
 export async function inspectProductionPlan(config: ProductionPlanExpectation, transport: typeof fetch = fetch): Promise<ProductionPlan> {
   const plan = await provider('/plans/' + encodeURIComponent(config.plan), config, transport);
-  if (plan.id !== config.plan || !object(plan.company) || plan.company.id !== config.company || !object(plan.product)
-    || typeof plan.product.id !== 'string' || !/^prod_[A-Za-z0-9]{5,80}$/.test(plan.product.id)
-    || plan.plan_type !== 'one_time' || plan.currency !== config.currency || money(plan.initial_price) !== config.amount
-    || money(plan.renewal_price) !== 0 || plan.adaptive_pricing_enabled !== false || typeof plan.collect_tax !== 'boolean'
-    || (plan.collect_tax && plan.tax_type !== 'inclusive')) throw new WhopError('PRODUCTION_PLAN_MISMATCH', 409);
-  return { companyId: config.company, productId: plan.product.id, planId: config.plan, currency: config.currency, amountMinor: config.amount };
+  const checks: Record<string, boolean> = {
+    plan: plan.id === config.plan,
+    company: object(plan.company) && plan.company.id === config.company,
+    product: object(plan.product) && typeof plan.product.id === 'string' && /^prod_[A-Za-z0-9]{5,80}$/.test(plan.product.id),
+    billing: plan.plan_type === 'one_time', currency: plan.currency === config.currency,
+    price: money(plan.initial_price) === config.amount, renewal: money(plan.renewal_price) === 0,
+    conversion: plan.adaptive_pricing_enabled === false, tax: typeof plan.collect_tax === 'boolean'
+      && (!plan.collect_tax || plan.tax_type === 'inclusive'),
+  };
+  const mismatches = Object.keys(checks).filter(field => !checks[field]);
+  if (mismatches.length) throw new ProductionPlanMismatch(mismatches);
+  // The product shape has been checked above; expose only its validated identifier.
+  const product = plan.product as { id: string };
+  return { companyId: config.company, productId: product.id, planId: config.plan, currency: config.currency, amountMinor: config.amount };
 }
 export function productionOrderMatches(order: ProductionOrder, config: ProductionConfig): boolean {
   return uuid.test(order.orderId) && uuid.test(order.hostId) && order.hostId === config.pilotHostId && order.environment === 'production'
