@@ -3,6 +3,7 @@ import { handleWhopWebhook, json, serverEnv } from './commerce.ts';
 import { handleHost, handleLiveHost } from './host.ts';
 import { handleProductionCheckout, handleProductionWebhook } from './live-commerce.ts';
 import type { CommerceEnv } from './whop.ts';
+import { handleWhopWebhookVerification } from './whop-webhook-verification.ts';
 type Handler = (request: Request, env: CommerceEnv, transport: typeof fetch) => Promise<Response>;
 /** Runtime-only selection. A disabled live handler never falls back to a Sandbox wallet. */
 function route(request: Request, env: CommerceEnv, transport: typeof fetch, sandbox: Handler, live: Handler) {
@@ -17,4 +18,6 @@ export const handleCheckoutRoute = (request: Request, env: CommerceEnv = serverE
 export const handleHostRoute = (request: Request, env: CommerceEnv = serverEnv(), transport: typeof fetch = fetch) =>
   route(request, env, transport, handleHost, handleLiveHost);
 export const handleWebhookRoute = (request: Request, env: CommerceEnv = serverEnv(), transport: typeof fetch = fetch) =>
-  route(request, env, transport, handleWhopWebhook, handleProductionWebhook);
+  env.BUD_WHOP_WEBHOOK_VERIFY_ONLY_ENABLED === 'true'
+    ? handleWhopWebhookVerification(request, env)
+    : route(request, env, transport, handleWhopWebhook, handleProductionWebhook);
