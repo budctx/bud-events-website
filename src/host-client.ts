@@ -2,7 +2,7 @@ import type { ManualAction, ManualConfig, ManualState } from './manual-game';
 export type Locale = 'ar' | 'en';
 export type HostEvent = { eventId: string; title: string; phase: string; version: number; state: ManualState; updatedAt?: string; cards?: { question: string; condition: string }; cardsEn?: { question: string; condition: string }; serverNow?: number };
 export type HostSession = { id: string; displayName: string; avatarUrl?: string | null };
-export type HostDashboard = { credits: number; events: HostEvent[]; products: { id: string; name: string; available: boolean; slotCost: number }[]; contentVersions: { id: string; questionCount: number; conditionCount: number }[] };
+export type HostDashboard = { credits: number; paymentReview?: boolean; events: HostEvent[]; products: { id: string; name: string; available: boolean; slotCost: number }[]; contentVersions: { id: string; questionCount: number; conditionCount: number }[] };
 export type StartHostEvent = { action: 'start'; idempotencyKey: string; title: string; config: ManualConfig; prizeText: string };
 export class HostClientError extends Error {
   constructor(public code: string, public status: number, public data?: unknown) { super(code); this.name = 'HostClientError'; }
@@ -16,6 +16,7 @@ async function request<T>(url: string, payload?: unknown, signal?: AbortSignal):
   return result.data;
 }
 export const getHostSession = (signal?: AbortSignal) => request<HostSession>('/api/auth?action=session', undefined, signal);
+export const getPaymentReceipt = (orderId: string, signal?: AbortSignal) => request<import('./payment-state').PaymentReceipt>('/api/payment-status', { orderId }, signal);
 export const getHostDashboard = (signal?: AbortSignal) => request<HostDashboard>('/api/host', { action: 'dashboard' }, signal);
 export const startHostEvent = (payload: StartHostEvent) => request<HostEvent>('/api/host', payload);
 export const resumeHostEvent = (eventId: string) => request<HostEvent>('/api/host', { action: 'resume', eventId });

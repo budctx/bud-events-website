@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import './platform.css';
 import { HeroArtwork } from './HeroArtwork';
 import { InterfaceIcon } from './InterfaceControls';
@@ -7,8 +7,11 @@ import { Seo } from './Seo';
 import { AccountMenu } from './AccountMenu';
 import { useAccount } from './use-account';
 import { HostClientError, newHostRequestKey, purchaseEvent, resumeHostEvent, signInHost } from './host-client';
+import PaymentStatus from './PaymentStatus';
+import type { PaymentState } from './payment-state';
 import type { HostEvent } from './host-client';
 const HostPortal = lazy(() => import('./HostPortal'));
+const WhopPreflight = lazy(() => import('./WhopPreflight'));
 
 type Locale = 'ar' | 'en';
 type Page = 'home' | 'events' | 'bots' | 'designs';
@@ -36,6 +39,16 @@ export default function Platform({ onPlay }: PlatformProps) {
   const [busy, setBusy] = useState(false);
   const [panel, setPanel] = useState<'history' | 'setup' | null>(null);
   const account = useAccount();
+  const [paymentHold, setPaymentHold] = useState(false);
+  const onReceiptState = useCallback((state: PaymentState) => {
+    if (['review','refunded','disputed'].includes(state)) setPaymentHold(true);
+    void account.refresh();
+  }, [account.refresh]);
+  const [paymentOrder] = useState(() => {
+    const value = new URLSearchParams(location.search).get('order') ?? '';
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value) ? value : null;
+  });
+  const [inspectWhop] = useState(() => new URLSearchParams(location.search).get('check') === 'whop');
   const locked = useRef(false);
   const purchaseKey = useRef<string | null>(null);
   const dialog = useRef<HTMLDialogElement>(null);
@@ -54,9 +67,11 @@ export default function Platform({ onPlay }: PlatformProps) {
   }, [modal]);
   useEffect(() => {
     const query = new URLSearchParams(); if (page !== 'home') query.set('screen', page); query.set('lang', locale);
+    if (page === 'events' && paymentOrder) query.set('order', paymentOrder);
+    if (page === 'events' && inspectWhop) query.set('check', 'whop');
     history.replaceState(null, '', `${location.pathname}?${query}`);
-  }, [page, locale]);
-  useEffect(() => { purchaseKey.current = null; setPanel(null); }, [account.session?.id]);
+  }, [page, locale, paymentOrder, inspectWhop]);
+  useEffect(() => { purchaseKey.current = null; setPanel(null); setPaymentHold(false); }, [account.session?.id]);
   const navigate = (next: Page) => { setPanel(null); setNotice(''); setPage(next); requestAnimationFrame(() => main.current?.focus({ preventScroll: true })); };
   const perform = async (action: () => Promise<void>) => {
     if (locked.current) return; locked.current = true; setBusy(true); setNotice('');
@@ -68,6 +83,7 @@ export default function Platform({ onPlay }: PlatformProps) {
   };
   const login = () => perform(() => signInHost({page, locale}));
   const buy = () => perform(async () => {
+    if (paymentHold || account.dashboard?.paymentReview) return;
     if (!account.session) { await signInHost({page, locale}); return; }
     purchaseKey.current ??= newHostRequestKey();
     try { await purchaseEvent(purchaseKey.current); }
@@ -92,6 +108,8 @@ export default function Platform({ onPlay }: PlatformProps) {
       </div>
     </header>
     {notice && <p className="platform-account-notice" role="status">{notice}</p>}
+    {page === 'events' && inspectWhop && account.session && <Suspense fallback={<p role="status">{locale === 'ar' ? 'جارٍ تحميل الفحص…' : 'Loading inspection…'}</p>}><WhopPreflight key={account.session.id} locale={locale} onAuthLost={account.expire} /></Suspense>}
+    {page === 'events' && paymentOrder && account.session && <PaymentStatus key={account.session.id + paymentOrder} orderId={paymentOrder} locale={locale} onAuthLost={account.expire} onState={onReceiptState} />}
     <main id="platform-content" className={page === 'home' && !panel ? 'platform-home-main' : 'platform-gallery-main'} ref={main} tabIndex={-1} key={page}>
       {panel === 'history' && account.session ? <Suspense fallback={<p role="status">{locale === 'ar' ? 'جارٍ تحميل السجل…' : 'Loading history…'}</p>}><HostPortal onAuthLost={account.expire} view="history" locale={locale} onExit={closePanel} onPlay={event => onPlay(event, locale)} /></Suspense> : page === 'home' ? <>
         <section className="platform-hero" data-node-id="339:2099"><p className="platform-eyebrow">{t.eyebrow}</p><h1>{t.title}</h1><p className="platform-hero-description">{t.description}</p><div className="platform-hero-actions"><button className="platform-action platform-action-primary" data-testid="hero-explore" onClick={() => navigate('events')}>{t.explore}<span aria-hidden="true">←</span></button></div><p className="platform-hero-hint">{t.browseHint}</p></section>
@@ -100,8 +118,8 @@ export default function Platform({ onPlay }: PlatformProps) {
         <div className="platform-gallery-intro"><h1>{page === 'events' ? t.galleryTitle : t[page]}</h1><p>{page === 'events' ? t.galleryDescription : t.soonDescription}</p>{page === 'events' && <button className="platform-action platform-action-secondary platform-event-how" data-testid="event-how" onClick={() => setModal('how')}>{t.how}</button>}</div>
         {page === 'events' ? <article className="platform-product-card" data-node-id="383:11116"><EventPreview key={locale} locale={locale} /><div className="platform-product-information"><p className="platform-product-eyebrow">{t.productEyebrow}</p><h2>{t.product}</h2><p className="platform-product-description">{t.productDescription}</p><p className="platform-features">{t.features}</p><div className="platform-event-ownership">
           {account.session && (account.keysLoading ? <p role="status">{locale === 'ar' ? 'جارٍ تحميل مفاتيحك…' : 'Loading your keys…'}</p> : account.keysError ? <p>{locale === 'ar' ? 'تعذر تحميل مفاتيحك.' : 'Unable to load your keys.'} <button className="platform-inline-retry" onClick={() => void account.refresh()}>{locale === 'ar' ? 'إعادة المحاولة' : 'Retry'}</button></p> : account.dashboard && <p className="platform-event-keys" data-testid="event-keys">{locale === 'ar' ? <>لديك <bdi>{account.dashboard.credits}</bdi> مفاتيح</> : <>You have <bdi>{account.dashboard.credits}</bdi> keys</>}</p>)}
-          <div className="platform-event-actions"><button className="platform-action platform-action-primary" data-testid="product-card-qc" disabled={busy || account.status === 'loading'} onClick={() => void buy()}>{t.buy}</button>
-          {account.session && account.dashboard && account.dashboard.credits > 0 && <button className="platform-action platform-action-secondary" data-testid="event-setup" disabled={busy} onClick={() => setPanel(panel === 'setup' ? null : 'setup')}>{locale === 'ar' ? 'إعداد الفعالية' : 'Set up event'}</button>}
+          <div className="platform-event-actions"><button className="platform-action platform-action-primary" data-testid="product-card-qc" disabled={busy || account.status === 'loading' || paymentHold || account.dashboard?.paymentReview} onClick={() => void buy()}>{t.buy}</button>
+          {account.session && account.dashboard && account.dashboard.credits > 0 && !paymentHold && !account.dashboard.paymentReview && <button className="platform-action platform-action-secondary" data-testid="event-setup" disabled={busy} onClick={() => setPanel(panel === 'setup' ? null : 'setup')}>{locale === 'ar' ? 'إعداد الفعالية' : 'Set up event'}</button>}
           {ongoing && <button className="platform-action platform-action-secondary" disabled={busy} onClick={() => void perform(async () => onPlay(await resumeHostEvent(ongoing.eventId), locale))}>{locale === 'ar' ? 'استكمال الفعالية' : 'Resume event'}</button>}</div>
           </div></div></article> : <article className="platform-product-card platform-coming-soon"><div><p className="platform-status">{t.soon}</p><h2>{t[page]}</h2><p>{t.soonDescription}</p><button className="platform-action platform-action-secondary" onClick={() => setModal('soon')}>{locale === 'ar' ? 'تفاصيل المنتج' : 'Product details'}</button></div></article>}
         {page === 'events' && panel === 'setup' && account.session && <Suspense fallback={<p role="status">{locale === 'ar' ? 'جارٍ التحميل…' : 'Loading…'}</p>}><HostPortal onAuthLost={account.expire} view="setup" locale={locale} onExit={closePanel} onPlay={event => onPlay(event, locale)} /></Suspense>}

@@ -332,6 +332,9 @@
 .platform-account-menu button { min-height:44px; border:0; background:transparent; text-align:start; border-radius:6px; padding:8px 12px; color:#333; font:inherit; font-size:13px; }
 .platform-account-menu button:hover,.platform-account-menu button:focus-visible { background:#fff0c9; }
 .platform-account-notice { position:relative; z-index:2; margin:8px 0; padding:10px 14px; border-inline-start:3px solid #d39a2b; border-radius:6px; background:#fff7e1; font-size:13px; }
+.platform-payment-status { position:relative; z-index:2; max-width:1100px; margin:16px auto; padding:20px; display:flex; align-items:start; justify-content:space-between; gap:20px; border:1.5px solid #333; border-radius:14px; background:#fffdf8; box-shadow:3px 4px 0 #333; }
+.platform-payment-status > div { min-width:0; }.platform-payment-status h2 { font-size:20px; margin:0 0 12px; }.platform-payment-status p { font-size:13px; line-height:1.9; margin:8px 0; }.platform-payment-reference { overflow-wrap:anywhere; }.platform-payment-status button { flex-shrink:0; }
+@media (max-width:600px) { .platform-payment-status { flex-direction:column; padding:16px; }.platform-payment-status button { align-self:stretch; } }
 .platform-event-ownership { margin-top:16px; }
 .platform-event-keys { display:inline-flex; align-items:center; gap:6px; background:#fff0c9; border-radius:8px; padding:6px 12px; margin:0 0 14px; font-size:14px; }
 .platform-event-keys bdi { font-weight:700; }

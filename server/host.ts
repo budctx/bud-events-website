@@ -1,4 +1,4 @@
-// Protected, sandbox-only host orchestration. Browser actions never supply wallet or host authority.
+// Protected host orchestration. Published entrypoint stays Sandbox; live wrapper is preparation only.
 import { resolveSession } from './auth.ts';
 import { enforceRateLimit } from './rate-limit.ts';
 import type { AuthEnv } from './auth.ts';
@@ -49,6 +49,8 @@ const errors: Record<string, [number, string]> = {
   BUD_NO_CREDIT: [409, 'NO_SLOT_CREDIT'], BUD_ACTIVE_EVENT: [409, 'ACTIVE_EVENT_EXISTS'], BUD_KEY_REUSED: [409, 'IDEMPOTENCY_KEY_REUSED'],
   BUD_EVENT_NOT_FOUND: [404, 'EVENT_NOT_FOUND'], BUD_VERSION_CONFLICT: [409, 'VERSION_CONFLICT'], BUD_EVENT_CLOSED: [409, 'EVENT_CLOSED'],
   BUD_CONTENT_NOT_READY: [503, 'CONTENT_NOT_READY'], BUD_CONTENT_UNAVAILABLE: [503, 'CONTENT_NOT_READY'], BUD_PRODUCT_UNAVAILABLE: [503, 'PRODUCT_UNAVAILABLE'],
+  BUD_LIVE_HOST_DISABLED: [503, 'LIVE_HOST_DISABLED'],
+  BUD_PAYMENT_REVIEW: [409, 'PAYMENT_UNDER_REVIEW'],
 };
 function actionFrom(value: unknown): ManualAction | null {
   if (!object(value) || typeof value.type !== 'string') return null;
@@ -78,6 +80,15 @@ function isEvent(value: unknown, id: string): value is HostEvent {
     && state.prizes.length <= 50 && state.winners.length <= 10000 && Number.isSafeInteger(state.round);
 }
 export async function handleHost(request: Request, env: AuthEnv = environment(), transport: Transport = fetch): Promise<Response> {
+  return handleHostMode(request, env, transport, false);
+}
+/** No api/ route imports this wrapper; environment and wallet cannot be selected by a browser. */
+export async function handleLiveHost(request: Request, env: AuthEnv = environment(), transport: Transport = fetch): Promise<Response> {
+  if (env.BUD_LIVE_HOST_ENABLED !== 'true' || env.WHOP_ENVIRONMENT !== 'production' || env.BUD_WHOP_PRODUCTION_MODE !== 'pilot'
+    || !uuid.test(env.BUD_WHOP_PILOT_HOST_ID ?? '')) return response(503, 'LIVE_HOST_NOT_CONFIGURED');
+  return handleHostMode(request, env, transport, true);
+}
+async function handleHostMode(request: Request, env: AuthEnv, transport: Transport, live: boolean): Promise<Response> {
   if (request.method !== 'POST') return response(405, 'METHOD_NOT_ALLOWED');
   const config = configuration(env); if (!config) return response(503, 'BACKEND_NOT_CONFIGURED');
   if (new URL(request.url).origin !== config.origin || request.headers.get('origin') !== config.origin) return response(403, 'ORIGIN_DENIED');
@@ -89,10 +100,12 @@ export async function handleHost(request: Request, env: AuthEnv = environment(),
     const session = await resolveSession(request, env, transport);
     if (!session) return response(401, 'DISCORD_AUTH_REQUIRED');
     refreshed = session.headers;
+    if (live && session.hostId !== env.BUD_WHOP_PILOT_HOST_ID) return response(403, 'PILOT_HOST_REQUIRED', undefined, refreshed);
     let body: unknown;
     try { body = JSON.parse(await boundedText(request.body, 16384)); } catch (error) { if (error instanceof HostError) throw error; throw new HostError(400, 'INVALID_JSON'); }
     if (!object(body) || typeof body.action !== 'string') throw new HostError(400, 'INVALID_REQUEST');
     const rpc = async (name: string, params: Record<string, unknown>) => {
+      if (live) name = name.replace(/^bud_host_/, 'bud_live_host_');
       const upstream = await transport(PROJECT + '/rest/v1/rpc/' + name, { method: 'POST',
         headers: { apikey: config.secret, Authorization: 'Bearer ' + config.secret, 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...params, p_host: session.hostId }), signal: AbortSignal.timeout(8000), redirect: 'error' });

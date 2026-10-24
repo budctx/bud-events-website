@@ -74,6 +74,10 @@ export async function createSandboxCheckout(order: SandboxOrder, config: WhopSan
 }
 export type VerifiedWhopEnvelope = { messageId: string; paymentId: string; type: string };
 export async function verifySandboxWebhook(request: Request, config: WhopSandboxConfig, now = Date.now()): Promise<VerifiedWhopEnvelope> {
+  return verifyWhopEnvelope(request, config.secret, config.company, '2026-08-14', now);
+}
+/** Shared signature primitive; each integration must supply its independently verified subscription version. */
+export async function verifyWhopEnvelope(request: Request, secret: string, company: string, version: string, now = Date.now()): Promise<VerifiedWhopEnvelope> {
   if (request.method !== 'POST') throw new WhopError('METHOD_NOT_ALLOWED', 405);
   if (request.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== 'application/json') throw new WhopError('JSON_REQUIRED', 415);
   const messageId = request.headers.get('webhook-id') ?? ''; const stamp = request.headers.get('webhook-timestamp') ?? '';
@@ -82,7 +86,7 @@ export async function verifySandboxWebhook(request: Request, config: WhopSandbox
     || signatures.length > 2048) throw new WhopError('INVALID_WEBHOOK_SIGNATURE', 401);
   const raw = await boundedProviderText(request.body);
   // Official current verifier contract uses the ws_ secret verbatim as UTF-8 HMAC key.
-  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(config.secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
   const signed = new TextEncoder().encode(messageId + '.' + stamp + '.' + raw);
   let valid = false;
   for (const signature of signatures.split(' ').slice(0, 8)) {
@@ -93,8 +97,8 @@ export async function verifySandboxWebhook(request: Request, config: WhopSandbox
   }
   if (!valid) throw new WhopError('INVALID_WEBHOOK_SIGNATURE', 401);
   let envelope: unknown; try { envelope = JSON.parse(raw); } catch { throw new WhopError('INVALID_WEBHOOK_BODY', 400); }
-  if (!object(envelope) || envelope.id !== messageId || envelope.api_version !== 'v1' || envelope.api_version_date !== '2026-08-14'
-    || envelope.account_id !== config.company || typeof envelope.type !== 'string' || !object(envelope.data)
+  if (!object(envelope) || envelope.id !== messageId || envelope.api_version !== 'v1' || envelope.api_version_date !== version
+    || envelope.account_id !== company || typeof envelope.type !== 'string' || !object(envelope.data)
     || typeof envelope.data.id !== 'string' || !/^pay_[A-Za-z0-9]{5,80}$/.test(envelope.data.id)) throw new WhopError('WEBHOOK_SCOPE_MISMATCH', 400);
   return { messageId, paymentId: envelope.data.id, type: envelope.type };
 }

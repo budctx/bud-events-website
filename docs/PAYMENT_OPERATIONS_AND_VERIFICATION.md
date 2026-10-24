@@ -1,0 +1,44 @@
+# Payment operations, receipts and provider verification
+
+This continues owner-approved items 2 and 3: scheduling/monitoring/refund-state handling, receipt UX, actual Whop checks and review before a real pilot. It does not enable sales or waive the failed-backup gate.
+
+## Implemented candidate
+
+- `/api/payment-worker` and `/api/payment-reconcile` require an exact `Authorization: Bearer …` using a dedicated server-only `CRON_SECRET`. Browser cookies, user agents and query-string tokens are insufficient. Worker processing additionally requires explicit opt-in, production runtime, exact app origin, the fixed Supabase project and separately configured pilot/provider processing. Disabled/missing configuration never invokes SQL/provider code.
+- Each invocation processes at most one durable job. Payment credit stays fenced and idempotent. A reconciliation task re-reads one already credited payment via Whop GET, validates its historical order/company/plan/checkout/amount binding, then records only a condition. No raw customer/provider body is persisted.
+- `GET /api/payment-worker?health=1` requires the same server credential and returns only sanitized queue/review counts and independent payments/reconcile heartbeat states. Missing/stale five-minute worker heartbeats, old pending jobs, stale reconciliation and manual-review states return attention/503. Structured warning/failure logs contain fixed event names/task/counts, not credentials, customer details or payment IDs. An external alert recipient/channel is not configured by this code.
+- `/api/payment-status` is an independently disabled same-origin POST using the verified pilot Discord session and existing rate limits. SQL scopes the order to that host. Responses are allowlisted, no-store and contain only that order's reference, state, amount and timestamps. A missing or foreign order returns 404.
+- Checkout return includes its stored locale and internal order UUID. The Events page treats the query only as a lookup reference, never success. It fetches server truth, shows pending/confirmed/review/refunded/disputed/unavailable states in AR/EN, polls pending a bounded number of times, refreshes on focus/manual request and aborts private requests on unmount/account changes. Payment/refund changes refresh the account data; review disables new purchase/setup affordances.
+- The explicit authenticated operator URL `/?screen=events&lang=ar&check=whop` opens an inspection panel. Its button sends the existing protected preflight an empty same-origin POST, validates sanitized company/product/plan/amount and the three false creation flags, and shows success only after a real successful server response. It does not fetch until clicked. Server opt-in and exact pilot authentication remain mandatory. This makes the later production GET executable through normal UI without copying credentials or browser session tokens.
+
+## Refund/dispute safety boundary
+
+The owner explicitly approved stopping new starts and referring refund/dispute cases for manual review. This candidate implements that policy without an automatic refund API call, credit clawback, debt creation or automatic release. An authoritative full refund is shown as refunded; partial/ambiguous states require review; disputes are flagged. A persisted hold prevents new live orders and new event inserts, but does not remove keys or block resume/action receipt reuse for existing events. A later clear provider read does not silently erase a historic hold. Resolution requires an operator policy/audit follow-up; no commercial refund entitlement/timing promise is invented.
+
+The third unapplied migration is `20261023202259_live_payment_operations_and_receipts.sql`. It follows both previous live migrations, adds private reconciliation/heartbeat records, backfills only reconciliation references from fulfilled live orders, and adds hold guards/scoped receipt functions. No remote schema, data or Auth change was made.
+
+## Scheduling and runtime activation
+
+`vercel.json` contains daily fallback invocations at 02:00 and 02:05 UTC. These stay within the documented daily cadence supported by all Vercel plans; they are not a low-latency payment retry service. Preview deployments do not install production cron schedules. Actual Vercel plan/cadence entitlement was not established from the normalized connector response; no paid upgrade or free trial was activated.
+
+Each worker function has an explicit 60-second maximum. SQL leases last two minutes; a terminated invocation leaves recoverable persisted work. Bounded upstream timeouts are retained. A healthy daily fallback alone does not satisfy the five-minute heartbeat requirement or authorize a real payment.
+
+For the intended minute-level pilot, `ops/enable-payment-schedule.sql` is a separately gated operator runbook, not a migration. It requires explicit scheduling approval, reviewed deployed handlers and migrations, pg_cron/pg_net already enabled, and a dedicated worker token already held in Vault/Vercel. It never installs extensions or creates a secret. Identical existing named schedules are preserved; differing schedules stop for review. The fixed destination is the BU'D app, with the token only in a header. Monitor HTTP responses/worker heartbeats as well as cron SQL results: successful network enqueue is not HTTP/processing success.
+
+Read-only source inspection found Vault installed; pg_cron and pg_net available but not installed. Neither extension, worker schedule, token, alert delivery or worker flag was activated. Supabase documents that pg_net temporarily stores a decrypted outgoing credential in its request queue; review database-login access before using that operator path. Do not substitute the Supabase service key for the narrowly scoped worker token.
+
+## Actual Whop evidence in this increment
+
+The existing company/product editor remained signed in. The سؤال وشرط pricing option showed one-time SAR 2, hidden from the store, and currency conversion off. It previously allowed more than one item per order. That single checkbox was turned off, the product saved, then reopened: the persisted checkbox read 0 while hidden read 1 and price remained 2 SAR. Evidence screenshot: `whop-single-unit-saved.png` in the task visualization directory. No public selling, unrelated product, API key or webhook setting was changed.
+
+This proves the saved quantity setting, not actual checkout enforcement or API plan-to-product binding. The server-only preflight still has not run in the production runtime. The actual dated webhook subscription pin remains unverified; do not infer it from the API key date or the UI's v1 label. No SAR 2 charge, refund or test credit was created. PR19 remains a draft; no independent review submission was present when checked. Self-review/local tests cannot replace it.
+
+## Verification and release gates
+
+Tests exercise protected worker invocations, real local SQL/HMAC/Auth boundaries, scoped receipts, refund holds, heartbeat freshness, missing/stale leases, GET-only reconciliation and sanitized response bodies. Browser tests cover AR/mobile and EN/desktop pending-to-confirmed-to-refunded states, malicious success query flags, unavailable status and no accidental checkout. Existing visual language remains light-only, Readex Pro and RTL/LTR; screenshots were inspected for clipping and controls.
+
+The native PostgreSQL 17.11 fixture also runs the third migration and tests concurrent reconciliation claim fencing. It uses only fabricated data on loopback and stops/cleans its own disposable cluster. No local test is a backup or production recovery proof. Server typecheck, build, 114 Node tests and 71 browser tests (185 total) passed locally; the native multi-connection fixture passed with orders=12, credits=12, starts=12, claims=12, wallet=0 and Sandbox=5. Exact commit and CI evidence are recorded in the Notion work log after publication to the draft PR.
+
+Before an actual owner purchase: verify a real backup; review/apply all three live migrations preserving the account; release only reviewed code with sales disabled; execute the protected real plan GET; independently bind the actual webhook version; provision/verify the minute-level worker and monitoring without leaking credentials; resolve refund/review operating policy and independent review; then perform the explicit owner-only SAR 2 purchase/credit/replay/consume/resume test. A real purchase must not be requested before these conditions are met.
+
+Official references: [Vercel Cron limits](https://vercel.com/docs/cron-jobs/usage-and-pricing), [authentication/idempotency/logging](https://vercel.com/docs/cron-jobs/manage-cron-jobs), [Supabase scheduling and Vault](https://supabase.com/docs/guides/functions/schedule-functions), [Cron job identity and history](https://supabase.com/docs/guides/cron/quickstart).
