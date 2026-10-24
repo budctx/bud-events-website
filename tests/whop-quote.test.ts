@@ -16,7 +16,10 @@ test('preview verifies exact product then posts only fixed scenario; raw flags s
   if(calls===1)return Response.json(plan);
   assert.equal(String(input),'https://api.whop.com/api/v1/payment_quotes');assert.equal(init?.method,'POST');
   assert.equal(new Headers(init?.headers).get('api-version-date'),QUOTE_VERSION);
-  assert.deepEqual(JSON.parse(String(init?.body)),{account_id:config.company,line_items:[{plan_id:config.plan,quantity:1}],presentment_country:'SA',presentment_currency:'sar'});
+  const request=JSON.parse(String(init?.body));
+  assert.deepEqual(request,{account_id:config.company,line_items:[{plan_id:config.plan,quantity:1}],presentment_country:'SA'});
+  // Whop requires country instead of currency. Do not model an invalid request as a successful quote.
+  assert.equal(Object.hasOwn(request,'presentment_currency'),false);
   return Response.json({...fixture(),privateCustomer:'never return'});
  });
  assert.equal(calls,2);assert.equal(result.totalMinor,200);assert.equal(result.taxAmountMinor,0);assert.equal(result.previewOnly,true);assert.equal(result.paymentCreated,false);
@@ -29,7 +32,7 @@ test('quote refuses identity, price or product failure before any POST',async()=
  }
 });
 test('quote rejects malformed, converted, spent, expired, unavailable or foreign responses',async()=>{
- for(const change of [{account_id:'biz_other123'},{currency:'usd'},{exchange_rate:'1.0'},{payment_id:'pay_other123'},
+ for(const change of [{account_id:'biz_other123'},{currency:'usd'},{base_currency:'usd'},{exchange_rate:'1.0'},{payment_id:'pay_other123'},
   {expires_at:'2020-01-01T00:00:00Z'},{tax_status:'unavailable'},{located_by:'address'},{total:money('NaN')},
   {line_items:[{...fixture().line_items[0],quantity:2}]},{line_items:[{...fixture().line_items[0],plan_id:'plan_other123'}]}]) {
   await assert.rejects(previewProductionQuote(config,async input=>Response.json(String(input).includes('/variants/')?plan:{...fixture(),...change})),/INVALID_PRODUCTION_QUOTE/);
