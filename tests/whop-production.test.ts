@@ -74,7 +74,7 @@ test('production checkout binds environment, server order, verified product and 
     assert.ok(String(input).startsWith('https://api.whop.com/api/v1/')); calls++;
     if (calls === 1) return Response.json(plan);
     assert.equal(init?.method, 'POST'); assert.equal(new Headers(init?.headers).get('idempotency-key'), 'bud-production-' + order.orderId);
-    const body = JSON.parse(String(init?.body)); assert.equal(body.plan_id, config.plan); assert.equal(body.redirect_url, config.origin + '/?screen=events&lang=' + locale);
+    const body = JSON.parse(String(init?.body)); assert.equal(body.plan_id, config.plan); assert.equal(body.redirect_url, config.origin + '/?screen=events&lang=' + locale + '&order=' + order.orderId);
     assert.deepEqual(body.metadata, { bud_order_id: order.orderId, bud_environment: 'production' });
     return Response.json({ id: order.checkoutId, company_id: config.company, plan: { id: config.plan, currency: 'sar' }, currency: null,
       purchase_url: order.checkoutUrl, mode: 'payment', metadata: body.metadata });

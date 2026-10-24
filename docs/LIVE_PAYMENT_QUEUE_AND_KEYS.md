@@ -1,5 +1,7 @@
 # Live payment queue and event keys — preparation only
 
+Newest continuation: `docs/PAYMENT_OPERATIONS_AND_VERIFICATION.md` adds authenticated worker endpoints/health, a separately gated scheduling runbook, refund reconciliation holds and own-order receipt UI. These supersede the earlier absence of worker entrypoint code; they are not deployed/enabled or operational proof. A third local migration follows the two described below. Actual backup and release gates still apply.
+
 The owner approved continuing local queue/retry and key-consumption work after the final backup attempt failed. No production database migration, scheduler, HTTP route activation or purchase is performed by this increment. Public checkout remains Sandbox-only, and the published production webhook remains unavailable. Preserve the account and existing data.
 
 ## Delivery and retry contract

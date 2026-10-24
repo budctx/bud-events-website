@@ -47,7 +47,7 @@ try {
   const query = sql => executeTool('psql', ['-X', '-w', '-q', '-A', '-t', '-v', 'ON_ERROR_STOP=1', '-c', sql]);
   const host = '11111111-1111-4111-8111-111111111111';
   await query(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key);insert into auth.users values('${host}')`);
-  for (const file of ['20261022215208_host_persistence_foundation.sql', '20261023173930_production_commerce_foundation.sql', '20261023193330_live_payment_queue_and_event_consumption.sql']) {
+  for (const file of ['20261022215208_host_persistence_foundation.sql', '20261023173930_production_commerce_foundation.sql', '20261023193330_live_payment_queue_and_event_consumption.sql','20261023202259_live_payment_operations_and_receipts.sql']) {
     // -f reads only tracked migrations; each command targets the disposable cluster's loopback port.
     await executeTool('psql', ['-X', '-w', '-v', 'ON_ERROR_STOP=1', '-f', join(nativeRoot, 'supabase', 'migrations', file)]);
   }
@@ -81,6 +81,11 @@ try {
   assert.equal(await query("select count(*) from bud_platform.live_payment_jobs where status='done'"), '12');
   assert.equal(await query('select count(*) from bud_platform.live_credit_ledger'), '1');
   assert.equal(await query('select credits from bud_platform.live_wallets'), '0');
+  const reconciliations = (await Promise.all(Array.from({ length:12 }, () => serviceQuery('select public.bud_live_claim_reconciliation()')))).flatMap(JSON.parse);
+  assert.equal(reconciliations.length,1);
+  await serviceQuery(`select public.bud_live_record_reconciliation('${orderId}','${reconciliations[0].leaseToken}','refunded')`);
+  assert.equal(await query('select credits from bud_platform.live_wallets'),'0');
+  assert.equal(await query("select state from bud_platform.live_reconciliation"),'refunded');
   process.stdout.write('LOCAL_POSTGRES_MULTI_CONNECTION_PASSED orders=12 credits=12 starts=12 claims=12 wallet=0 sandbox=5\n');
 } finally {
   // Never delete a running cluster, and verify exact resolved containment before recursive cleanup.

@@ -8,6 +8,7 @@ import { assertProductionCheckoutUrl, assertProductionPaymentMatches, createProd
 import type { ProductionConfig, ProductionOrder } from './whop-production.ts';
 
 const PROJECT = 'https://cepmvqqrjcvhyzszqand.supabase.co';
+export { backend as liveBackend, rpc as liveRpc, result as liveResponse };
 type StoredOrder = ProductionOrder & { fulfilled: boolean };
 const object = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value);
 function environment(): CommerceEnv { return (globalThis as unknown as { process?: { env?: CommerceEnv } }).process?.env ?? {}; }
@@ -31,6 +32,7 @@ async function rpc(name: string, params: object, secret: string, transport: type
     const message = object(data) ? data.message : null;
     if (message === 'BUD_LIVE_COMMERCE_DISABLED') throw new WhopError('LIVE_COMMERCE_DISABLED');
     if (message === 'BUD_KEY_REUSED') throw new WhopError('IDEMPOTENCY_KEY_REUSED', 409);
+    if (message === 'BUD_PAYMENT_REVIEW') throw new WhopError('PAYMENT_UNDER_REVIEW', 409);
     if (message === 'BUD_ORDER_NOT_FOUND') throw new WhopError('ORDER_NOT_FOUND', 404);
     // Never return SQL, provider bodies, service credentials or financial identifiers on errors.
     throw new WhopError('LIVE_BACKEND_UNAVAILABLE');

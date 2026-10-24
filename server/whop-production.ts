@@ -86,7 +86,7 @@ export async function createProductionCheckout(order: ProductionOrder, config: P
   const checkout = await provider('/checkout_configurations', config, transport, { method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Idempotency-Key': 'bud-production-' + order.orderId },
     body: JSON.stringify({ plan_id: config.plan, mode: 'payment', metadata: { bud_order_id: order.orderId, bud_environment: 'production' },
-      redirect_url: config.origin + '/?screen=events&lang=' + order.locale }) });
+      redirect_url: config.origin + '/?screen=events&lang=' + order.locale + '&order=' + order.orderId }) });
   if (typeof checkout.id !== 'string' || typeof checkout.purchase_url !== 'string' || checkout.company_id !== config.company
     || !object(checkout.plan) || checkout.plan.id !== config.plan || checkout.plan.currency !== config.currency
     || (checkout.currency != null && checkout.currency !== config.currency) || checkout.mode !== 'payment' || !object(checkout.metadata)
@@ -108,13 +108,28 @@ export async function lookupProductionPayment(paymentId: string, config: Product
 }
 /** Call only after an authoritative payment lookup and durable server-order lookup; this function never grants credit. */
 export function assertProductionPaymentMatches(payment: Record<string, unknown>, order: ProductionOrder, config: ProductionConfig): void {
+  assertProductionPaymentIdentity(payment, order, config);
+  if (payment.status !== 'paid' || payment.substatus !== 'succeeded' || typeof payment.paid_at !== 'string' || !Number.isFinite(Date.parse(payment.paid_at))
+    || money(payment.refunded_amount) !== 0 || payment.auto_refunded !== false || payment.refunded_at !== null
+    || !Array.isArray(payment.disputes) || payment.disputes.length !== 0) throw new WhopError('PRODUCTION_PAYMENT_MISMATCH', 409);
+}
+/** Stable binding checks also apply when the authoritative payment has since been refunded/disputed. */
+export function assertProductionPaymentIdentity(payment: Record<string, unknown>, order: ProductionOrder, config: ProductionConfig): void {
   if (!productionOrderMatches(order, config) || !order.checkoutId || !order.checkoutUrl) throw new WhopError('PRODUCTION_PAYMENT_MISMATCH', 409);
   assertProductionCheckoutUrl(order.checkoutId, order.checkoutUrl);
   if (typeof payment.id !== 'string' || !/^pay_[A-Za-z0-9]{5,80}$/.test(payment.id) || payment.checkout_configuration_id !== order.checkoutId
-    || payment.status !== 'paid' || payment.substatus !== 'succeeded' || typeof payment.paid_at !== 'string' || !Number.isFinite(Date.parse(payment.paid_at))
     || !object(payment.company) || payment.company.id !== order.companyId || !object(payment.product) || payment.product.id !== order.productId
     || !object(payment.plan) || payment.plan.id !== order.planId || payment.currency !== order.currency || money(payment.total) !== order.amountMinor
-    || !object(payment.metadata) || payment.metadata.bud_order_id !== order.orderId || payment.metadata.bud_environment !== 'production'
-    || money(payment.refunded_amount) !== 0 || payment.auto_refunded !== false || payment.refunded_at !== null
-    || !Array.isArray(payment.disputes) || payment.disputes.length !== 0) throw new WhopError('PRODUCTION_PAYMENT_MISMATCH', 409);
+    || !object(payment.metadata) || payment.metadata.bud_order_id !== order.orderId || payment.metadata.bud_environment !== 'production') throw new WhopError('PRODUCTION_PAYMENT_MISMATCH', 409);
+}
+
+export function productionPaymentCondition(payment: Record<string, unknown>): 'clear' | 'review' | 'refunded' | 'disputed' {
+  if (!Array.isArray(payment.disputes) || typeof payment.auto_refunded !== 'boolean') return 'review';
+  if (payment.disputes.length > 0) return 'disputed';
+  const refunded = money(payment.refunded_amount), total = money(payment.total);
+  if (refunded === null || total === null || total < 1 || refunded > total) return 'review';
+  if (refunded === total) return 'refunded';
+  if (refunded > 0 || payment.auto_refunded || payment.refunded_at !== null) return 'review';
+  return payment.status === 'paid' && payment.substatus === 'succeeded' && typeof payment.paid_at === 'string'
+    && Number.isFinite(Date.parse(payment.paid_at)) ? 'clear' : 'review';
 }

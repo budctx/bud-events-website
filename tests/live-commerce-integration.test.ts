@@ -60,7 +60,7 @@ test('isolated production orchestration: real SQL, authenticated pilot, durable 
       checkoutPosts++;
       const body = JSON.parse(String(init?.body)); orderId = body.metadata.bud_order_id;
       assert.deepEqual(body.metadata, { bud_order_id: orderId, bud_environment: 'production' });
-      assert.equal(body.redirect_url, origin + '/?screen=events&lang=en');
+      assert.equal(body.redirect_url, origin + '/?screen=events&lang=en&order=' + orderId);
       providerKeys.push(new Headers(init?.headers).get('idempotency-key')!);
       return Response.json({ id: 'ch_fixture123', company_id: env.WHOP_PRODUCTION_COMPANY_ID, plan: { id: env.WHOP_PRODUCTION_PLAN_ID, currency: 'sar' },
         mode: 'payment', purchase_url: 'https://whop.com/checkout/ch_fixture123/', metadata: body.metadata });

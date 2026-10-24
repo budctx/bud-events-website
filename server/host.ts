@@ -50,6 +50,7 @@ const errors: Record<string, [number, string]> = {
   BUD_EVENT_NOT_FOUND: [404, 'EVENT_NOT_FOUND'], BUD_VERSION_CONFLICT: [409, 'VERSION_CONFLICT'], BUD_EVENT_CLOSED: [409, 'EVENT_CLOSED'],
   BUD_CONTENT_NOT_READY: [503, 'CONTENT_NOT_READY'], BUD_CONTENT_UNAVAILABLE: [503, 'CONTENT_NOT_READY'], BUD_PRODUCT_UNAVAILABLE: [503, 'PRODUCT_UNAVAILABLE'],
   BUD_LIVE_HOST_DISABLED: [503, 'LIVE_HOST_DISABLED'],
+  BUD_PAYMENT_REVIEW: [409, 'PAYMENT_UNDER_REVIEW'],
 };
 function actionFrom(value: unknown): ManualAction | null {
   if (!object(value) || typeof value.type !== 'string') return null;
