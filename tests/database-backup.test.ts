@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { encrypt, decrypt, inside, scopedRestoreList } from '../scripts/database-backup.mjs';
+import { encrypt, decrypt, inside, scopedRestoreList, postgresFailureCode } from '../scripts/database-backup.mjs';
 
 test('backup encryption restores exact bytes and refuses a wrong passphrase, tampering and truncation', () => {
  const data = Buffer.from('PGDMP fixture containing private account data');
@@ -29,4 +29,19 @@ test('backup cleanup is restricted to children of its private directory', () => 
  for (const target of ['C:/backup/private','C:/backup','C:/backup/private-other','C:/backup/private/../../outside','D:/outside']) {
   assert.equal(inside('C:/backup/private', target), false);
  }
+});
+
+test('backup diagnoses failure classes without returning stderr, secrets or unknown error content',()=>{
+ const secret='postgres://private:password@private-host/private-db';
+ for(const [failure,reason] of [
+  [{code:'ENOENT'},'BINARY_NOT_FOUND'],[{code:'EACCES'},'LOCAL_ACCESS_DENIED'],[{killed:true},'TIMEOUT'],
+  [{stderr:'certificate verify failed'},'TLS_FAILED'],[{stderr:'password authentication failed'},'AUTHENTICATION_FAILED'],
+  [{stderr:'could not translate host name'},'DNS_FAILED'],[{stderr:'connection timed out'},'CONNECTION_TIMEOUT'],
+  [{stderr:'connection refused'},'CONNECTION_FAILED'],[{stderr:'permission denied for table users'},'PERMISSION_DENIED'],
+  [{stderr:'unknown error'},'FAILED'],
+ ] as const) {
+  const code=postgresFailureCode('psql',{...failure,stderr:('stderr' in failure?failure.stderr:'')+' '+secret,message:secret,stdout:secret});
+  assert.equal(code,'POSTGRES_PSQL_'+reason); assert.doesNotMatch(code,/password|private|postgres:\/\//);
+ }
+ assert.equal(postgresFailureCode(secret,{stderr:secret}),'POSTGRES_TOOL_FAILED');
 });

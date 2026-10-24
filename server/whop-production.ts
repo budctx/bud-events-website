@@ -7,10 +7,13 @@ const API = 'https://api.whop.com/api/v1';
 // Explicit compatibility pin: never inherit the API key's changing response model.
 const VERSION = '2025-01-01';
 // Variant reads use the documented Account model; financial writes/reads retain their existing pin.
-const PLAN_VERSION = '2026-10-15-1';
+export const PLAN_VERSION = '2026-10-15-1';
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
-export type ProductionPlanExpectation = { token: string; company: string; plan: string; currency: 'sar'; amount: number };
+export type ProductionPlanExpectation = { token: string; company: string; plan: string; currency: 'sar'; amount: number; product?: string };
+export type PlanEvidence = { apiVersion:string; resource:'variants'; checkedAt:string; providerDate:string|null; cacheAgeSeconds:number|null;
+  expected:{companyId:string;planId:string;productId:string|null}; observed:{companyId:string|null;planId:string|null;productId:string|null};
+  productBinding:'matched'|'mismatched'|'not_configured'; quoteChecked:false };
 export type ProductionPlan = { companyId: string; productId: string; planId: string; currency: 'sar'; amountMinor: number };
 export class ProductionPlanMismatch extends WhopError {
   readonly fields: string[];
@@ -30,9 +33,10 @@ function money(value: unknown): number | null {
 export function productionPlanExpectation(env: CommerceEnv): ProductionPlanExpectation | null {
   if (!env.WHOP_PRODUCTION_API_KEY || !/^biz_[A-Za-z0-9]{5,80}$/.test(env.WHOP_PRODUCTION_COMPANY_ID ?? '')
     || !/^plan_[A-Za-z0-9]{5,80}$/.test(env.WHOP_PRODUCTION_PLAN_ID ?? '')
-    || env.WHOP_PRODUCTION_CURRENCY !== 'sar' || !/^[1-9][0-9]{0,7}$/.test(env.WHOP_PRODUCTION_AMOUNT_MINOR ?? '')) return null;
+    || env.WHOP_PRODUCTION_CURRENCY !== 'sar' || !/^[1-9][0-9]{0,7}$/.test(env.WHOP_PRODUCTION_AMOUNT_MINOR ?? '')
+    || (env.WHOP_PRODUCTION_PRODUCT_ID !== undefined && !/^prod_[A-Za-z0-9]{5,80}$/.test(env.WHOP_PRODUCTION_PRODUCT_ID))) return null;
   return { token: env.WHOP_PRODUCTION_API_KEY, company: env.WHOP_PRODUCTION_COMPANY_ID!, plan: env.WHOP_PRODUCTION_PLAN_ID!,
-    currency: 'sar', amount: Number(env.WHOP_PRODUCTION_AMOUNT_MINOR) };
+    currency: 'sar', amount: Number(env.WHOP_PRODUCTION_AMOUNT_MINOR), ...(env.WHOP_PRODUCTION_PRODUCT_ID ? {product:env.WHOP_PRODUCTION_PRODUCT_ID} : {}) };
 }
 /** Additional explicit pilot gates. Existing saved credentials alone cannot enable checkout. */
 export function whopProductionConfig(env: CommerceEnv): ProductionConfig | null {
@@ -55,11 +59,12 @@ export function whopProductionProcessingConfig(env: CommerceEnv): ProductionConf
       secret: env.WHOP_PRODUCTION_WEBHOOK_SECRET!, webhookVersion: env.WHOP_PRODUCTION_WEBHOOK_API_VERSION! };
   } catch { return null; }
 }
-async function provider(path: string, config: ProductionPlanExpectation, transport: typeof fetch, init: RequestInit = {}, version = VERSION) {
+export async function productionProvider(path: string, config: ProductionPlanExpectation, transport: typeof fetch, init: RequestInit = {}, version = VERSION,
+  observe?: (response:Response)=>void) {
   const headers = new Headers(init.headers);
   headers.set('Authorization', 'Bearer ' + config.token); headers.set('Api-Version-Date', version);
   let response: Response;
-  try { response = await transport(API + path, { ...init, headers, redirect: 'error', signal: AbortSignal.timeout(8000) }); }
+  try { response = await transport(API + path, { ...init, headers, cache:'no-store', redirect: 'error', signal: AbortSignal.timeout(8000) }); }
   catch { throw new WhopError('WHOP_PRODUCTION_UNAVAILABLE'); }
   if (!response.ok) {
     if (response.status === 401 || response.status === 403) throw new WhopError('WHOP_PRODUCTION_ACCESS_DENIED');
@@ -68,19 +73,33 @@ async function provider(path: string, config: ProductionPlanExpectation, transpo
     if (response.status === 400 || response.status === 422) throw new WhopError('WHOP_PRODUCTION_REQUEST_REJECTED');
     throw new WhopError('WHOP_PRODUCTION_UNAVAILABLE');
   }
+  observe?.(response);
   try {
     const data: unknown = JSON.parse(await boundedProviderText(response.body));
     if (!object(data)) throw new Error();
     return data;
   } catch { throw new WhopError('INVALID_PRODUCTION_PROVIDER_RESPONSE'); }
 }
+const provider = productionProvider;
 /** GET only: discover the product from the verified plan, without requesting broad catalogue access or logging the raw response. */
-export async function inspectProductionPlan(config: ProductionPlanExpectation, transport: typeof fetch = fetch): Promise<ProductionPlan> {
-  const plan = await provider('/variants/' + encodeURIComponent(config.plan), config, transport, {}, PLAN_VERSION);
+export async function inspectProductionPlan(config: ProductionPlanExpectation, transport: typeof fetch = fetch,
+  observe?: (evidence:PlanEvidence)=>void): Promise<ProductionPlan> {
+  let providerDate:string|null=null, cacheAgeSeconds:number|null=null;
+  const plan = await provider('/variants/' + encodeURIComponent(config.plan), config, transport, {}, PLAN_VERSION, response=>{
+    const date = response.headers.get('date'), age = response.headers.get('age');
+    if(date && Number.isFinite(Date.parse(date))) providerDate=new Date(date).toISOString();
+    if(age && /^[0-9]{1,9}$/.test(age)) cacheAgeSeconds=Number(age);
+  });
+  const safeId=(value:unknown,prefix:string)=>typeof value==='string' && new RegExp('^'+prefix+'_[A-Za-z0-9]{5,80}$').test(value)?value:null;
+  const productId=object(plan.product)?safeId(plan.product.id,'prod'):null;
+  observe?.({apiVersion:PLAN_VERSION,resource:'variants',checkedAt:new Date().toISOString(),providerDate,cacheAgeSeconds,
+    expected:{companyId:config.company,planId:config.plan,productId:config.product??null},
+    observed:{companyId:object(plan.account)?safeId(plan.account.id,'biz'):null,planId:safeId(plan.id,'plan'),productId},
+    productBinding:config.product?(productId===config.product?'matched':'mismatched'):'not_configured',quoteChecked:false});
   const checks: Record<string, boolean> = {
     plan: plan.id === config.plan,
     company: object(plan.account) && plan.account.id === config.company,
-    product: object(plan.product) && typeof plan.product.id === 'string' && /^prod_[A-Za-z0-9]{5,80}$/.test(plan.product.id),
+    product: productId!==null && (config.product===undefined || productId===config.product),
     billing: plan.plan_type === 'one_time', currency: plan.currency === config.currency,
     price: money(plan.initial_price) === config.amount, renewal: money(plan.renewal_price) === 0,
     conversion: plan.adaptive_pricing_enabled === false, tax: typeof plan.collect_tax === 'boolean'

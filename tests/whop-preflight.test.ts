@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { handleAuth } from '../server/auth.ts';
-import { handleWhopPreflight } from '../server/whop-preflight.ts';
+import { handleWhopPreflight, handleWhopQuote } from '../server/whop-preflight.ts';
 
 const origin = 'https://bud-events-website.vercel.app';
 const project = 'https://cepmvqqrjcvhyzszqand.supabase.co';
@@ -67,7 +67,10 @@ test('authenticated pilot preflight performs only a provider GET with stored exp
     return Response.json({ ...plan, privateCustomer: 'must-not-be-returned' });
   }));
   assert.equal(response.status, 200); assert.equal(providerCalls, 1); assert.equal(response.headers.get('cache-control'), 'no-store');
-  assert.deepEqual(await response.json(), { code: 'OK', data: { companyId: env.WHOP_PRODUCTION_COMPANY_ID, productId: 'prod_fixture123',
+  const body=await response.json(); const evidence=body.data.evidence; delete body.data.evidence;
+  assert.equal(evidence.productBinding,'not_configured'); assert.equal(evidence.quoteChecked,false);
+  assert.deepEqual(evidence.observed,{companyId:env.WHOP_PRODUCTION_COMPANY_ID,planId:env.WHOP_PRODUCTION_PLAN_ID,productId:'prod_fixture123'});
+  assert.deepEqual(body, { code: 'OK', data: { companyId: env.WHOP_PRODUCTION_COMPANY_ID, productId: 'prod_fixture123',
     planId: env.WHOP_PRODUCTION_PLAN_ID, currency: 'sar', amountMinor: 200, checkoutCreated: false, paymentCreated: false, creditGranted: false } });
 });
 
@@ -77,7 +80,8 @@ test('preflight rejects commercial mismatch and sanitizes provider/network diagn
   assert.equal(mismatch.status, 409); assert.equal((await mismatch.json()).code, 'PRODUCTION_PLAN_MISMATCH');
   const fields = await handleWhopPreflight(request(cookie), env, mock(async () => Response.json({ ...plan, account:null,
     initial_price:18, privateCustomer:'must-not-return' })));
-  assert.deepEqual(await fields.json(), { code:'PRODUCTION_PLAN_MISMATCH',data:{mismatches:['company','price'],settings:{conversion:'disabled',taxCollection:'disabled',taxType:'missing'}} });
+  const body=await fields.json(); assert.equal(body.data.evidence.observed.companyId,null); delete body.data.evidence;
+  assert.deepEqual(body, { code:'PRODUCTION_PLAN_MISMATCH',data:{mismatches:['company','price'],settings:{conversion:'disabled',taxCollection:'disabled',taxType:'missing'}} });
   const failed = await handleWhopPreflight(request(cookie), env, mock(async () => { throw Error(env.WHOP_PRODUCTION_API_KEY); }));
   assert.equal(failed.status, 503); assert.doesNotMatch(await failed.text(), /fixture-production-key/);
   for (const [status, code] of [[401, 'WHOP_PRODUCTION_ACCESS_DENIED'], [403, 'WHOP_PRODUCTION_ACCESS_DENIED'],
@@ -86,4 +90,16 @@ test('preflight rejects commercial mismatch and sanitizes provider/network diagn
     const denied = await handleWhopPreflight(request(cookie), env, mock(async () => new Response('private provider details', { status })));
     assert.equal(denied.status, 503); assert.deepEqual(await denied.json(), { code });
   }
+});
+
+test('quote opt-in never expands guest access or accepts caller pricing/location',async()=>{
+  const never:typeof fetch=async()=>{assert.fail('provider must not run');};
+  assert.equal((await handleWhopQuote(request(),env,never)).status,503);
+  const quoteEnv={...env,BUD_WHOP_QUOTE_PREFLIGHT_ENABLED:'true',WHOP_PRODUCTION_PRODUCT_ID:'prod_fixture123'};
+  assert.equal((await handleWhopQuote(request(),quoteEnv,mock(never))).status,401);
+  const cookie=await session();
+  assert.equal((await handleWhopQuote(request(cookie,{body:'{"country":"US","amount":1}'}),quoteEnv,never)).status,400);
+  assert.equal((await handleWhopQuote(request(cookie),{...quoteEnv,BUD_WHOP_PILOT_HOST_ID:'33333333-3333-4333-8333-333333333333'},mock(never))).status,403);
+  const wrong=await handleWhopQuote(request(cookie),{...quoteEnv,WHOP_PRODUCTION_PRODUCT_ID:'prod_wrong123'},mock(async()=>Response.json(plan)));
+  assert.equal(wrong.status,409);
 });
