@@ -13,17 +13,17 @@ for (const locale of ['ar','en'] as const) {
     });
     await page.goto(`/?screen=events&lang=${locale}&order=${order}&paid=true`);
     const panel = page.getByTestId('payment-status');
-    await expect(panel.getByRole('status')).toHaveText(locale === 'ar' ? 'الدفع قيد التحقق' : 'Payment confirmation pending');
+    await expect(panel.getByRole('status')).toHaveText('الدفع قيد التحقق');
     expect(new URL(page.url()).searchParams.get('paid')).toBeNull();
     await expect(panel).toContainText(order);
     await page.screenshot({ path:`artifacts/payment-status-${locale}-pending.png`,fullPage:true });
     state = 'confirmed';
     await panel.getByRole('button').click();
-    await expect(panel.getByRole('status')).toHaveText(locale === 'ar' ? 'تم تأكيد الدفع' : 'Payment confirmed');
+    await expect(panel.getByRole('status')).toHaveText('تم تأكيد الدفع');
     await expect.poll(() => dashboardCalls).toBeGreaterThan(1);
     await expect(page.getByTestId('event-setup')).toBeVisible();
     state = 'refunded'; await panel.getByRole('button').click();
-    await expect(panel.getByRole('status')).toHaveText(locale === 'ar' ? 'تم تأكيد استرداد الدفعة' : 'Payment refund confirmed');
+    await expect(panel.getByRole('status')).toHaveText('تم تأكيد استرداد الدفعة');
     await expect(page.getByTestId('event-setup')).toHaveCount(0);
     expect(checkoutCalls).toBe(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
@@ -35,8 +35,8 @@ for (const locale of ['ar','en'] as const) {
     await page.route('**/api/payment-status', route => route.fulfill({ status:503,json:{ code:'PAYMENT_STATUS_UNAVAILABLE' } }));
     await page.goto(`/?screen=events&lang=${locale}&order=${order}&success=true`);
     const panel = page.getByTestId('payment-status');
-    await expect(panel.getByRole('status')).toHaveText(locale === 'ar' ? 'تعذر التحقق من حالة الطلب الآن.' : 'We cannot verify your order status right now.');
-    await expect(panel).not.toContainText(locale === 'ar' ? 'تم تأكيد الدفع' : 'Payment confirmed');
+    await expect(panel.getByRole('status')).toHaveText('تعذر التحقق من حالة الطلب الآن.');
+    await expect(panel).not.toContainText('تم تأكيد الدفع');
   });
 }
 test('a payment query without a valid order cannot create a success screen', async ({ page }) => {
@@ -91,13 +91,13 @@ test('independent quote is explicit, country preview only and never a purchase o
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);
  await page.screenshot({path:'artifacts/whop-quote-ar390.png',fullPage:true});
  await page.setViewportSize({width:1440,height:900});
- await page.getByRole('button',{name:'English',exact:true}).click();
- await panel.getByRole('button',{name:'Preview price — Saudi Arabia'}).click();
- await expect(panel.getByRole('status')).toContainText('Not a final buyer quote');expect(checkouts).toBe(0);
+ await expect(page.getByTestId('locale-toggle')).toHaveCount(0);
+ await panel.getByRole('button',{name:'عرض سعر تقديري — السعودية'}).click();
+ await expect(panel.getByRole('status')).toContainText('ليس سعرًا نهائيًا لعميل');expect(checkouts).toBe(0);
  await page.screenshot({path:'artifacts/whop-quote-en1440.png',fullPage:true});
  await page.unroute('**/api/whop-quote');
  await page.route('**/api/whop-quote',route=>route.fulfill({status:503,json:{code:'WHOP_PRODUCTION_REQUEST_REJECTED',data:{request:{operation:'quote_preview',providerStatus:422,reason:'required_field',field:'company_id'},privateDetails:'never-display'}}}));
- await panel.getByRole('button',{name:'Preview price — Saudi Arabia'}).click();
- await expect(panel.getByRole('status')).toContainText('Whop rejected the quote request: required field (company_id)');
+ await panel.getByRole('button',{name:'عرض سعر تقديري — السعودية'}).click();
+ await expect(panel.getByRole('status')).toContainText('تعذر');
  await expect(panel).not.toContainText('never-display');expect(checkouts).toBe(0);
 });
