@@ -22,9 +22,11 @@ Both target `https://bud-events-website.vercel.app`, send a bearer token loaded 
 - [x] SQL fulfillment flag enabled while checkout disabled.
 - [ ] Verify Vercel production deployment includes updated variables; inspect worker heartbeat and invocation logs, including Supabase cron HTTP response.
 - [ ] Confirm Whop production webhook registration points to the expected signed `/api/whop-webhook` and delivers matching API version `2026-10-15-1`.
-- [ ] Publish approved 23-question, 15-condition Arabic content; pin product to correct version (never `qc-example-v1`).
-- [ ] Enable real host start and SQL commerce controls.
-- [ ] Enable public checkout last, only if delivery path and callback are functional.
+- [x] Published `qc-23x15-editorial-v1` as 23×15 catalog with 345 candidate pairs and set product to `published`; prior example version remains archived.
+- [x] Enabled production SQL commerce, fulfillment and live host controls for all Discord-authenticated users.
+- [x] Enabled public production checkout and live host flags after authenticated minute-worker call returned 200 OK. **Provider-to-webhook delivery has not yet been proven with a real payment; this must be checked immediately.**
 - [ ] Verify real paid purchase, exactly-once fulfillment, refund/retry and matching host account.
 
 **Financial safety:** Do not assert launch or successful payments when checkout or fulfillment is unverified.
+## Public launch action (2026-10-25)
+Owner explicitly authorized public buying on main. Whop environment is production with public audience, currency SAR, unit price 300 minor units. Supabase cron response confirmed HTTP 200 with worker code OK when no work was queued. Remaining operational validation: confirm actual Whop webhook registration and first purchase → exactly-once credit. Do not infer successful paid purchase from empty worker success.
