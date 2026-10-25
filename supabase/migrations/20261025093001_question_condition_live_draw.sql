@@ -2,7 +2,7 @@
 begin;
 -- Live pilot uses the same activity engine with its OWN isolated event/wallet.
 -- Merely adding these functions does not turn on live commerce or host access.
-create function public.bud_live_host_draw_catalog(p_host uuid,p_event uuid default null)
+create or replace function public.bud_live_host_draw_catalog(p_host uuid,p_event uuid default null)
 returns jsonb language plpgsql security invoker set search_path='' as $$
 declare v_content bud_platform.content_versions;
 begin
@@ -53,7 +53,7 @@ $$;
 revoke all on function bud_platform.live_host_event(uuid) from public,anon,authenticated;
 grant execute on function bud_platform.live_host_event(uuid) to service_role;
 
-create function public.bud_live_host_start_draw(
+create or replace function public.bud_live_host_start_draw(
  p_host uuid,p_key text,p_title text,p_config jsonb,p_prize_text text,
  p_state jsonb,p_fingerprint text,p_content_id text)
 returns jsonb language plpgsql security invoker set search_path='' as $$
