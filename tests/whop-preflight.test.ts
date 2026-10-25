@@ -78,7 +78,7 @@ test('preflight rejects commercial mismatch and sanitizes provider/network diagn
   const cookie = await session();
   const mismatch = await handleWhopPreflight(request(cookie), env, mock(async () => Response.json({ ...plan, initial_price: 18 })));
   assert.equal(mismatch.status, 409); assert.equal((await mismatch.json()).code, 'PRODUCTION_PLAN_MISMATCH');
-  const fields = await handleWhopPreflight(request(cookie), env, mock(async () => Response.json({ ...plan, account:null,
+  const fields = await handleWhopPreflight(request(cookie), env, mock(async () => Response.json({ ...plan, company:null,
     initial_price:18, privateCustomer:'must-not-return' })));
   const body=await fields.json(); assert.equal(body.data.evidence.observed.companyId,null); delete body.data.evidence;
   assert.deepEqual(body, { code:'PRODUCTION_PLAN_MISMATCH',data:{mismatches:['company','price'],settings:{conversion:'disabled',taxCollection:'disabled',taxType:'missing'}} });
