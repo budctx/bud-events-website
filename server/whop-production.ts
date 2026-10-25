@@ -11,7 +11,7 @@ export const PLAN_VERSION = '2026-10-15-1';
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 export type ProductionPlanExpectation = { token: string; company: string; plan: string; currency: 'sar'; amount: number; product?: string };
-export type PlanEvidence = { apiVersion:string; resource:'variants'; checkedAt:string; providerDate:string|null; cacheAgeSeconds:number|null;
+export type PlanEvidence = { apiVersion:string; resource:'plans'; checkedAt:string; providerDate:string|null; cacheAgeSeconds:number|null;
   expected:{companyId:string;planId:string;productId:string|null}; observed:{companyId:string|null;planId:string|null;productId:string|null};
   productBinding:'matched'|'mismatched'|'not_configured'; quoteChecked:false };
 export type ProductionPlan = { companyId: string; productId: string; planId: string; currency: 'sar'; amountMinor: number };
@@ -24,7 +24,7 @@ export class ProductionProviderRejection extends WhopError {
   request:{operation:'plan_read'|'quote_preview'|'checkout'|'payment_read'|'other';apiVersion:string;providerStatus:number;reason:string;field:string|null};
   constructor(code:string,path:string,apiVersion:string,providerStatus:number,reason='unclassified',field:string|null=null) {
     super(code);
-    this.request={operation:path==='/payment_quotes'?'quote_preview':path.startsWith('/variants/')?'plan_read':path==='/checkout_configurations'?'checkout':path.startsWith('/payments/')?'payment_read':'other',
+    this.request={operation:path==='/payment_quotes'?'quote_preview':(path.startsWith('/variants/')||path.startsWith('/plans/'))?'plan_read':path==='/checkout_configurations'?'checkout':path.startsWith('/payments/')?'payment_read':'other',
       apiVersion,providerStatus,reason,field};
   }
 }
@@ -113,7 +113,7 @@ const provider = productionProvider;
 export async function inspectProductionPlan(config: ProductionPlanExpectation, transport: typeof fetch = fetch,
   observe?: (evidence:PlanEvidence)=>void): Promise<ProductionPlan> {
   let providerDate:string|null=null, cacheAgeSeconds:number|null=null;
-  const plan = await provider('/variants/' + encodeURIComponent(config.plan), config, transport, {}, PLAN_VERSION, response=>{
+  const plan = await provider('/plans/' + encodeURIComponent(config.plan), config, transport, {}, PLAN_VERSION, response=>{
     const date = response.headers.get('date'), age = response.headers.get('age');
     if(date && Number.isFinite(Date.parse(date))) providerDate=new Date(date).toISOString();
     if(age && /^[0-9]{1,9}$/.test(age)) cacheAgeSeconds=Number(age);
@@ -122,11 +122,11 @@ export async function inspectProductionPlan(config: ProductionPlanExpectation, t
   const productId=object(plan.product)?safeId(plan.product.id,'prod'):null;
   observe?.({apiVersion:PLAN_VERSION,resource:'variants',checkedAt:new Date().toISOString(),providerDate,cacheAgeSeconds,
     expected:{companyId:config.company,planId:config.plan,productId:config.product??null},
-    observed:{companyId:object(plan.account)?safeId(plan.account.id,'biz'):null,planId:safeId(plan.id,'plan'),productId},
+    observed:{companyId:object(plan.company)?safeId(plan.company.id,'biz'):null,planId:safeId(plan.id,'plan'),productId},
     productBinding:config.product?(productId===config.product?'matched':'mismatched'):'not_configured',quoteChecked:false});
   const checks: Record<string, boolean> = {
     plan: plan.id === config.plan,
-    company: object(plan.account) && plan.account.id === config.company,
+    company: object(plan.company) && plan.company.id === config.company,
     product: productId!==null && (config.product===undefined || productId===config.product),
     billing: plan.plan_type === 'one_time', currency: plan.currency === config.currency,
     price: money(plan.initial_price) === config.amount, renewal: money(plan.renewal_price) === 0,
