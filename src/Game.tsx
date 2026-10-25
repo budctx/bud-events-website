@@ -7,7 +7,8 @@ import type { HostEvent } from './host-client';
 import { parsePrizeLines } from './prize-lines';
 import { formatEventResults } from './event-summary';
 import type { Locale } from './i18n';
-import { initialDrawBag, nextPair } from './local-draw';
+import { approveNewCycle, drawNext, initialDrawState } from './draw-engine';
+import type { PairId } from './draw-engine';
 import './game.css';
 import { WinnerList, WinnerNumber, WinnerIcon } from './WinnerList';
 import type { ManualWinner } from './manual-game';
@@ -24,7 +25,8 @@ const banks = {
   ar: { questions: ['دولة', 'تطبيق جوال', 'شيء تأخذه في رحلة', 'مدينة', 'حيوان', 'أكلة'], conditions: ['تبدأ بحرف «س»', 'تحتوي على حرف «م»', 'من كلمتين', 'تبدأ بحرف «ب»', 'تحتوي على حرف «ر»', 'من أربعة أحرف أو أكثر'] },
   en: { questions: ['A country', 'A mobile app', 'Something you take on a trip', 'A city', 'An animal', 'A food'], conditions: ['Starts with S', 'Contains M', 'Two words', 'Starts with B', 'Contains R', 'At least four letters'] },
 };
-type Props = { onExit?: () => void; locale?: Locale; initialState?: ManualState; cards?: { question: string; condition: string }; serverNow?: number; onAction?: (command: ManualAction, key: string) => Promise<HostEvent>; onConflict?: (event: HostEvent) => void };
+const practicePairs: PairId[] = banks.ar.questions.flatMap((_, question) => banks.ar.conditions.map((_, condition): PairId => [String(question), String(condition)]));
+type Props = { onExit ?: () => void; locale?: Locale; initialState?: ManualState; cards?: { question: string; condition: string }; serverNow?: number; onAction?: (command: ManualAction, key: string) => Promise<HostEvent>; onConflict?: (event: HostEvent) => void };
 function JudgmentIcon({ correct }: { correct: boolean }) { return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="9" />{correct ? <path d="m7 12 3 3 7-7" /> : <path d="m8 8 8 8m0-8-8 8" />}</svg>; }
 
 function GameDialog({ open, title, onClose, children, className = '', initialFocus = '[data-autofocus]' }: { open: boolean; title: string; onClose: () => void; children: ReactNode; className?: string; initialFocus?: string }) {
@@ -103,7 +105,7 @@ export default function Game({ onExit, locale = 'ar', initialState, cards, serve
   const [result, setResult] = useState<{ name: string; winner: ManualWinner | null } | null>(null);
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [notice, setNotice] = useState('');
-  const [draw, setDraw] = useState(() => nextPair(initialDrawBag(), banks.ar.questions.length, banks.ar.conditions.length));
+  const [draw, setDraw] = useState(() => drawNext(practicePairs, initialDrawState()));
   const previousRound = useRef(state.round);
   const heading = useRef<HTMLHeadingElement>(null);
   const previousPhase = useRef(state.phase);
@@ -123,7 +125,7 @@ export default function Game({ onExit, locale = 'ar', initialState, cards, serve
     if (previousPhase.current !== state.phase) { previousPhase.current = state.phase; heading.current?.focus(); setNotice(''); }
   }, [state.phase]);
   useEffect(() => {
-    if (previousRound.current !== state.round) { previousRound.current = state.round; setDraw(previous => nextPair(previous.bag, banks.ar.questions.length, banks.ar.conditions.length)); }
+    if (previousRound.current !== state.round) { previousRound.current = state.round; if (!onAction) setDraw(previous => previous.kind === 'drawn' ? drawNext(practicePairs, previous.state) : previous); }
   }, [state.round]);
   useEffect(() => {
     if (state.deadline === null || state.pendingWinner || state.phase !== 'live') return;
@@ -135,7 +137,8 @@ export default function Game({ onExit, locale = 'ar', initialState, cards, serve
   const closeWinner = () => { void dispatch({ type: 'cancel-winner' }, () => setName('')); };
   const copyResults = async () => { try { await navigator.clipboard.writeText(summary || t.empty); setNotice(t.copied); } catch { setNotice(t.copyError); } };
   const prizeDialogClose = () => setPrizeId(null);
-  const renderCard = (kind: 'question' | 'condition') => <GameCard kind={kind} locale={locale} revealed={state[kind]} disabled={state.pendingWinner || saving || retryPending || (!!onAction && !cards)} content={onAction ? (cards?.[kind] ?? '') : kind === 'question' ? banks[locale].questions[draw.pair[0]] : banks[locale].conditions[draw.pair[1]]} onReveal={() => void dispatch({ type: 'reveal', card: kind, now: now() })} />;
+  const practiceExhausted = !onAction && draw.kind === 'exhausted';
+  const renderCard = (kind: 'question' | 'condition') => <GameCard kind={kind} locale={locale} revealed={state[kind]} disabled={state.pendingWinner || saving || retryPending || practiceExhausted || (!!onAction && !cards)} content={onAction ? (cards?.[kind] ?? '') : draw.kind === 'drawn' ? kind === 'question' ? banks[locale].questions[Number(draw.record.pair[0])] : banks[locale].conditions[Number(draw.record.pair[1])] : (ar ? 'انتهت التركيبات' : 'Pairs exhausted')} onReveal={() => void dispatch({ type: 'reveal', card: kind, now: now() })} />;
   return <main className={`manual-game manual-phase-${state.phase}`} dir={locale === 'ar' ? 'rtl' : 'ltr'} lang={locale}>
     <fieldset className="mg-remote-controls" disabled={saving || retryPending}><header className="mg-header"><button className="mg-icon-button mg-exit" aria-label={t.exit} title={t.exit} disabled={saving} onClick={onExit}><InterfaceIcon kind="exit" /></button><h1 ref={heading} tabIndex={-1}>{t.title}</h1>{state.phase !== 'setup' && <div className="mg-toolbar"><button className="mg-button" onClick={() => setViewWinners(true)}>{t.winners} <bdi>({state.winners.length}{state.prizes.length > 0 ? `/${state.prizes.length}` : ''})</bdi></button>{state.phase === 'live' && <button className="mg-button mg-primary" onClick={() => dispatch({ type: 'phase', phase: 'prizes' })}>{t.prizePage}</button>}</div>}</header>
     {!onAction && state.phase === 'setup' && <section className="mg-setup">
@@ -152,8 +155,9 @@ export default function Game({ onExit, locale = 'ar', initialState, cards, serve
     {state.phase === 'live' && <section className="mg-live" aria-label={t.title}>
       {state.config.timerEnabled && <div className="mg-timer" data-expired={displayedRemaining === 0} role="timer" aria-label={t.duration}><bdi>{displayedRemaining}</bdi></div>}
       <div className="mg-cards">{renderCard('question')}{renderCard('condition')}</div>
+      {practiceExhausted && <div className="mg-panel" role="status"><p>{ar ? 'استُخدمت جميع التركيبات في هذه الدورة. يمكنك بدء دورة جديدة بعد موافقتك.' : 'All pairs in this cycle were drawn. Start a new cycle only if you choose.'}</p><button type="button" className="mg-button mg-primary" onClick={() => setDraw(previous => previous.kind === 'exhausted' ? drawNext(practicePairs, approveNewCycle(previous.state)) : previous)}>{ar ? 'بدء دورة جديدة' : 'Start a new cycle'}</button></div>}
       <p className="mg-live-status" role="status">{full ? t.full : !both ? t.waiting : state.config.timerEnabled && displayedRemaining === 0 ? t.expired : t.answer}</p>
-      {both && <div className="mg-judgment mg-panel"><button className="mg-button mg-correct" disabled={full || state.pendingWinner} onClick={() => dispatch({ type: 'correct' })}><JudgmentIcon correct />{t.correct}</button><button className="mg-button mg-wrong" disabled={state.pendingWinner} onClick={() => dispatch({ type: 'wrong' })}><JudgmentIcon correct={false} />{t.wrong}</button>{state.config.attempts > 1 && <span className="mg-help">{t.attempt} <bdi>{state.attempt}/{state.config.attempts}</bdi></span>}</div>}
+      {both && !practiceExhausted && <div className="mg-judgment mg-panel"><button className="mg-button mg-correct" disabled={full || state.pendingWinner} onClick={() => dispatch({ type: 'correct' })}><JudgmentIcon correct />{t.correct}</button><button className="mg-button mg-wrong" disabled={state.pendingWinner} onClick={() => dispatch({ type: 'wrong' })}><JudgmentIcon correct={false} />{t.wrong}</button>{state.config.attempts > 1 && <span className="mg-help">{t.attempt} <bdi>{state.attempt}/{state.config.attempts}</bdi></span>}</div>}
     </section>}
     {state.phase === 'prizes' && <section className="mg-prizes-screen" aria-label={t.prizePage}>
       <aside className="mg-panel mg-winners-sidebar" aria-labelledby="mg-sidebar-title">
