@@ -92,7 +92,7 @@ export async function productionProvider(path: string, config: ProductionPlanExp
   catch { throw new WhopError('WHOP_PRODUCTION_UNAVAILABLE'); }
   if (!response.ok) {
     if (response.status === 401 || response.status === 403) throw new ProductionProviderRejection('WHOP_PRODUCTION_ACCESS_DENIED',path,version,response.status,'access');
-    if (response.status === 404) throw new WhopError('WHOP_PRODUCTION_RESOURCE_NOT_FOUND');
+    if (response.status === 404) throw new ProductionProviderRejection('WHOP_PRODUCTION_RESOURCE_NOT_FOUND',path,version,404,'resource_not_found');
     if (response.status === 429) throw new WhopError('WHOP_PRODUCTION_RATE_LIMITED');
     if (response.status === 400 || response.status === 422) {
       let classification={reason:'unclassified',field:null as string|null};
