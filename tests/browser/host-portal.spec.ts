@@ -288,3 +288,37 @@ test('long Discord names preserve the home viewport and account menu at mobile a
     await page.keyboard.press('Escape'); await expect(page.getByRole('menu')).toHaveCount(0);
   }
 });
+
+
+test('host alone can approve a new draw cycle after persisted activity exhaustion', async ({ page }) => {
+  await session(page);
+  let observedRestart = 0;
+  const exhausted = { ...structuredClone(initialState), activityDraw: {
+    kind: 'question-condition' as const, current: null, exhausted: true, round: 0,
+    draw: { cycle: 1, awaitingNewCycle: true,
+      history: [{ pair: ['0','0'] as const, index: 1, cycle: 1 }] },
+  } };
+  let current = { ...active, state: exhausted, cards: { question: null, condition: null }, version: 7 };
+  await page.route('**/api/host', route => {
+    const payload = route.request().postDataJSON();
+    if (payload.action === 'dashboard') return route.fulfill(ok({ ...dashboard, events: [current] }));
+    if (payload.action === 'resume') return route.fulfill(ok(current));
+    if (payload.action === 'dispatch' && payload.command.type === 'restart-cycle') {
+      observedRestart++;
+      current = { ...current, version: 8,
+        state: { ...exhausted, activityDraw: { ...exhausted.activityDraw, exhausted: false, current: { pair: ['0','0'], index: 2, cycle: 2 },
+          draw: { cycle: 2, awaitingNewCycle: false, history: exhausted.activityDraw.draw.history.concat([{ pair: ['0','0'], index: 2, cycle: 2 }]) } } },
+        cards: { question: 'حيوان', condition: 'يبدأ بحرف م' } };
+      return route.fulfill(ok(current));
+    }
+    return route.fulfill({ status: 400, json: { code: 'UNEXPECTED_ACTION' } });
+  });
+  await page.goto('/?screen=host&lang=ar');
+  await page.getByRole('button', { name: 'استكمال الفعالية', exact: true }).click();
+  await expect(page.getByText('استُخدمت جميع التركيبات', { exact: false })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'اكشف سؤال', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: 'بدء دورة جديدة', exact: true }).click();
+  await expect(page.getByText('استُخدمت جميع التركيبات', { exact: false })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'اكشف سؤال', exact: true })).toBeEnabled();
+  expect(observedRestart).toBe(1);
+});
