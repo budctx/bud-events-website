@@ -76,6 +76,8 @@ test('preview keyboard, reduced motion, locale reset and unmount cleanup',async(
   await expect(page.getByRole('timer')).toHaveText('5ث');
   await expect(page.locator('.mg-flip-inner').first()).toHaveCSS('transition-duration','0s');
   await expect(page.getByTestId('locale-toggle')).toHaveCount(0);
+  await page.getByTestId('nav-home').click();
+  await page.getByTestId('nav-events').click();
   await expect(page.getByRole('timer')).toHaveCount(0);
   await page.getByRole('button',{name:'اكشف سؤال',exact:true}).click();
   await page.getByRole('button',{name:'اكشف شرط',exact:true}).click();
