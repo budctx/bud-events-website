@@ -12,7 +12,7 @@ const env = { BUD_WHOP_PREFLIGHT_ENABLED: 'true', BUD_WHOP_PRODUCTION_ENABLED: '
   BUD_BACKEND_ENABLED: 'true', BUD_AUTH_ENABLED: 'true', SUPABASE_URL: project, SUPABASE_SERVICE_ROLE_KEY: 'fixture-service-key',
   SUPABASE_PUBLISHABLE_KEY: 'fixture-public-key', BUD_AUTH_COOKIE_SECRET: 'fixture-cookie-secret-at-least-thirty-two-bytes',
   VERCEL: '1', BUD_RATE_LIMIT_ENABLED: 'true', BUD_RATE_LIMIT_SECRET: 'fixture-limiter-secret-at-least-thirty-two-bytes' };
-const plan = { id: env.WHOP_PRODUCTION_PLAN_ID, account: { id: env.WHOP_PRODUCTION_COMPANY_ID }, product: { id: 'prod_fixture123' },
+const plan = { id: env.WHOP_PRODUCTION_PLAN_ID, company: { id: env.WHOP_PRODUCTION_COMPANY_ID }, product: { id: 'prod_fixture123' },
   currency: 'sar', plan_type: 'one_time', initial_price: 2, renewal_price: 0, adaptive_pricing_enabled: false, collect_tax: false };
 function request(cookie?: string, change: RequestInit = {}, query = '') {
   return new Request(origin + '/api/whop-preflight' + query, { method: 'POST', ...change,
@@ -61,7 +61,7 @@ test('authenticated pilot preflight performs only a provider GET with stored exp
   const cookie = await session(); let providerCalls = 0;
   const response = await handleWhopPreflight(request(cookie, { body: '' }), env, mock(async (input, init) => {
     providerCalls++;
-    assert.equal(String(input), 'https://api.whop.com/api/v1/variants/' + env.WHOP_PRODUCTION_PLAN_ID);
+    assert.equal(String(input), 'https://api.whop.com/api/v1/plans/' + env.WHOP_PRODUCTION_PLAN_ID);
     assert.equal(init?.method ?? 'GET', 'GET');
     assert.equal(new Headers(init?.headers).get('authorization'), 'Bearer ' + env.WHOP_PRODUCTION_API_KEY);
     return Response.json({ ...plan, privateCustomer: 'must-not-be-returned' });
