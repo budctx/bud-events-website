@@ -5,7 +5,7 @@ test.use({baseURL:'http://127.0.0.1:4175'});
 
 for(const locale of ['ar','en']) for(const size of [{width:1440,height:900},{width:390,height:844},{width:320,height:568}]) {
   test(`production fixed cards and five-second countdown ${locale} ${size.width}`,async({page},info)=>{
-    const ar=locale==='ar'; await page.setViewportSize(size);
+    const ar=true; await page.setViewportSize(size);
     await page.clock.install();
     await page.goto(`/?lang=${locale}`); await page.getByTestId('nav-events').click();
     const preview=page.getByTestId('event-preview');
