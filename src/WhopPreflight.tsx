@@ -89,7 +89,7 @@ export default function WhopPreflight({ locale, onAuthLost }: { locale:Locale; o
       if (!response.ok && typeof body?.code === 'string' && Object.hasOwn(reasons, body.code)) { setMessage(reasons[body.code]); return; }
       if (!response.ok || body?.code !== 'OK' || !data || typeof data.companyId !== 'string' || !/^biz_[A-Za-z0-9]{5,80}$/.test(data.companyId)
         || typeof data.productId !== 'string' || !/^prod_[A-Za-z0-9]{5,80}$/.test(data.productId) || typeof data.planId !== 'string' || !/^plan_[A-Za-z0-9]{5,80}$/.test(data.planId) || data.currency !== 'sar'
-        || data.amountMinor !== 200 || data.checkoutCreated !== false || data.paymentCreated !== false || data.creditGranted !== false) throw Error();
+        || data.amountMinor !== 300 || data.checkoutCreated !== false || data.paymentCreated !== false || data.creditGranted !== false) throw Error();
       setResult({ companyId:data.companyId,productId:data.productId,planId:data.planId,currency:data.currency,amountMinor:data.amountMinor });
       setMessage(ar ? 'تم التحقق من خطة الدفع. لم يُنشأ طلب شراء أو دفعة أو مفتاح.' : 'The payment plan was verified. No checkout, payment or key was created.');
     } catch { if (!controller.signal.aborted) setMessage(ar ? 'لم ينجح التحقق. لا تفعّل الدفع قبل مراجعة الإعدادات.' : 'Verification did not pass. Review the configuration before attempting a payment.'); }

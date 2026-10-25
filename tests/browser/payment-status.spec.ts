@@ -52,7 +52,7 @@ test('explicit pilot inspection performs an empty protected POST and creates no 
   await page.route('**/api/checkout',route=>{checkouts++;return route.fulfill({status:503,json:{code:'DISABLED'}});});
   await page.route('**/api/whop-preflight',route=>{
     inspections++;expect(route.request().method()).toBe('POST');expect(route.request().postData()).toBeNull();
-    return route.fulfill({json:{code:'OK',data:{companyId:'biz_fixture123',productId:'prod_fixture123',planId:'plan_fixture123',currency:'sar',amountMinor:200,checkoutCreated:false,paymentCreated:false,creditGranted:false}}});
+    return route.fulfill({json:{code:'OK',data:{companyId:'biz_fixture123',productId:'prod_fixture123',planId:'plan_fixture123',currency:'sar',amountMinor:300,checkoutCreated:false,paymentCreated:false,creditGranted:false}}});
   });
   await page.goto('/?screen=events&lang=ar&check=whop');
   const inspection=page.getByTestId('whop-preflight');await inspection.getByRole('button', {name:'التحقق من الخطة', exact:true}).click();

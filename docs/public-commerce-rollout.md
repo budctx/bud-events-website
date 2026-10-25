@@ -28,5 +28,11 @@ Both target `https://bud-events-website.vercel.app`, send a bearer token loaded 
 - [ ] Verify real paid purchase, exactly-once fulfillment, refund/retry and matching host account.
 
 **Financial safety:** Do not assert launch or successful payments when checkout or fulfillment is unverified.
+
+## Checkout mismatch incident (2026-10-25)
+
+The owner-supplied plan was reachable after `WHOP_PRODUCTION_PLAN_ID` changed, but checkout failed closed with `PRODUCTION_PLAN_MISMATCH`. A read-only public plan response confirmed the product binding and exposed three commercial mismatches against the approved contract: SAR 2 instead of SAR 3, adaptive currency pricing enabled, and exclusive tax collection. The same response uses the documented `account` seller shape; production code had incorrectly switched the plan read to `company`, which is corrected here. The checkout integrity gates remain unchanged: one-time billing, exact seller/product/plan, SAR 3, no renewal, adaptive pricing disabled, and no additive tax.
+
+Owner action in Whop remains required before retrying: edit this exact pricing option to SAR 3, disable adaptive/local currency pricing, and disable tax collection or make it inclusive so the buyer is not charged above the approved SAR 3. Do not create another product or replace the verified product binding.
 ## Public launch action (2026-10-25)
 Owner explicitly authorized public buying on main. Whop environment is production with public audience, currency SAR, unit price 300 minor units. Supabase cron response confirmed HTTP 200 with worker code OK when no work was queued. Remaining operational validation: confirm actual Whop webhook registration and first purchase → exactly-once credit. Do not infer successful paid purchase from empty worker success.

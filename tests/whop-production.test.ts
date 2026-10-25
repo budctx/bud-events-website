@@ -6,18 +6,18 @@ import { WhopError } from '../server/whop.ts';
 
 const env = { WHOP_PRODUCTION_API_KEY: 'test-only-production-key', WHOP_PRODUCTION_COMPANY_ID: 'biz_production123',
   WHOP_PRODUCTION_PLAN_ID: 'plan_production123', WHOP_PRODUCTION_PRODUCT_ID: 'prod_production123', WHOP_PRODUCTION_CURRENCY: 'sar',
-  WHOP_PRODUCTION_AMOUNT_MINOR: '200', WHOP_PRODUCTION_WEBHOOK_SECRET: 'ws_' + 'x'.repeat(48),
+  WHOP_PRODUCTION_AMOUNT_MINOR: '300', WHOP_PRODUCTION_WEBHOOK_SECRET: 'ws_' + 'x'.repeat(48),
   WHOP_PRODUCTION_WEBHOOK_API_VERSION: '2026-10-15-1', BUD_APP_ORIGIN: 'https://bud-events-website.vercel.app',
   WHOP_ENVIRONMENT: 'production', BUD_WHOP_PRODUCTION_ENABLED: 'true', BUD_WHOP_PRODUCTION_PROCESSING_ENABLED: 'true', BUD_WHOP_PRODUCTION_MODE: 'pilot',
   BUD_WHOP_PILOT_HOST_ID: '22222222-2222-4222-8222-222222222222' };
 const config = whopProductionConfig(env)!;
-const plan = { id: config.plan, company: { id: config.company }, product: { id: config.product }, plan_type: 'one_time', currency: 'sar',
-  initial_price: 2, renewal_price: 0, adaptive_pricing_enabled: false, collect_tax: false };
+const plan = { id: config.plan, account: { id: config.company }, product: { id: config.product }, plan_type: 'one_time', currency: 'sar',
+  initial_price: 3, renewal_price: 0, adaptive_pricing_enabled: false, collect_tax: false };
 const order = { orderId: '11111111-1111-4111-8111-111111111111', hostId: config.pilotHostId, environment: 'production' as const,
-  companyId: config.company, productId: config.product, planId: config.plan, currency: 'sar', amountMinor: 200, locale: 'en' as const,
+  companyId: config.company, productId: config.product, planId: config.plan, currency: 'sar', amountMinor: 300, locale: 'en' as const,
   checkoutId: 'ch_production123', checkoutUrl: 'https://whop.com/checkout/ch_production123/' };
 const payment = { id: 'pay_production123', status: 'paid', substatus: 'succeeded', paid_at: '2026-10-23T10:00:00Z',
-  company: { id: config.company }, product: { id: config.product }, plan: { id: config.plan }, total: 2, currency: 'sar',
+  company: { id: config.company }, product: { id: config.product }, plan: { id: config.plan }, total: 3, currency: 'sar',
   refunded_amount: 0, auto_refunded: false, refunded_at: null, disputes: [], checkout_configuration_id: order.checkoutId,
   metadata: { bud_order_id: order.orderId, bud_environment: 'production' } };
 
@@ -48,7 +48,7 @@ test('read-only variant discovery uses only pinned production GET and returns no
     assert.equal(headers.get('authorization'), 'Bearer ' + env.WHOP_PRODUCTION_API_KEY);
     return Response.json({ ...plan, customer_email: 'must-not-return@example.test' });
   });
-  assert.deepEqual(result, { companyId: config.company, productId: config.product, planId: config.plan, currency: 'sar', amountMinor: 200 });
+  assert.deepEqual(result, { companyId: config.company, productId: config.product, planId: config.plan, currency: 'sar', amountMinor: 300 });
   assert.equal(calls.length, 1); assert.doesNotMatch(JSON.stringify(result), /token|customer|key/i);
 });
 
@@ -62,8 +62,8 @@ test('plan evidence binds exact configured product and exposes only validated id
  assert.doesNotMatch(JSON.stringify(value),/never expose|privateCustomer|x-private|fixture-production-key/);
 });
 test('production plan rejects wrong identity, price, recurring charge, automatic conversion and additive tax before checkout', async () => {
-  for (const change of [{ id: 'plan_wrong123' }, { company: { id: 'biz_wrong123' } }, { company:undefined,account:{id:config.company} }, { product: null }, { currency: 'usd' },
-    { initial_price: 18 }, { initial_price: 2.001 }, { renewal_price: 2 }, { plan_type: 'renewal' }, { adaptive_pricing_enabled: true },
+  for (const change of [{ id: 'plan_wrong123' }, { account: { id: 'biz_wrong123' } }, { account:undefined,company:{id:config.company} }, { product: null }, { currency: 'usd' },
+    { initial_price: 18 }, { initial_price: 3.001 }, { renewal_price: 3 }, { plan_type: 'renewal' }, { adaptive_pricing_enabled: true },
     { collect_tax: true, tax_type: 'exclusive' }, { collect_tax: undefined }]) {
     let calls = 0;
     await assert.rejects(createProductionCheckout(order, config, async () => { calls++; return Response.json({ ...plan, ...change }); }),
@@ -118,7 +118,7 @@ test('authoritative lookup requires payment ID and production order metadata bef
 });
 test('payment matching rejects partial, refunded, disputed, unbound and cross-environment payments', () => {
   assert.doesNotThrow(() => assertProductionPaymentMatches(payment, order, config));
-  for (const change of [{ id: undefined }, { status: 'pending' }, { total: 1.99 }, { total: 2.001 }, { currency: 'usd' },
+  for (const change of [{ id: undefined }, { status: 'pending' }, { total: 2.99 }, { total: 3.001 }, { currency: 'usd' },
     { company: { id: 'biz_other123' } }, { product: { id: 'prod_other123' } }, { plan: { id: 'plan_other123' } },
     { checkout_configuration_id: 'ch_other123' }, { paid_at: 'invalid' }, { refunded_amount: 0.01 }, { auto_refunded: true },
     { refunded_at: '2026-10-23T10:30:00Z' }, { disputes: [{ id: 'dspt_example' }] }, { disputes: undefined },
