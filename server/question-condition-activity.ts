@@ -3,15 +3,9 @@
 // The caller must persist the entire returned activity snapshot with event state
 // in the same authoritative transaction.
 import { approveNewCycle, drawNext, initialDrawState } from '../src/draw-engine.ts';
-import type { DrawRecord, DrawState, PairCatalog } from '../src/draw-engine.ts';
+import type { PairCatalog } from '../src/draw-engine.ts';
+import type { QuestionConditionActivity } from '../src/question-condition-types.ts';
 
-export type QuestionConditionActivity = {
-  kind: 'question-condition';
-  draw: DrawState;
-  current: DrawRecord | null;
-  exhausted: boolean;
-  round: number;
-};
 export type ActivityStep = { activity: QuestionConditionActivity; notice: 'drawn' | 'exhausted' };
 
 export function beginQuestionCondition(
