@@ -98,6 +98,6 @@ test('independent quote is explicit, country preview only and never a purchase o
  await page.unroute('**/api/whop-quote');
  await page.route('**/api/whop-quote',route=>route.fulfill({status:503,json:{code:'WHOP_PRODUCTION_REQUEST_REJECTED',data:{request:{operation:'quote_preview',providerStatus:422,reason:'required_field',field:'company_id'},privateDetails:'never-display'}}}));
  await panel.getByRole('button',{name:'عرض سعر تقديري — السعودية'}).click();
- await expect(panel.getByRole('status')).toContainText('تعذر');
+ await expect(panel.getByRole('status')).toContainText('رفض Whop طلب التسعير: حقل مطلوب (company_id)');
  await expect(panel).not.toContainText('never-display');expect(checkouts).toBe(0);
 });
