@@ -120,7 +120,7 @@ export async function inspectProductionPlan(config: ProductionPlanExpectation, t
   });
   const safeId=(value:unknown,prefix:string)=>typeof value==='string' && new RegExp('^'+prefix+'_[A-Za-z0-9]{5,80}$').test(value)?value:null;
   const productId=object(plan.product)?safeId(plan.product.id,'prod'):null;
-  observe?.({apiVersion:PLAN_VERSION,resource:'variants',checkedAt:new Date().toISOString(),providerDate,cacheAgeSeconds,
+  observe?.({apiVersion:PLAN_VERSION,resource:'plans',checkedAt:new Date().toISOString(),providerDate,cacheAgeSeconds,
     expected:{companyId:config.company,planId:config.plan,productId:config.product??null},
     observed:{companyId:object(plan.company)?safeId(plan.company.id,'biz'):null,planId:safeId(plan.id,'plan'),productId},
     productBinding:config.product?(productId===config.product?'matched':'mismatched'):'not_configured',quoteChecked:false});
