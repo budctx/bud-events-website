@@ -1,6 +1,14 @@
 # BU'D — handoff to the next conversation
 
-Updated 2026-10-24, Asia/Riyadh. Read this file, AGENTS.md and the latest Notion work log before continuing. This is continuation context, not evidence that pending work is complete.
+Updated 2026-10-25, Asia/Riyadh. Read this file, AGENTS.md and the latest Notion handoff before continuing. This is continuation context, not evidence that pending work is complete.
+
+## Start here — current verified handoff
+
+- Authoritative current handoff: https://app.notion.com/p/404b475e25f18112915bdcf230c99f67 . Concrete owner content review: https://app.notion.com/p/404b475e25f181d4b7c5f3a55936726c . Both saved and read back. Owner requested transition documentation, not a new chat created by the agent.
+- PR32 draft exists: https://github.com/budctx/bud-events-website/pull/32 . Source `cbd86187d3fa02777bd86f98b985226d41896734`, CI231 SUCCESS https://github.com/budctx/bud-events-website/actions/runs/40163019653 . Immutable independent tool review PASS; five synthetic tests independently passed. Full local private-candidate run139Node/79browserexit0. PR32 is NOT merged/deployed and includes no private commercial content. Earlier creation was quota-blocked; the same protected path succeeded after its stated reset time. Do not report an ongoing creation block or create a duplicate PR.
+- Fresh25October read-only baseline: Auth1; Sandboxorders/wallets/events/credits0; liveorders/wallets/jobs0; all three SQLcontrolsfalse. Product/content stilldraft qc-example-v1,3x3. Vercel financialfivefalse, amount300, diagnostic/mode/publicflagsabsent. No provider sample, charge, credit, worker activation or commercial-content publication.
+- Production remains PR31 main `adc67f23bbcc96d116748f79741e2d3b086585ac`, deployment `dpl_47rumAFHCfeExvVqVFVdLnd1abtD` READY. Never repeat completed backups, keys, price, scopes, foundation migrations or PR30/31 releases.
+- All private candidate files remain local/ignored in this same workspace. Owner acceptance of the concrete20topic/8condition bank is still pending. Next: content acceptance/private installation review and the remaining real checkout/fulfillment contract; general selling remains closed. Owner explicitly declined provider samples. The detailed historical deltas below are superseded wherever they conflict with this section.
 
 ## Latest continuation delta
 
