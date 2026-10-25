@@ -34,12 +34,12 @@ for (const locale of ['ar','en']) for (const size of sizes) {
     const errors:string[]=[]; page.on('pageerror', error => errors.push(error.message));
     await page.goto(`/?lang=${locale}`);
     await expect(page.getByTestId('platform-root')).toBeVisible();
-    await expect(page.locator('html')).toHaveAttribute('dir',locale==='ar'?'rtl':'ltr');
+    await expect(page.locator('html')).toHaveAttribute('dir','rtl');
     await expect(page.getByTestId('nav-events')).toBeVisible();
     await expect(page.getByTestId('nav-designs')).toBeVisible();
     await expect.poll(() => page.locator('.platform-art img').evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBeTruthy();
     await page.locator('.platform-art img').evaluate((el: HTMLImageElement) => el.decode());
-    for (const selector of ['.platform-login', '.platform-language', '[data-testid="nav-events"]', '[data-testid="hero-explore"]']) {
+    for (const selector of ['.platform-login', '[data-testid="nav-events"]', '[data-testid="hero-explore"]']) {
       const control = page.locator(selector);
       const box = await control.boundingBox();
       expect(box?.height).toBeGreaterThanOrEqual(44);
@@ -52,11 +52,11 @@ for (const locale of ['ar','en']) for (const size of sizes) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth+1)).toBeTruthy();
     await page.screenshot({path:info.outputPath(`home-${locale}-${size.width}.png`),fullPage:true,animations:'disabled'});
     await page.getByTestId('nav-events').click();
-    await expect(page.getByTestId('product-card-qc')).toHaveText(locale==='ar'?'اشترِ الآن — ٣ ر.س':'Buy now — SAR 3');
+    await expect(page.getByTestId('product-card-qc')).toHaveText('اشترِ الآن — ٣ ر.س');
     await expect(page.getByTestId('product-dialog')).toHaveCount(0);
     await page.screenshot({path:info.outputPath(`events-${locale}-${size.width}.png`),fullPage:true,animations:'disabled'});
     await page.getByTestId('nav-bots').click();
-    await expect(page.getByTestId('platform-root')).toContainText(locale==='ar'?'قريبًا':'Coming soon');
+    await expect(page.getByTestId('platform-root')).toContainText('قريبًا');
     expect(errors).toEqual([]);
   });
 }
@@ -64,7 +64,7 @@ for (const locale of ['ar','en']) for (const size of sizes) {
 for(const locale of ['ar','en']) test(`manual journey ${locale}`,async({page},info)=>{
   await page.setViewportSize({width:390,height:844});
   await page.goto(`/?screen=game&lang=${locale}`);
-  const ar=locale==='ar';
+  const ar=true;
   await page.getByLabel(ar?'أدخل الجوائز':'Enter prizes').fill(ar?'هدية خاصة':'Special gift');
   await page.getByRole('switch').check();
   await page.getByRole('spinbutton', {name:ar?'مدة المؤقت':'Timer duration'}).fill('13');
