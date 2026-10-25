@@ -45,7 +45,7 @@ function order(value: unknown, config: ProductionConfig): StoredOrder {
     || !((value.checkoutId === null && value.checkoutUrl === null) || (typeof value.checkoutId === 'string' && typeof value.checkoutUrl === 'string')))
     throw new WhopError('LIVE_ORDER_MISMATCH', 409);
   const stored = value as StoredOrder;
-  if (stored.checkoutId !== null) assertProductionCheckoutUrl(stored.checkoutId, stored.checkoutUrl!);
+  if (stored.checkoutId !== null) assertProductionCheckoutUrl(stored.checkoutId, stored.checkoutUrl!, config.plan);
   if (stored.fulfilled && stored.checkoutId === null) throw new WhopError('LIVE_ORDER_MISMATCH', 409);
   return stored;
 }
