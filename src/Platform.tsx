@@ -32,7 +32,7 @@ function pageFromURL(): Page {
   return screen === 'bots' || screen === 'designs' ? screen : ['events', 'host', 'game'].includes(screen ?? '') ? 'events' : 'home';
 }
 export default function Platform({ onPlay }: PlatformProps) {
-  const [locale, setLocale] = useState<Locale>(() => { const requested = new URLSearchParams(location.search).get('lang'); try { return (requested ?? localStorage.getItem('bud-lang')) === 'en' ? 'en' : 'ar'; } catch { return requested === 'en' ? 'en' : 'ar'; } });
+  const locale: Locale = 'ar';
   const [page, setPage] = useState<Page>(pageFromURL);
   const [modal, setModal] = useState<Modal>(null);
   const [notice, setNotice] = useState('');
@@ -55,7 +55,7 @@ export default function Platform({ onPlay }: PlatformProps) {
   const t = copy[locale];
   const main = useRef<HTMLElement>(null);
 
-  useEffect(() => { document.documentElement.lang = locale; document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr'; try { localStorage.setItem('bud-lang', locale); } catch { /* Preferences are optional. */ } }, [locale]);
+  useEffect(() => { document.documentElement.lang = 'ar'; document.documentElement.dir = 'rtl'; try { localStorage.removeItem('bud-lang'); } catch { /* Legacy preferences are optional. */ } }, []);
   useEffect(() => {
     if (!modal || !dialog.current) return;
     const previous = document.activeElement as HTMLElement | null;
@@ -102,7 +102,7 @@ export default function Platform({ onPlay }: PlatformProps) {
     <Seo locale={locale} screen={page} /><a className="skip-link" href="#platform-content">{locale === 'ar' ? 'تجاوز إلى المحتوى' : 'Skip to content'}</a>
     {page === 'home' && !panel && <HeroArtwork />}
     <header className="platform-header" data-node-id="339:2072">
-      <div className="platform-header-tools">{account.session ? <AccountMenu session={account.session} locale={locale} busy={busy} onHistory={() => {setPanel('history'); setNotice('');}} onLogout={() => void perform(async () => {setPanel(null); await account.logout();})} /> : <button type="button" className="platform-login" disabled={busy || account.status === 'loading'} aria-label={locale === 'ar' ? 'سجّل دخولك عبر Discord' : 'Sign in with Discord'} onClick={() => void login()}><img src="/assets/discord-symbol-white.svg" width="24" height="18" alt="" />{t.login}</button>}<button className="platform-language" data-testid="locale-toggle" onClick={() => setLocale(locale === 'ar' ? 'en' : 'ar')} aria-label={t.changeLanguage}>{locale === 'ar' ? 'EN' : 'ع'}</button></div>
+      <div className="platform-header-tools">{account.session ? <AccountMenu session={account.session} locale={locale} busy={busy} onHistory={() => {setPanel('history'); setNotice('');}} onLogout={() => void perform(async () => {setPanel(null); await account.logout();})} /> : <button type="button" className="platform-login" disabled={busy || account.status === 'loading'} aria-label={locale === 'ar' ? 'سجّل دخولك عبر Discord' : 'Sign in with Discord'} onClick={() => void login()}><img src="/assets/discord-symbol-white.svg" width="24" height="18" alt="" />{t.login}</button>}</div>
       <div className="platform-brand-navigation">
         <nav className="platform-navigation" aria-label={locale === 'ar' ? 'التنقل الرئيسي' : 'Main navigation'}>{(['home', 'events', 'bots', 'designs'] as const).map(item => <button type="button" key={item} data-testid={`nav-${item}`} aria-label={`${t[item]}${item === 'bots' || item === 'designs' ? ` · ${t.soon}` : ''}`} aria-current={page === item ? 'page' : undefined} className={item === 'bots' || item === 'designs' ? 'platform-future-link' : ''} onClick={() => navigate(item)}><span className="platform-nav-icon"><InterfaceIcon kind={item} /></span><span className="platform-nav-label">{t[item]}{(item === 'bots' || item === 'designs') && <small> · {t.soon}</small>}</span></button>)}</nav>
         <button className="platform-brand" aria-label={locale === 'ar' ? 'بُعد — الرئيسية' : 'BU’D — Home'} onClick={() => navigate('home')}><Mark /><span>بُعد</span></button>
