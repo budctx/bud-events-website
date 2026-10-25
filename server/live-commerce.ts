@@ -93,6 +93,16 @@ export async function handleProductionCheckout(request: Request, env: CommerceEn
     // A URL is returned only after its durable binding is confirmed. Lost responses reuse the same order/provider key.
     return result(200, 'OK', { orderId: stored.orderId, url: checkout.url, environment: 'production' }, sessionHeaders);
   } catch (error) {
+    // Operational diagnostics without names, tokens, order IDs, provider payloads or buyer data.
+    // Existing client contract and retry/idempotency semantics remain unchanged.
+    console.error(JSON.stringify({
+      event: 'bud_live_checkout_failure',
+      code: error instanceof WhopError ? error.code : 'UNEXPECTED',
+      status: error instanceof WhopError ? error.status : 503,
+      providerOperation: error instanceof WhopError && 'request' in error &&
+        typeof (error as WhopError & { request?: { operation?: string } }).request?.operation === 'string'
+        ? (error as WhopError & { request: { operation: string } }).request.operation : undefined,
+    }));
     return error instanceof WhopError ? result(error.status, error.code, undefined, sessionHeaders) : result(503, 'LIVE_CHECKOUT_UNAVAILABLE', undefined, sessionHeaders);
   }
 }
