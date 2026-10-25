@@ -22,8 +22,8 @@ const words = {
 } as const;
 // Illustrative question bank only. Production content/version approval is a separate gate.
 const banks = {
-  ar: { questions: ['دولة', 'تطبيق جوال', 'شيء تأخذه في رحلة', 'مدينة', 'حيوان', 'أكلة'], conditions: ['تبدأ بحرف «س»', 'تحتوي على حرف «م»', 'من كلمتين', 'تبدأ بحرف «ب»', 'تحتوي على حرف «ر»', 'من أربعة أحرف أو أكثر'] },
-  en: { questions: ['A country', 'A mobile app', 'Something you take on a trip', 'A city', 'An animal', 'A food'], conditions: ['Starts with S', 'Contains M', 'Two words', 'Starts with B', 'Contains R', 'At least four letters'] },
+  ar: { questions: ['دولة', 'تطبيق جوال', 'شيء تأخذه في رحلة', 'مدينة', 'حيوان', 'أكلة'], conditions: ['تبدأ بحرف «س»', 'تحتوي على حرف «م»', 'من كلمتين', 'تبدأ بحرف «ب»', 'تحتوي على حرف «ر»', 'من أربعة أحرف أو أكثر'] }
+
 };
 const practicePairs: PairId[] = banks.ar.questions.flatMap((_, question) => banks.ar.conditions.map((_, condition): PairId => [String(question), String(condition)]));
 type Props = { onExit ?: () => void; locale?: Locale; initialState?: ManualState; cards?: { question: string; condition: string }; serverNow?: number; onAction?: (command: ManualAction, key: string) => Promise<HostEvent>; onConflict?: (event: HostEvent) => void };
@@ -140,7 +140,7 @@ export default function Game({ onExit, locale = 'ar', initialState, cards, serve
   const practiceExhausted = !onAction && draw.kind === 'exhausted';
   const remoteExhausted = !!onAction && !!state.activityDraw?.exhausted;
   const exhausted = practiceExhausted || remoteExhausted;
-  const renderCard = (kind: 'question' | 'condition') => <GameCard kind={kind} locale={locale} revealed={state[kind]} disabled={state.pendingWinner || saving || retryPending || exhausted || (!!onAction && !cards?.[kind])} content={onAction ? (cards?.[kind] ?? '') : draw.kind === 'drawn' ? kind === 'question' ? banks[locale].questions[Number(draw.record.pair[0])] : banks[locale].conditions[Number(draw.record.pair[1])] : (ar ? 'انتهت التركيبات' : 'Pairs exhausted')} onReveal={() => void dispatch({ type: 'reveal', card: kind, now: now() })} />;
+  const renderCard = (kind: 'question' | 'condition') => <GameCard kind={kind} locale={locale} revealed={state[kind]} disabled={state.pendingWinner || saving || retryPending || exhausted || (!!onAction && !cards?.[kind])} content={onAction ? (cards?.[kind] ?? '') : draw.kind === 'drawn' ? kind === 'question' ? banks.ar.questions[Number(draw.record.pair[0])] : banks.ar.conditions[Number(draw.record.pair[1])] : (ar ? 'انتهت التركيبات' : 'Pairs exhausted')} onReveal={() => void dispatch({ type: 'reveal', card: kind, now: now() })} />;
   return <main className={`manual-game manual-phase-${state.phase}`} dir={locale === 'ar' ? 'rtl' : 'ltr'} lang={locale}>
     <fieldset className="mg-remote-controls" disabled={saving || retryPending}><header className="mg-header"><button className="mg-icon-button mg-exit" aria-label={t.exit} title={t.exit} disabled={saving} onClick={onExit}><InterfaceIcon kind="exit" /></button><h1 ref={heading} tabIndex={-1}>{t.title}</h1>{state.phase !== 'setup' && <div className="mg-toolbar"><button className="mg-button" onClick={() => setViewWinners(true)}>{t.winners} <bdi>({state.winners.length}{state.prizes.length > 0 ? `/${state.prizes.length}` : ''})</bdi></button>{state.phase === 'live' && <button className="mg-button mg-primary" onClick={() => dispatch({ type: 'phase', phase: 'prizes' })}>{t.prizePage}</button>}</div>}</header>
     {!onAction && state.phase === 'setup' && <section className="mg-setup">
