@@ -43,7 +43,9 @@ begin
    where e.id=p_event and e.host_id=p_host and e.state is not null;
  end if;
  if not found or v_content.eligible_pairs is null then raise exception 'BUD_CONTENT_NOT_READY'; end if;
- return jsonb_build_object('version',v_content.id,'pairs',v_content.eligible_pairs,\n  'questionCount',jsonb_array_length(v_content.questions),\n  'conditionCount',jsonb_array_length(v_content.conditions));
+ return jsonb_build_object('version',v_content.id,'pairs',v_content.eligible_pairs,
+  'questionCount',jsonb_array_length(v_content.questions),
+  'conditionCount',jsonb_array_length(v_content.conditions));
 end;
 $$;
 revoke all on function public.bud_host_draw_catalog(uuid,uuid) from public,anon,authenticated;
