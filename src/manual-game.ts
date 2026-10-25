@@ -8,12 +8,14 @@ export type ManualState = {
   prizes: ManualPrize[]; winners: ManualWinner[]; nextWinnerNumber: number;
   question: boolean; condition: boolean; attempt: number; round: number;
   deadline: number | null; remaining: number; pendingWinner: boolean;
+  /** Owned by the game adapter; persisted atomically by the shared event engine. */
+  activityDraw?: import('./question-condition-types.ts').QuestionConditionActivity;
 };
 export type ManualAction =
   | { type: 'start'; config: ManualConfig; prizeText: string }
   | { type: 'reveal'; card: 'question' | 'condition'; now: number }
   | { type: 'tick'; now: number }
-  | { type: 'correct' | 'wrong' | 'cancel-winner' }
+  | { type: 'correct' | 'wrong' | 'cancel-winner' | 'restart-cycle' }
   | { type: 'save-winner'; name: string }
   | { type: 'add-winner'; name: string }
   | { type: 'open-prize'; prizeId: string }
@@ -38,6 +40,8 @@ function nextRound(state: ManualState, attempt = 1): ManualState {
     pendingWinner: false, attempt, round: state.round + 1 };
 }
 export function manualGameReducer(state: ManualState, action: ManualAction): ManualState {
+  // The shared event orchestrator authorizes and processes the activity-specific restart.
+  if (action.type === 'restart-cycle') return state;
   if (action.type === 'reset') return state.phase === 'closing' ? initialManualState() : state;
   if (action.type === 'start') {
     const parsed = parsePrizeLines(action.prizeText);

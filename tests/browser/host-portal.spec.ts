@@ -124,15 +124,15 @@ test('persisted host game recovers an acknowledged reveal after a lost response'
   await page.screenshot({path:info.outputPath('host-game-saved-390.png'),fullPage:true,animations:'disabled'});
 });
 
-for (const locale of ['ar', 'en'] as const) test(`sign-in preserves all gallery contexts ${locale}`, async ({ page }) => {
+for (const locale of ['ar', 'en'] as const) test(`Arabic sign-in is enforced for legacy URL locale ${locale}`, async ({ page }) => {
   await page.route('**/api/auth?action=session', route => route.fulfill({ status: 401, json: { code: 'DISCORD_AUTH_REQUIRED' } }));
   const payloads: unknown[] = [];
   await page.route('**/api/auth?action=signin', route => { payloads.push(route.request().postDataJSON()); return route.fulfill({ status: 503, json: { code: 'AUTH_NOT_CONFIGURED' } }); });
   for (const screen of ['home', 'events', 'bots', 'designs']) {
     await page.goto(`/?${screen === 'home' ? '' : `screen=${screen}&`}lang=${locale}`);
-    await page.getByRole('button', { name: locale === 'ar' ? 'سجّل دخولك عبر Discord' : 'Sign in with Discord', exact: true }).click();
+    await page.getByRole('button', { name: 'سجّل دخولك عبر Discord', exact: true }).click();
     await expect.poll(() => payloads.length).toBe(['home', 'events', 'bots', 'designs'].indexOf(screen) + 1);
-    expect(payloads.at(-1)).toEqual({ page: screen, locale });
+    expect(payloads.at(-1)).toEqual({ page: screen, locale: 'ar' });
     await expect(page.getByTestId('platform-root')).toHaveClass(`platform platform-${screen}`);
     await expect(page.locator('dialog[open]')).toHaveCount(0);
   }
@@ -196,11 +196,11 @@ test('direct checkout retries retain one key and originating locale without a se
   await page.route('**/api/checkout', route => { payloads.push(route.request().postDataJSON()); return payloads.length === 1 ? route.abort('connectionfailed') : route.fulfill({ status: 503, json: { code: 'SANDBOX_CHECKOUT_DISABLED' } }); });
   await page.goto('/?screen=events&lang=ar');
   await page.getByTestId('product-card-qc').click(); await expect(page.locator('.platform-account-notice')).toContainText('تعذر');
-  await page.getByTestId('locale-toggle').click();
+  await expect(page.getByTestId('locale-toggle')).toHaveCount(0);
   await page.getByTestId('product-card-qc').click(); await expect.poll(() => payloads.length).toBe(2);
   expect(payloads[0]).toEqual(payloads[1]); expect(payloads[0].idempotencyKey).toMatch(/^[a-f0-9-]{36}$/);
   expect(payloads[0]).toMatchObject({locale:'ar'});
-  await expect(page.locator('dialog[open]')).toHaveCount(0); await expect(page.locator('.platform-account-notice')).toContainText('Purchasing is currently unavailable');
+  await expect(page.locator('dialog[open]')).toHaveCount(0); await expect(page.locator('.platform-account-notice')).toContainText('تعذر');
 });
 test('official checkout navigates only with the server production marker and preserves the request locale', async ({page})=>{
   await session(page);await page.route('**/api/host',route=>route.fulfill(ok({...dashboard,events:[]})));
@@ -208,11 +208,11 @@ test('official checkout navigates only with the server production marker and pre
   await page.route('**/api/checkout',route=>{payloads.push(route.request().postDataJSON());return route.fulfill(ok({url:'https://whop.com/checkout/ch_browser123/',...(verified?{environment:'production'}:{})}));});
   await page.route('https://whop.com/checkout/ch_browser123/',route=>route.fulfill({contentType:'text/html',body:'<h1>Fixture checkout destination</h1>'}));
   await page.goto('/?screen=events&lang=en');
-  await page.getByTestId('product-card-qc').click();await expect(page.locator('.platform-account-notice')).toContainText('Unable to complete');
+  await page.getByTestId('product-card-qc').click();await expect(page.locator('.platform-account-notice')).toContainText('تعذر');
   expect(new URL(page.url()).hostname).toBe('127.0.0.1');
   verified=true;await page.getByTestId('product-card-qc').click();
   await expect(page).toHaveURL('https://whop.com/checkout/ch_browser123/');
-  expect(payloads[0]).toEqual(payloads[1]);expect(payloads[1]).toMatchObject({locale:'en'});
+  expect(payloads[0]).toEqual(payloads[1]);expect(payloads[1]).toMatchObject({locale:'ar'});
 });
 
 test('pending logout suppresses focus refresh and clears private state even after provider failure', async ({ page }) => {
@@ -287,4 +287,38 @@ test('long Discord names preserve the home viewport and account menu at mobile a
     await page.screenshot({path:info.outputPath('account-'+locale+'-'+size.width+'.png'),fullPage:true});
     await page.keyboard.press('Escape'); await expect(page.getByRole('menu')).toHaveCount(0);
   }
+});
+
+
+test('host alone can approve a new draw cycle after persisted activity exhaustion', async ({ page }) => {
+  await session(page);
+  let observedRestart = 0;
+  const exhausted = { ...structuredClone(initialState), activityDraw: {
+    kind: 'question-condition' as const, current: null, exhausted: true, round: 0,
+    draw: { cycle: 1, awaitingNewCycle: true,
+      history: [{ pair: ['0','0'] as const, index: 1, cycle: 1 }] },
+  } };
+  let current = { ...active, state: exhausted, cards: { question: null, condition: null }, version: 7 };
+  await page.route('**/api/host', route => {
+    const payload = route.request().postDataJSON();
+    if (payload.action === 'dashboard') return route.fulfill(ok({ ...dashboard, events: [current] }));
+    if (payload.action === 'resume') return route.fulfill(ok(current));
+    if (payload.action === 'dispatch' && payload.command.type === 'restart-cycle') {
+      observedRestart++;
+      current = { ...current, version: 8,
+        state: { ...exhausted, activityDraw: { ...exhausted.activityDraw, exhausted: false, current: { pair: ['0','0'], index: 2, cycle: 2 },
+          draw: { cycle: 2, awaitingNewCycle: false, history: exhausted.activityDraw.draw.history.concat([{ pair: ['0','0'], index: 2, cycle: 2 }]) } } },
+        cards: { question: 'حيوان', condition: 'يبدأ بحرف م' } };
+      return route.fulfill(ok(current));
+    }
+    return route.fulfill({ status: 400, json: { code: 'UNEXPECTED_ACTION' } });
+  });
+  await page.goto('/?screen=host&lang=ar');
+  await page.getByRole('button', { name: 'استكمال الفعالية', exact: true }).click();
+  await expect(page.getByText('استُخدمت جميع التركيبات', { exact: false })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'اكشف سؤال', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: 'بدء دورة جديدة', exact: true }).click();
+  await expect(page.getByText('استُخدمت جميع التركيبات', { exact: false })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'اكشف سؤال', exact: true })).toBeEnabled();
+  expect(observedRestart).toBe(1);
 });

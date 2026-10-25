@@ -75,14 +75,14 @@ test('preview keyboard, reduced motion, locale reset and unmount cleanup',async(
   await page.getByRole('button',{name:'اكشف شرط',exact:true}).focus(); await page.keyboard.press('Space');
   await expect(page.getByRole('timer')).toHaveText('5ث');
   await expect(page.locator('.mg-flip-inner').first()).toHaveCSS('transition-duration','0s');
-  await page.getByTestId('locale-toggle').click();
+  await expect(page.getByTestId('locale-toggle')).toHaveCount(0);
   await expect(page.getByRole('timer')).toHaveCount(0);
-  await page.getByRole('button',{name:'Reveal Question',exact:true}).click();
-  await page.getByRole('button',{name:'Reveal Condition',exact:true}).click();
+  await page.getByRole('button',{name:'اكشف سؤال',exact:true}).click();
+  await page.getByRole('button',{name:'اكشف شرط',exact:true}).click();
   await page.getByTestId('nav-home').click();await page.clock.runFor(6000);
   await page.getByTestId('nav-events').click();
   await expect(page.getByRole('timer')).toHaveCount(0);
-  await expect(page.getByRole('button',{name:'Reveal Question',exact:true})).toBeEnabled();
+  await expect(page.getByRole('button',{name:'اكشف سؤال',exact:true})).toBeEnabled();
 });
 
 test('sample and host use identical card faces, marks and flip styles at the same width',async({page,browser})=>{

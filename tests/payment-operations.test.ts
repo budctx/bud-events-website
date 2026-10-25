@@ -49,9 +49,9 @@ test('payment operations: protected worker, own receipts, authoritative refund h
   const due = async () => { await db.exec("reset role;update bud_platform.live_reconciliation set next_check_at=clock_timestamp()-interval '1 second';set role service_role"); };
   try {
     await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key);insert into auth.users values('${host}'),('${other}');`);
-    for (const migration of ['20261022215208_host_persistence_foundation.sql','20261023083912_launch_sandbox_hardening.sql','20261023173930_production_commerce_foundation.sql','20261023193330_live_payment_queue_and_event_consumption.sql','20261023202259_live_payment_operations_and_receipts.sql'])
+    for (const migration of ['20261022215208_host_persistence_foundation.sql','20261023083912_launch_sandbox_hardening.sql','20261023173930_production_commerce_foundation.sql','20261023193330_live_payment_queue_and_event_consumption.sql','20261023202259_live_payment_operations_and_receipts.sql','20261025093000_question_condition_activity_draw.sql','20261025093001_question_condition_live_draw.sql'])
       await db.exec(await readFile(new URL('../supabase/migrations/' + migration, import.meta.url), 'utf8'));
-    await db.exec("update bud_platform.live_commerce_control set enabled=true,fulfillment_enabled=true,host_enabled=true;update bud_platform.content_versions set status='published';update bud_platform.products set status='published';set role service_role");
+    await db.exec("update bud_platform.live_commerce_control set enabled=true,fulfillment_enabled=true,host_enabled=true;update bud_platform.content_versions set eligible_pairs='[[\"0\",\"0\"],[\"1\",\"1\"]]'::jsonb,status='published';update bud_platform.products set status='published';set role service_role");
     const begin = await handleAuth(new Request(origin + '/api/auth?action=signin', { method: 'POST', headers: { origin, ...edge } }), env, transport);
     const callback = new URL(new URL((await begin.json()).data.url).searchParams.get('redirect_to')!); callback.searchParams.set('code', 'fixture-code');
     const signedIn = await handleAuth(new Request(callback, { headers: { ...edge, cookie: begin.headers.getSetCookie()[0].split(';')[0] } }), env, transport);

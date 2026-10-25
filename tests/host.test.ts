@@ -56,17 +56,23 @@ test('dashboard and resume derive tenant from verified cookie, reject client aut
 });
 test('start validates config and prizes, computes initial state and stable normalized fingerprint', async () => {
   const cookie = await session(); const calls: Call[] = [];
-  const transport = mock(() => Response.json(event), calls);
+  const catalog = { version: 'qc-approved-v1', pairs: [['0','0'], ['1','1'], ['2','2']], questionCount: 3, conditionCount: 3 };
+  const transport = mock(name => Response.json(name === 'bud_host_draw_catalog' ? catalog : event), calls);
   const start = { action: 'start', idempotencyKey: key, title: '  Event  ', config: { duration: 5, timerEnabled: true, attempts: 2 }, prizeText: ' Gift\r\n\nGift ' };
   assert.equal((await handleHost(request(start, cookie), env, transport)).status, 200);
-  assert.equal(calls[0].body.p_title, 'Event'); assert.equal(calls[0].body.p_prize_text, 'Gift\nGift');
-  assert.deepEqual(calls[0].body.p_state, state); assert.match(String(calls[0].body.p_fingerprint), /^[0-9a-f]{64}$/);
+  assert.equal(calls[1].body.p_title, 'Event'); assert.deepEqual(calls.slice(0,2).map(c => c.name), ['bud_host_draw_catalog', 'bud_host_start_draw']);
+  assert.equal(calls[1].body.p_content_id, catalog.version);
+  const persisted = calls[1].body.p_state as typeof state & { activityDraw: { current: { pair: string[] }; draw: { history: unknown[] } } };
+  assert.equal(persisted.phase, state.phase);
+  assert.equal(persisted.activityDraw.draw.history.length, 1);
+  assert.ok(catalog.pairs.some(pair => pair.join(':') === persisted.activityDraw.current.pair.join(':')));
+  assert.match(String(calls[1].body.p_fingerprint), /^[0-9a-f]{64}$/);
   await handleHost(request({ ...start, title: 'Event', config: { attempts: 2, timerEnabled: true, duration: 5 }, prizeText: 'Gift\nGift' }, cookie), env, transport);
-  assert.equal(calls[0].body.p_fingerprint, calls[1].body.p_fingerprint);
+  assert.equal(calls[1].body.p_fingerprint, calls[3].body.p_fingerprint);
   for (const change of [{ config: { duration: '5', timerEnabled: true, attempts: 2 } }, { config: { duration: 31, timerEnabled: true, attempts: 2 } }, { config: { duration: 5, timerEnabled: true, attempts: 4 } }, { prizeText: Array(51).fill('gift').join('\n') }, { state: initialManualState() }]) {
     assert.equal((await handleHost(request({ ...start, ...change }, cookie), env, transport)).status, 400);
   }
-  assert.equal(calls.length, 2);
+  assert.equal(calls.length, 4);
 });
 test('dispatch ignores client clock, binds command fingerprint and persists versioned server reduction', async () => {
   const cookie = await session(); const calls: Call[] = [];
