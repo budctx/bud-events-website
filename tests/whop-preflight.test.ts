@@ -8,12 +8,12 @@ const project = 'https://cepmvqqrjcvhyzszqand.supabase.co';
 const hostId = '22222222-2222-4222-8222-222222222222';
 const env = { BUD_WHOP_PREFLIGHT_ENABLED: 'true', BUD_WHOP_PRODUCTION_ENABLED: 'false', BUD_WHOP_PILOT_HOST_ID: hostId,
   WHOP_PRODUCTION_API_KEY: 'fixture-production-key', WHOP_PRODUCTION_COMPANY_ID: 'biz_fixture123', WHOP_PRODUCTION_PLAN_ID: 'plan_fixture123',
-  WHOP_PRODUCTION_CURRENCY: 'sar', WHOP_PRODUCTION_AMOUNT_MINOR: '200', BUD_APP_ORIGIN: origin,
+  WHOP_PRODUCTION_CURRENCY: 'sar', WHOP_PRODUCTION_AMOUNT_MINOR: '300', BUD_APP_ORIGIN: origin,
   BUD_BACKEND_ENABLED: 'true', BUD_AUTH_ENABLED: 'true', SUPABASE_URL: project, SUPABASE_SERVICE_ROLE_KEY: 'fixture-service-key',
   SUPABASE_PUBLISHABLE_KEY: 'fixture-public-key', BUD_AUTH_COOKIE_SECRET: 'fixture-cookie-secret-at-least-thirty-two-bytes',
   VERCEL: '1', BUD_RATE_LIMIT_ENABLED: 'true', BUD_RATE_LIMIT_SECRET: 'fixture-limiter-secret-at-least-thirty-two-bytes' };
-const plan = { id: env.WHOP_PRODUCTION_PLAN_ID, company: { id: env.WHOP_PRODUCTION_COMPANY_ID }, product: { id: 'prod_fixture123' },
-  currency: 'sar', plan_type: 'one_time', initial_price: 2, renewal_price: 0, adaptive_pricing_enabled: false, collect_tax: false };
+const plan = { id: env.WHOP_PRODUCTION_PLAN_ID, account: { id: env.WHOP_PRODUCTION_COMPANY_ID }, product: { id: 'prod_fixture123' },
+  currency: 'sar', plan_type: 'one_time', initial_price: 3, renewal_price: 0, adaptive_pricing_enabled: false, collect_tax: false };
 function request(cookie?: string, change: RequestInit = {}, query = '') {
   return new Request(origin + '/api/whop-preflight' + query, { method: 'POST', ...change,
     headers: { origin, 'x-vercel-forwarded-for': '192.0.2.1', ...(cookie ? { cookie } : {}), ...change.headers } });
@@ -71,14 +71,14 @@ test('authenticated pilot preflight performs only a provider GET with stored exp
   assert.equal(evidence.productBinding,'not_configured'); assert.equal(evidence.quoteChecked,false);
   assert.deepEqual(evidence.observed,{companyId:env.WHOP_PRODUCTION_COMPANY_ID,planId:env.WHOP_PRODUCTION_PLAN_ID,productId:'prod_fixture123'});
   assert.deepEqual(body, { code: 'OK', data: { companyId: env.WHOP_PRODUCTION_COMPANY_ID, productId: 'prod_fixture123',
-    planId: env.WHOP_PRODUCTION_PLAN_ID, currency: 'sar', amountMinor: 200, checkoutCreated: false, paymentCreated: false, creditGranted: false } });
+    planId: env.WHOP_PRODUCTION_PLAN_ID, currency: 'sar', amountMinor: 300, checkoutCreated: false, paymentCreated: false, creditGranted: false } });
 });
 
 test('preflight rejects commercial mismatch and sanitizes provider/network diagnostics', async () => {
   const cookie = await session();
   const mismatch = await handleWhopPreflight(request(cookie), env, mock(async () => Response.json({ ...plan, initial_price: 18 })));
   assert.equal(mismatch.status, 409); assert.equal((await mismatch.json()).code, 'PRODUCTION_PLAN_MISMATCH');
-  const fields = await handleWhopPreflight(request(cookie), env, mock(async () => Response.json({ ...plan, company:null,
+  const fields = await handleWhopPreflight(request(cookie), env, mock(async () => Response.json({ ...plan, account:null,
     initial_price:18, privateCustomer:'must-not-return' })));
   const body=await fields.json(); assert.equal(body.data.evidence.observed.companyId,null); delete body.data.evidence;
   assert.deepEqual(body, { code:'PRODUCTION_PLAN_MISMATCH',data:{mismatches:['company','price'],settings:{conversion:'disabled',taxCollection:'disabled',taxType:'missing'}} });

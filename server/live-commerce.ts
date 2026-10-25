@@ -4,7 +4,7 @@ import { enforceRateLimit } from './rate-limit.ts';
 import { boundedProviderText, WhopError } from './whop.ts';
 import type { CommerceEnv } from './whop.ts';
 import { assertProductionCheckoutUrl, assertProductionPaymentMatches, createProductionCheckout, lookupProductionPayment,
-  productionOrderMatches, verifyProductionWebhook, whopProductionConfig, whopProductionProcessingConfig } from './whop-production.ts';
+  ProductionPlanMismatch, productionOrderMatches, verifyProductionWebhook, whopProductionConfig, whopProductionProcessingConfig } from './whop-production.ts';
 import type { ProductionConfig, ProductionOrder } from './whop-production.ts';
 import { liveHostAllowed } from './live-access.ts';
 
@@ -102,6 +102,7 @@ export async function handleProductionCheckout(request: Request, env: CommerceEn
       providerOperation: error instanceof WhopError && 'request' in error &&
         typeof (error as WhopError & { request?: { operation?: string } }).request?.operation === 'string'
         ? (error as WhopError & { request: { operation: string } }).request.operation : undefined,
+      ...(error instanceof ProductionPlanMismatch ? { mismatches: error.fields, settings: error.settings } : {}),
     }));
     return error instanceof WhopError ? result(error.status, error.code, undefined, sessionHeaders) : result(503, 'LIVE_CHECKOUT_UNAVAILABLE', undefined, sessionHeaders);
   }

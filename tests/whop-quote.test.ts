@@ -4,7 +4,7 @@ import { previewProductionQuote, QUOTE_VERSION } from '../server/whop-quote.ts';
 import { inspectProductionPlan, classifyProductionRejection, ProductionProviderRejection } from '../server/whop-production.ts';
 
 const config={token:'fixture-secret',company:'biz_fixture123',plan:'plan_fixture123',product:'prod_fixture123',currency:'sar' as const,amount:200};
-const plan={id:config.plan,company:{id:config.company},product:{id:config.product},currency:'sar',initial_price:2,renewal_price:0,plan_type:'one_time',adaptive_pricing_enabled:true,collect_tax:true,tax_type:'exclusive'};
+const plan={id:config.plan,account:{id:config.company},product:{id:config.product},currency:'sar',initial_price:2,renewal_price:0,plan_type:'one_time',adaptive_pricing_enabled:true,collect_tax:true,tax_type:'exclusive'};
 const money=(amount:string)=>({amount,currency:'sar',decimals:2});
 function fixture() { return {id:'pq_fixture123',account_id:config.company,currency:'sar',base_currency:'sar',exchange_rate:null,payment_id:null,promo_code_id:null,
  located_by:'presentment_country',expires_at:new Date(Date.now()+300000).toISOString(),total:money('2.00'),base_total:money('2.00'),subtotal:money('2.00'),tax_amount:money('0.00'),discount:money('0'),
@@ -27,7 +27,7 @@ test('preview verifies exact product then posts only fixed scenario; raw flags s
  await assert.rejects(inspectProductionPlan(config,async()=>Response.json(plan)),/PRODUCTION_PLAN_MISMATCH/);
 });
 test('quote refuses identity, price or product failure before any POST',async()=>{
- for(const change of [{id:'plan_other123'},{company:{id:'biz_other123'}},{product:{id:'prod_other123'}},{initial_price:3}]) {
+ for(const change of [{id:'plan_other123'},{account:{id:'biz_other123'}},{product:{id:'prod_other123'}},{initial_price:3}]) {
   let calls=0;await assert.rejects(previewProductionQuote(config,async()=>{calls++;return Response.json({...plan,...change});}));assert.equal(calls,1);
  }
 });

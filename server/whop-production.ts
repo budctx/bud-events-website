@@ -6,7 +6,7 @@ import { liveAudience } from './live-access.ts';
 const API = 'https://api.whop.com/api/v1';
 // Explicit compatibility pin: never inherit the API key's changing response model.
 const VERSION = '2025-01-01';
-// Variant reads use the documented Account model; financial writes/reads retain their existing pin.
+// Plan reads use the documented Account model; financial writes/reads retain their existing pin.
 export const PLAN_VERSION = '2026-10-15-1';
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -122,11 +122,11 @@ export async function inspectProductionPlan(config: ProductionPlanExpectation, t
   const productId=object(plan.product)?safeId(plan.product.id,'prod'):null;
   observe?.({apiVersion:PLAN_VERSION,resource:'plans',checkedAt:new Date().toISOString(),providerDate,cacheAgeSeconds,
     expected:{companyId:config.company,planId:config.plan,productId:config.product??null},
-    observed:{companyId:object(plan.company)?safeId(plan.company.id,'biz'):null,planId:safeId(plan.id,'plan'),productId},
+    observed:{companyId:object(plan.account)?safeId(plan.account.id,'biz'):null,planId:safeId(plan.id,'plan'),productId},
     productBinding:config.product?(productId===config.product?'matched':'mismatched'):'not_configured',quoteChecked:false});
   const checks: Record<string, boolean> = {
     plan: plan.id === config.plan,
-    company: object(plan.company) && plan.company.id === config.company,
+    company: object(plan.account) && plan.account.id === config.company,
     product: productId!==null && (config.product===undefined || productId===config.product),
     billing: plan.plan_type === 'one_time', currency: plan.currency === config.currency,
     price: money(plan.initial_price) === config.amount, renewal: money(plan.renewal_price) === 0,
