@@ -4,7 +4,7 @@ import { previewProductionQuote, QUOTE_VERSION } from '../server/whop-quote.ts';
 import { inspectProductionPlan, classifyProductionRejection, ProductionProviderRejection } from '../server/whop-production.ts';
 
 const config={token:'fixture-secret',company:'biz_fixture123',plan:'plan_fixture123',product:'prod_fixture123',currency:'sar' as const,amount:200};
-const plan={id:config.plan,account:{id:config.company},product:{id:config.product},currency:'sar',initial_price:2,renewal_price:0,plan_type:'one_time',adaptive_pricing_enabled:true,collect_tax:true,tax_type:'exclusive'};
+const plan={id:config.plan,company:{id:config.company},product:{id:config.product},currency:'sar',initial_price:2,renewal_price:0,plan_type:'one_time',adaptive_pricing_enabled:true,collect_tax:true,tax_type:'exclusive'};
 const money=(amount:string)=>({amount,currency:'sar',decimals:2});
 function fixture() { return {id:'pq_fixture123',account_id:config.company,currency:'sar',base_currency:'sar',exchange_rate:null,payment_id:null,promo_code_id:null,
  located_by:'presentment_country',expires_at:new Date(Date.now()+300000).toISOString(),total:money('2.00'),base_total:money('2.00'),subtotal:money('2.00'),tax_amount:money('0.00'),discount:money('0'),
@@ -35,13 +35,13 @@ test('quote rejects malformed, converted, spent, expired, unavailable or foreign
  for(const change of [{account_id:'biz_other123'},{currency:'usd'},{base_currency:'usd'},{exchange_rate:'1.0'},{payment_id:'pay_other123'},
   {expires_at:'2020-01-01T00:00:00Z'},{tax_status:'unavailable'},{located_by:'address'},{total:money('NaN')},
   {line_items:[{...fixture().line_items[0],quantity:2}]},{line_items:[{...fixture().line_items[0],plan_id:'plan_other123'}]}]) {
-  await assert.rejects(previewProductionQuote(config,async input=>Response.json(String(input).includes('/variants/')?plan:{...fixture(),...change})),/INVALID_PRODUCTION_QUOTE/);
+  await assert.rejects(previewProductionQuote(config,async input=>Response.json(String(input).includes('/plans/')?plan:{...fixture(),...change})),/INVALID_PRODUCTION_QUOTE/);
  }
 });
 test('additive tax is reported as a mismatching preview, never normalized to the approved price',async()=>{
  const quote=fixture();quote.tax_status='calculated';(quote as Record<string,unknown>).tax_behavior='exclusive';
  quote.total=money('2.30');quote.base_total=money('2.30');quote.tax_amount=money('0.30');quote.line_items[0].total=money('2.30');quote.line_items[0].tax_amount=money('0.30');
- const result=await previewProductionQuote(config,async input=>Response.json(String(input).includes('/variants/')?plan:quote));
+ const result=await previewProductionQuote(config,async input=>Response.json(String(input).includes('/plans/')?plan:quote));
  assert.equal(result.totalMinor,230);assert.equal(result.taxAmountMinor,30);assert.equal(result.matchesApprovedPrice,false);
 });
 
@@ -50,7 +50,7 @@ test('request rejection returns only allowlisted classifications and identifies 
  assert.deepEqual(classifyProductionRejection({error:{message:'company_id is required '+secret,param:'company_id',code:secret}}),{reason:'required_field',field:'company_id'});
  assert.deepEqual(classifyProductionRejection({error:{message:'Unsupported API version '+secret}}),{reason:'version',field:null});
  assert.deepEqual(classifyProductionRejection({error:{message:secret,param:secret,code:secret}}),{reason:'unclassified',field:null});
- await assert.rejects(previewProductionQuote(config,async input=>String(input).includes('/variants/')?Response.json(plan)
+ await assert.rejects(previewProductionQuote(config,async input=>String(input).includes('/plans/')?Response.json(plan)
   :Response.json({error:{message:'company_id is required '+secret,param:'company_id'}},{status:422})),error=>{
    assert.ok(error instanceof ProductionProviderRejection);
    assert.deepEqual(error.request,{operation:'quote_preview',apiVersion:QUOTE_VERSION,providerStatus:422,reason:'required_field',field:'company_id'});
