@@ -86,3 +86,24 @@ test('rejects duplicate pairs, invalid random and corrupted history', () => {
   const broken = { ...first.state, history: [first.record, first.record] };
   assert.throws(() => drawNext(catalog, broken), /REPEATED_PAIR_IN_CYCLE/);
 });
+
+
+test('rehearses 20 consecutive draws from a 23-by-15 eligible catalog', () => {
+  const twentyThreeByFifteen: PairId[] = Array.from({ length: 23 }, (_, question) =>
+    Array.from({ length: 15 }, (_, condition): PairId => [`q-${question + 1}`, `c-${condition + 1}`])).flat();
+  let state = initialDrawState();
+  const pairs = new Set<string>();
+  for (let round = 0; round < 20; round++) {
+    const result = drawNext(twentyThreeByFifteen, state, safeRandom);
+    assert.equal(result.kind, 'drawn');
+    if (result.kind !== 'drawn') throw Error('unexpected exhaustion');
+    const key = result.record.pair.join(':');
+    assert.equal(pairs.has(key), false);
+    pairs.add(key);
+    if (round) assert.notEqual(result.record.pair[0], state.history.at(-1)?.pair[0]);
+    state = JSON.parse(JSON.stringify(result.state));
+  }
+  assert.equal(pairs.size, 20);
+  assert.equal(state.history.length, 20);
+  assert.equal(state.awaitingNewCycle, false);
+});
