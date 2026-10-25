@@ -1,6 +1,6 @@
 # Owner-only payment integration pilot — proposed content
 
-24October2026. Proposed, not approved/published. This is a small named integration-test bank, not a complete commercial inventory. Do not promote the existing qc-example-v1 silently.
+24October2026. REJECTED/SUPERSEDED: the owner explicitly chose commercial content preparation first. Do not publish or seek renewed approval for this temporary proposal. Retained only as decision history. This was a small named integration-test bank, not a complete commercial inventory. Do not promote the existing qc-example-v1 silently.
 
 Proposed immutable version: `qc-owner-pilot-v1`. Six question topics and six conditions (36 combinations); host adjudication remains manual. Use only for the owner's explicit real-purchase/start/resume test, behind the verified pilot audience. General sales remain off.
 
