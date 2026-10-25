@@ -6,12 +6,12 @@ import { WhopError } from '../server/whop.ts';
 
 const env = { WHOP_PRODUCTION_API_KEY: 'test-only-production-key', WHOP_PRODUCTION_COMPANY_ID: 'biz_production123',
   WHOP_PRODUCTION_PLAN_ID: 'plan_production123', WHOP_PRODUCTION_PRODUCT_ID: 'prod_production123', WHOP_PRODUCTION_CURRENCY: 'sar',
-  WHOP_PRODUCTION_AMOUNT_MINOR: '200', WHOP_PRODUCTION_WEBHOOK_SECRET: 'ws_0123456789abcdef0123456789abcdef0123456789abcdef',
+  WHOP_PRODUCTION_AMOUNT_MINOR: '200', WHOP_PRODUCTION_WEBHOOK_SECRET: 'ws_' + 'x'.repeat(48),
   WHOP_PRODUCTION_WEBHOOK_API_VERSION: '2026-10-15-1', BUD_APP_ORIGIN: 'https://bud-events-website.vercel.app',
   WHOP_ENVIRONMENT: 'production', BUD_WHOP_PRODUCTION_ENABLED: 'true', BUD_WHOP_PRODUCTION_PROCESSING_ENABLED: 'true', BUD_WHOP_PRODUCTION_MODE: 'pilot',
   BUD_WHOP_PILOT_HOST_ID: '22222222-2222-4222-8222-222222222222' };
 const config = whopProductionConfig(env)!;
-const plan = { id: config.plan, account: { id: config.company }, product: { id: config.product }, plan_type: 'one_time', currency: 'sar',
+const plan = { id: config.plan, company: { id: config.company }, product: { id: config.product }, plan_type: 'one_time', currency: 'sar',
   initial_price: 2, renewal_price: 0, adaptive_pricing_enabled: false, collect_tax: false };
 const order = { orderId: '11111111-1111-4111-8111-111111111111', hostId: config.pilotHostId, environment: 'production' as const,
   companyId: config.company, productId: config.product, planId: config.plan, currency: 'sar', amountMinor: 200, locale: 'en' as const,
@@ -42,7 +42,7 @@ test('stopping new purchases preserves separately configured signed intake and p
 test('read-only variant discovery uses only pinned production GET and returns no token or customer details', async () => {
   const calls: string[] = [];
   const result = await inspectProductionPlan(config, async (input, init) => {
-    calls.push(String(input)); assert.equal(String(input), 'https://api.whop.com/api/v1/variants/' + config.plan);
+    calls.push(String(input)); assert.equal(String(input), 'https://api.whop.com/api/v1/plans/' + config.plan);
     assert.equal(init?.method ?? 'GET', 'GET'); assert.equal(init?.redirect, 'error');
     const headers = new Headers(init?.headers); assert.equal(headers.get('api-version-date'), '2026-10-15-1');
     assert.equal(headers.get('authorization'), 'Bearer ' + env.WHOP_PRODUCTION_API_KEY);
@@ -62,7 +62,7 @@ test('plan evidence binds exact configured product and exposes only validated id
  assert.doesNotMatch(JSON.stringify(value),/never expose|privateCustomer|x-private|fixture-production-key/);
 });
 test('production plan rejects wrong identity, price, recurring charge, automatic conversion and additive tax before checkout', async () => {
-  for (const change of [{ id: 'plan_wrong123' }, { account: { id: 'biz_wrong123' } }, { account:undefined,company:{id:config.company} }, { product: null }, { currency: 'usd' },
+  for (const change of [{ id: 'plan_wrong123' }, { company: { id: 'biz_wrong123' } }, { company:undefined,account:{id:config.company} }, { product: null }, { currency: 'usd' },
     { initial_price: 18 }, { initial_price: 2.001 }, { renewal_price: 2 }, { plan_type: 'renewal' }, { adaptive_pricing_enabled: true },
     { collect_tax: true, tax_type: 'exclusive' }, { collect_tax: undefined }]) {
     let calls = 0;
