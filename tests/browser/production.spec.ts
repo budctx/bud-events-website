@@ -117,7 +117,7 @@ test('direct buy CTA reports unavailable checkout without product modal or credi
  await page.goto('/?screen=events&lang=en');
  await expect(page.getByTestId('event-keys')).toContainText('0');
  await page.getByTestId('product-card-qc').click();
- await expect(page.locator('.platform-account-notice')).toContainText('تعذر');
+ await expect(page.locator('.platform-account-notice')).toContainText('الشراء غير متاح');
  expect(checkoutCalls).toBe(1);
  await expect(page.getByRole('dialog')).not.toBeVisible();
  await expect(page.getByTestId('event-keys')).toContainText('0');
