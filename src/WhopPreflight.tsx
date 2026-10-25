@@ -28,7 +28,7 @@ export default function WhopPreflight({ locale, onAuthLost }: { locale:Locale; o
         return;
       }
       const evidence=data?.evidence;
-      if(evidence?.apiVersion==='2026-10-15-1'&&evidence.resource==='variants'&&evidence.quoteChecked===false) {
+      if(evidence?.apiVersion==='2026-10-15-1'&&evidence.resource==='plans'&&evidence.quoteChecked===false) {
         const refs=['API: '+evidence.apiVersion];
         for(const [key,prefix] of [['companyId','biz'],['planId','plan'],['productId','prod']]) {
           for(const side of ['expected','observed']) {
