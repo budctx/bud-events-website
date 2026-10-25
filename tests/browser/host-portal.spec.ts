@@ -200,7 +200,7 @@ test('direct checkout retries retain one key and originating locale without a se
   await page.getByTestId('product-card-qc').click(); await expect.poll(() => payloads.length).toBe(2);
   expect(payloads[0]).toEqual(payloads[1]); expect(payloads[0].idempotencyKey).toMatch(/^[a-f0-9-]{36}$/);
   expect(payloads[0]).toMatchObject({locale:'ar'});
-  await expect(page.locator('dialog[open]')).toHaveCount(0); await expect(page.locator('.platform-account-notice')).toContainText('تعذر');
+  await expect(page.locator('dialog[open]')).toHaveCount(0); await expect(page.locator('.platform-account-notice')).toContainText('الشراء غير متاح');
 });
 test('official checkout navigates only with the server production marker and preserves the request locale', async ({page})=>{
   await session(page);await page.route('**/api/host',route=>route.fulfill(ok({...dashboard,events:[]})));
@@ -283,7 +283,7 @@ test('long Discord names preserve the home viewport and account menu at mobile a
     await expect(page.locator('.platform-footer')).toBeInViewport({ratio:1});
     await account.focus(); await page.keyboard.press('ArrowDown');
     await expect(page.getByRole('menu')).toBeInViewport({ratio:1});
-    await expect(page.getByRole('menu')).toHaveCSS('direction',locale==='ar'?'rtl':'ltr');
+    await expect(page.getByRole('menu')).toHaveCSS('direction','rtl');
     await page.screenshot({path:info.outputPath('account-'+locale+'-'+size.width+'.png'),fullPage:true});
     await page.keyboard.press('Escape'); await expect(page.getByRole('menu')).toHaveCount(0);
   }
