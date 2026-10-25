@@ -27,7 +27,7 @@ test('preview verifies exact product then posts only fixed scenario; raw flags s
  await assert.rejects(inspectProductionPlan(config,async()=>Response.json(plan)),/PRODUCTION_PLAN_MISMATCH/);
 });
 test('quote refuses identity, price or product failure before any POST',async()=>{
- for(const change of [{id:'plan_other123'},{account:{id:'biz_other123'}},{product:{id:'prod_other123'}},{initial_price:3}]) {
+ for(const change of [{id:'plan_other123'},{company:{id:'biz_other123'}},{product:{id:'prod_other123'}},{initial_price:3}]) {
   let calls=0;await assert.rejects(previewProductionQuote(config,async()=>{calls++;return Response.json({...plan,...change});}));assert.equal(calls,1);
  }
 });
