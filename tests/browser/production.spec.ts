@@ -117,7 +117,7 @@ test('direct buy CTA reports unavailable checkout without product modal or credi
  await page.goto('/?screen=events&lang=en');
  await expect(page.getByTestId('event-keys')).toContainText('0');
  await page.getByTestId('product-card-qc').click();
- await expect(page.locator('.platform-account-notice')).toContainText('Purchasing is currently unavailable');
+ await expect(page.locator('.platform-account-notice')).toContainText('تعذر');
  expect(checkoutCalls).toBe(1);
  await expect(page.getByRole('dialog')).not.toBeVisible();
  await expect(page.getByTestId('event-keys')).toContainText('0');
@@ -167,7 +167,7 @@ for (const locale of ['ar','en']) test(`homepage explanation and product discove
   }
 });
 
-for (const locale of ['ar', 'en']) test(`homepage fits mobile viewport with touch navigation ${locale}`, async ({ browser }) => {
+for (const locale of ['ar', 'en']) test(`Arabic homepage fits mobile viewport for legacy URL ${locale}`, async ({ browser }) => {
   const context = await browser.newContext({ hasTouch: true, isMobile: true });
   const page = await context.newPage();
   for (const size of [{width:320,height:568},{width:360,height:667},{width:390,height:844},{width:430,height:932},{width:844,height:390},{width:667,height:375},{width:568,height:320}]) {
