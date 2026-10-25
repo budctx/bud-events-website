@@ -148,10 +148,17 @@ export function productionOrderMatches(order: ProductionOrder, config: Productio
     && order.companyId === config.company && order.productId === config.product && order.planId === config.plan
     && order.currency === config.currency && order.amountMinor === config.amount && (order.locale === 'ar' || order.locale === 'en');
 }
-export function assertProductionCheckoutUrl(checkoutId: string, value: string): void {
+export function assertProductionCheckoutUrl(checkoutId: string, value: string, expectedPlanId?: string): void {
   let url: URL; try { url = new URL(value); } catch { throw new WhopError('INVALID_PRODUCTION_CHECKOUT_URL'); }
-  if (!/^ch_[A-Za-z0-9]{5,80}$/.test(checkoutId) || url.origin !== 'https://whop.com' || url.username || url.password || url.search || url.hash
-    || ![('/checkout/' + checkoutId), ('/checkout/' + checkoutId + '/')].includes(url.pathname)) throw new WhopError('INVALID_PRODUCTION_CHECKOUT_URL');
+  const validSession = /^ch_[A-Za-z0-9]{5,80}$/.test(checkoutId);
+  const legacy = [('/checkout/' + checkoutId), ('/checkout/' + checkoutId + '/')].includes(url.pathname) && !url.search;
+  // Whop's official purchase_url is /checkout/plan_<id>?session=ch_<id>.
+  // Never accept an unbound direct plan checkout or arbitrary redirect/query parameters.
+  const plan = url.pathname.match(/^\/checkout\/(plan_[A-Za-z0-9]{5,80})\/?$/);
+  const boundSession = !!plan && (!expectedPlanId || plan[1] === expectedPlanId)
+    && url.searchParams.size === 1 && url.searchParams.get('session') === checkoutId;
+  if (!validSession || url.origin !== 'https://whop.com' || url.username || url.password || url.hash || !(legacy || boundSession))
+    throw new WhopError('INVALID_PRODUCTION_CHECKOUT_URL');
 }
 export async function createProductionCheckout(order: ProductionOrder, config: ProductionConfig, transport: typeof fetch = fetch) {
   if (!productionOrderMatches(order, config)) throw new WhopError('PRODUCTION_ORDER_MISMATCH', 409);
@@ -162,10 +169,10 @@ export async function createProductionCheckout(order: ProductionOrder, config: P
     body: JSON.stringify({ plan_id: config.plan, mode: 'payment', metadata: { bud_order_id: order.orderId, bud_environment: 'production' },
       redirect_url: config.origin + '/?screen=events&lang=' + order.locale + '&order=' + order.orderId }) });
   if (typeof checkout.id !== 'string' || typeof checkout.purchase_url !== 'string' || checkout.company_id !== config.company
-    || !object(checkout.plan) || checkout.plan.id !== config.plan || checkout.plan.currency !== config.currency
+    || !object(checkout.plan) || checkout.plan.id !== config.plan || (checkout.plan.currency != null && checkout.plan.currency !== config.currency)
     || (checkout.currency != null && checkout.currency !== config.currency) || checkout.mode !== 'payment' || !object(checkout.metadata)
     || checkout.metadata.bud_order_id !== order.orderId || checkout.metadata.bud_environment !== 'production') throw new WhopError('PRODUCTION_CHECKOUT_MISMATCH');
-  assertProductionCheckoutUrl(checkout.id, checkout.purchase_url);
+  assertProductionCheckoutUrl(checkout.id, checkout.purchase_url, config.plan);
   return { checkoutId: checkout.id, url: checkout.purchase_url };
 }
 export async function verifyProductionWebhook(request: Request, config: ProductionConfig, now = Date.now()) {
