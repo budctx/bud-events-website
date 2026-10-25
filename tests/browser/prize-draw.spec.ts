@@ -177,7 +177,7 @@ test('suspense finishes automatically and reduced motion reveals instantly', asy
   await expect(page.locator('.mg-anticipation, .mg-confetti')).toHaveCount(0);
 });
 
-for(const ar of [true] test(`manual remaining prizes and host winner replacement ${ar?'ar':'en'}`, async ({page},info) => {
+for(const ar of [true]) test(`manual remaining prizes and host winner replacement ${ar?'ar':'en'}`, async ({page},info) => {
   await page.setViewportSize({width:390,height:844});
   await page.emulateMedia({reducedMotion:'reduce'});
   await start(page,ar,'Gift one\nGift two'); await prizes(page,ar);
