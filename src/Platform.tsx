@@ -63,7 +63,7 @@ export default function Platform({ onPlay }: PlatformProps) {
   const t = copy.ar;
   const main = useRef<HTMLElement>(null);
 
-  useEffect(() => { let mounted=true;fetch('/api/partners',{credentials:'omit'}).then(response=>response.ok?response.json():null).then(result=>{if(mounted&&result?.code==='OK'&&Array.isArray(result.data))setPartners(result.data);}).catch(()=>{});return()=>{mounted=false;};},[]);
+  useEffect(() => { let mounted=true;fetch('/api/owner?public=partners',{credentials:'omit'}).then(response=>response.ok?response.json():null).then(result=>{if(mounted&&result?.code==='OK'&&Array.isArray(result.data))setPartners(result.data);}).catch(()=>{});return()=>{mounted=false;};},[]);
   useEffect(() => { if(notice)toast(notice,notice.includes('تعذر')||notice.includes('غير متاح')?'danger':'info'); },[notice,toast]);
   useEffect(() => { document.documentElement.lang = 'ar'; document.documentElement.dir = 'rtl'; try { localStorage.removeItem('bud-lang'); } catch { /* Legacy preferences are optional. */ } }, []);
   useEffect(() => {
