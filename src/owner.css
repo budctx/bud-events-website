@@ -41,3 +41,5 @@
 .owner-partner-entry-status .bud-status{font-size:10px}
 .owner-partner-zoom img{max-width:100%;max-height:50dvh;display:block;object-fit:contain;margin:14px auto 20px}
 @media(max-width:900px){.owner-partners-grid{grid-template-columns:1fr}}
+
+.owner-partner-field{display:grid;gap:6px;font-size:12px;line-height:1.8;font-weight:500}.owner-partner-input-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}.owner-partner-field>input{width:100%;min-height:42px;padding:9px 10px;border-radius:8px;border:1px solid #d7d7dc;background:#fff;font:inherit}
