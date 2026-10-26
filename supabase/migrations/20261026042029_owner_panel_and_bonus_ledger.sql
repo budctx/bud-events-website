@@ -113,9 +113,21 @@ begin
  return (select count(distinct user_id) from auth.identities where provider='discord');
 end;
 $$;
+create function public.bud_owner_receipt(p_actor uuid,p_discord text,p_operation uuid) returns jsonb
+language plpgsql security invoker set search_path='' as $$
+declare v_receipt bud_platform.owner_audit;
+begin
+ perform bud_platform.require_owner(p_actor,p_discord);
+ if p_operation is null then raise exception 'BUD_INVALID_REQUEST'; end if;
+ perform pg_advisory_xact_lock(hashtextextended(p_actor::text||p_operation::text,27));
+ select * into v_receipt from bud_platform.owner_audit where actor=p_actor and operation_id=p_operation;
+ if not found then return jsonb_build_object('found',false); end if;
+ return jsonb_build_object('found',true,'kind',v_receipt.kind,'result',(v_receipt.outcome-'request')||jsonb_build_object('replayed',true));
+end;
+$$;
 create function public.bud_owner_view(p_actor uuid,p_discord text,p_section text,p_search text default '',p_offset integer default 0) returns jsonb
 language plpgsql security invoker set search_path='' as $$
-declare v_rows jsonb; v_user uuid;
+declare v_rows jsonb; v_secondary jsonb:='[]'::jsonb; v_user uuid;
 begin
  perform bud_platform.require_owner(p_actor,p_discord);
  if p_search is null or length(p_search)>80 or p_offset is null or p_offset<0 or p_offset>100000 then raise exception 'BUD_INVALID_REQUEST'; end if;
@@ -127,7 +139,7 @@ begin
    'redemptions',(select count(*) from bud_platform.bonus_ledger where source='redeem'),'health',public.bud_live_operations_health(),
    'alerts',(select coalesce(jsonb_agg(a order by severity,last_seen desc),'[]'::jsonb) from bud_platform.owner_alerts a where active));
  when 'users' then
-  return jsonb_build_object('rows',bud_platform.owner_directory(p_actor,p_discord,p_search,p_offset));
+  v_rows:=bud_platform.owner_directory(p_actor,p_discord,p_search,p_offset);
  when 'user' then
   if p_search !~ '^[a-fA-F0-9-]{36}$' then raise exception 'BUD_INVALID_REQUEST'; end if;
   v_user:=p_search::uuid;
@@ -163,11 +175,19 @@ begin
    'keys',public.bud_owner_view(p_actor,p_discord,'keys',p_search,p_offset));
  else raise exception 'BUD_INVALID_REQUEST';
  end case;
- return jsonb_build_object('rows',v_rows,'offset',p_offset,'pageSize',50,'mayHaveMore',jsonb_array_length(v_rows)=50)
-  ||case when p_section='keys' then jsonb_build_object('history',(select coalesce(jsonb_agg(x),'[]'::jsonb)
-    from(select id,host_id,source,code_id,qty,created_at from bud_platform.bonus_ledger order by created_at desc,id limit 50 offset p_offset)x)) else '{}'::jsonb end
-  ||case when p_section='audit' then jsonb_build_object('accessEvents',(select coalesce(jsonb_agg(x),'[]'::jsonb)
-    from(select id,actor,kind,created_at from bud_platform.owner_access_events order by created_at desc,id limit 50 offset p_offset)x)) else '{}'::jsonb end;
+ if p_section='keys' then
+  select coalesce(jsonb_agg(x),'[]'::jsonb) into v_secondary from
+   (select id,host_id,source,code_id,qty,created_at from bud_platform.bonus_ledger
+    where p_search='' or position(lower(p_search) in lower(id::text||' '||host_id::text||' '||source||' '||coalesce(code_id::text,'')))>0
+    order by created_at desc,id limit 50 offset p_offset)x;
+ elsif p_section='audit' then
+  select coalesce(jsonb_agg(x),'[]'::jsonb) into v_secondary from
+   (select id,actor,kind,created_at from bud_platform.owner_access_events
+    where p_search='' or position(lower(p_search) in lower(id::text||' '||coalesce(actor::text,'')||' '||kind))>0
+    order by created_at desc,id limit 50 offset p_offset)x;
+ end if;
+ return jsonb_build_object('rows',v_rows,'offset',p_offset,'pageSize',50,'mayHaveMore',jsonb_array_length(v_rows)=50 or jsonb_array_length(v_secondary)=50)
+  ||case when p_section='keys' then jsonb_build_object('history',v_secondary) when p_section='audit' then jsonb_build_object('accessEvents',v_secondary) else '{}'::jsonb end;
 end;
 $$;
 create function public.bud_bonus_redeem(p_host uuid,p_digest text,p_operation uuid) returns jsonb
@@ -373,7 +393,7 @@ end;
 $$;
 do $$ declare f record; begin
  for f in select p.oid::regprocedure as signature from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-  where (n.nspname='public' and p.proname in ('bud_owner_check','bud_owner_view','bud_owner_command','bud_bonus_redeem','bud_owner_recover_payment','bud_owner_sync_alerts','bud_owner_claim_notification','bud_owner_finish_notification','bud_owner_access_event'))
+  where (n.nspname='public' and p.proname in ('bud_owner_check','bud_owner_view','bud_owner_command','bud_bonus_redeem','bud_owner_recover_payment','bud_owner_sync_alerts','bud_owner_claim_notification','bud_owner_finish_notification','bud_owner_access_event','bud_owner_receipt'))
    or(n.nspname='bud_platform' and p.proname in ('require_owner','owner_directory','owner_user_count','guard_owner_restriction')) loop
   execute format('revoke all on function %s from public,anon,authenticated',f.signature);
   execute format('grant execute on function %s to service_role',f.signature);

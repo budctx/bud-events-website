@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getHostDashboard, getHostSession, HostClientError, signOutHost } from './host-client';
 import type { HostDashboard, HostSession } from './host-client';
+import { clearOwnerPending } from './owner-pending';
 
 export function useAccount() {
   const [session, setSession] = useState<HostSession | null>(null);
@@ -45,6 +46,7 @@ export function useAccount() {
     setSession(null); setDashboard(null); setKeysError(false); setKeysLoading(false); setStatus('guest');
   }, []);
   const logout = async () => {
+    if(session) clearOwnerPending(session.id);
     loggingOut.current = true;
     active.current?.abort(); ++generation.current;
     try { await signOutHost(); }

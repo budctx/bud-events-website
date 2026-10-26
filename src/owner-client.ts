@@ -18,6 +18,7 @@ export function ownerError(reason: unknown): string {
     IDEMPOTENCY_KEY_REUSED:'هذا الطلب مرتبط بعملية أخرى. تحقق من السجل.',
     OWNER_PANEL_NOT_CONFIGURED:'لوحة المالك غير متاحة حاليًا.', REDEEM_NOT_CONFIGURED:'استرداد المفاتيح غير متاح حاليًا.',
     OWNER_POLICY_NOT_CONFIGURED:'لم تُضبط حدود المنح المعتمدة بعد.',INVALID_REQUEST:'تحقق من الحقول المدخلة.',
+    OWNER_PENDING_NOT_SAVED:'تعذر حفظ مرجع العملية بأمان في هذا التبويب. لم يُرسل الطلب.',
   };
   return messages[reason.code]??'لم يتأكد إتمام العملية. أعد المحاولة بنفس الطلب للتحقق من إيصالها.';
 }

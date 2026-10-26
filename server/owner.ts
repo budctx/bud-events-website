@@ -45,18 +45,20 @@ export async function handleOwner(request: Request, env: AuthEnv = envNow(), tra
   if (request.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== 'application/json') return liveResponse(415,'JSON_REQUIRED');
   let refreshed: Headers | undefined;
   try {
-    const limited = await enforceRateLimit(request,env,transport,'checkout'); if(limited) return limited;
+    let body: unknown;
+    try { body=JSON.parse(await boundedProviderText(request.body,4096)); } catch { return liveResponse(400,'INVALID_REQUEST'); }
+    if(!object(body) || typeof body.action!=='string') throw new WhopError('INVALID_REQUEST',400);
+    // Read-only navigation must not consume the stricter purchase/redemption/mutation budget.
+    const scope=['profile','view','receipt'].includes(body.action)?'host':'checkout';
+    const limited = await enforceRateLimit(request,env,transport,scope); if(limited) return limited;
     const session = await resolveOwnerSession(request,env,transport);
     if (!session) {
       await rpc('bud_owner_access_event',{p_actor:null,p_kind:'authentication_failed'},secret,transport);
       return liveResponse(401,'DISCORD_AUTH_REQUIRED');
     }
     refreshed=session.headers;
-    const hostLimit=await enforceRateLimit(request,env,transport,'checkout','owner:'+session.hostId);
+    const hostLimit=await enforceRateLimit(request,env,transport,scope,'owner:'+session.hostId);
     if(hostLimit) { for(const c of refreshed.getSetCookie())hostLimit.headers.append('Set-Cookie',c);return hostLimit; }
-    let body: unknown;
-    try { body=JSON.parse(await boundedProviderText(request.body,4096)); } catch { return liveResponse(400,'INVALID_REQUEST',undefined,refreshed); }
-    if(!object(body) || typeof body.action!=='string') throw new WhopError('INVALID_REQUEST',400);
     const isOwner = session.discordId !== null && await rpc('bud_owner_check',{p_actor:session.hostId,p_discord:session.discordId},secret,transport) === true;
     if(body.action==='profile' && exact(body,['action'])) return liveResponse(200,'OK',{owner:isOwner},refreshed);
     if(body.action==='redeem') {
@@ -69,6 +71,12 @@ export async function handleOwner(request: Request, env: AuthEnv = envNow(), tra
     if(!isOwner) {
       await rpc('bud_owner_access_event',{p_actor:session.hostId,p_kind:['createCode','grant'].includes(body.action)?'issuance_denied':'owner_denied'},secret,transport);
       throw new WhopError('OWNER_REQUIRED',403);
+    }
+    if(body.action==='receipt') {
+      if(!exact(body,['action','operationId'])||typeof body.operationId!=='string'||!uuid.test(body.operationId))throw new WhopError('INVALID_REQUEST',400);
+      const receipt=await rpc('bud_owner_receipt',{p_actor:session.hostId,p_discord:session.discordId,p_operation:body.operationId},secret,transport);
+      if(!object(receipt)||typeof receipt.found!=='boolean')throw new WhopError('OWNER_RECEIPT_UNCONFIRMED');
+      return liveResponse(200,'OK',receipt,refreshed);
     }
     if(body.action==='view') {
       if(!exact(body,['action','section','search','offset']) || typeof body.section!=='string' || !['overview','users','user','keys','payments','events','audit','health','settings','search'].includes(body.section)

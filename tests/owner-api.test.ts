@@ -55,6 +55,24 @@ test('owner view allowlist bounds search/pagination and sanitizes backend failur
  const result=await handleOwner(req({action:'view',section:'users',search:'',offset:0},c),env,transport);
  assert.equal(result.status,503);assert.doesNotMatch(await result.text(),/private-sql|secret/);assert.equal(calls[0].body.p_actor,host);
 });
+test('receipt lookup uses the verified owner and remains available after recent-auth mutation window expires',async t=>{
+ const calls:any[]=[];const transport=mock((name,body)=>{calls.push({name,body});return Response.json({found:true,kind:'grant',result:{id,replayed:true}});});
+ const c=await login(transport),now=Date.now();t.mock.method(Date,'now',()=>now+301000);
+ const response=await handleOwner(req({action:'receipt',operationId:id},c),env,transport);assert.equal(response.status,200);
+ assert.deepEqual(calls,[{name:'bud_owner_receipt',body:{p_actor:host,p_discord:discord,p_operation:id}}]);
+ assert.equal((await handleOwner(req({action:'receipt',operationId:id,actor:id},c),env,transport)).status,400);
+ assert.equal((await handleOwner(req({action:'receipt',operationId:id},c),env,mock(undefined,false))).status,403);
+});
+test('reading owner sections preserves the strict purchase and redemption rate budget',async()=>{
+ const scopes:string[]=[];const base=mock();const transport:typeof fetch=async(input,init)=>{
+  if(String(input).endsWith('/bud_consume_rate_limit'))scopes.push(JSON.parse(String(init?.body)).p_scope);
+  return base(input,init);
+ };
+ const c=await login(transport);scopes.length=0;
+ for(let i=0;i<12;i++)assert.equal((await handleOwner(req({action:'view',section:'users',search:'',offset:0},c),env,transport)).status,200);
+ assert.equal(scopes.length,24);assert.ok(scopes.every(scope=>scope==='host'));scopes.length=0;
+ assert.equal((await handleOwner(req(grant,c),env,transport)).status,200);assert.deepEqual(scopes,['checkout','checkout']);
+});
 test('payment recovery re-reads Whop and binds stored order before allowing the atomic purchase transaction',async()=>{
  const configured={...env,BUD_PAYMENT_RECOVERY_ENABLED:'true',WHOP_ENVIRONMENT:'production',BUD_WHOP_PRODUCTION_ENABLED:'false',BUD_WHOP_PRODUCTION_PROCESSING_ENABLED:'true',BUD_WHOP_PRODUCTION_MODE:'pilot',BUD_WHOP_PILOT_HOST_ID:host,
   WHOP_PRODUCTION_API_KEY:'fixture-whop-key',WHOP_PRODUCTION_COMPANY_ID:'biz_fixture123',WHOP_PRODUCTION_PRODUCT_ID:'prod_fixture123',WHOP_PRODUCTION_PLAN_ID:'plan_fixture123',WHOP_PRODUCTION_CURRENCY:'sar',WHOP_PRODUCTION_AMOUNT_MINOR:'300',WHOP_PRODUCTION_WEBHOOK_SECRET:'ws_'+'x'.repeat(48),WHOP_PRODUCTION_WEBHOOK_API_VERSION:'2026-10-15-1'};

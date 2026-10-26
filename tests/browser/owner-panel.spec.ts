@@ -49,4 +49,52 @@ test('owner mutation requires reason and confirmation; one-time code is removed 
  await page.getByLabel('انتهاء الصلاحية').fill('2027-01-01T12:00');await page.getByRole('button',{name:'مراجعة إنشاء المفتاح'}).click();
  await expect(page.getByRole('button',{name:'تأكيد التنفيذ'})).toBeDisabled();await page.getByLabel('سبب الإجراء').fill('هدية للمجتمع');await page.getByRole('checkbox').check();await page.getByRole('button',{name:'تأكيد التنفيذ'}).click();
  await expect(page.locator('output.owner-secret')).toHaveText('BUD-ABCDEFGHIJKLMNOPQRSTUVWXYZ234567');await page.getByRole('dialog').getByRole('button',{name:'إغلاق',exact:true}).click();await expect(page.locator('output.owner-secret')).toHaveCount(0);
+ expect(await page.evaluate(()=>JSON.stringify({...sessionStorage}))).not.toContain('BUD-ABCDEFGHIJKLMNOPQRSTUVWXYZ234567');
+});
+test('uncertain administrative grant remains the same operation after closing the dialog and reloading',async({page})=>{
+ await setup(page);const requests:any[]=[];let committed=false;
+ await page.route('**/api/owner',r=>{
+  const body=r.request().postDataJSON();
+  if(body.action==='profile')return r.fulfill(ok({owner:true}));
+  if(body.action==='view')return r.fulfill(ok({rows:[]}));
+  if(body.action==='receipt')return r.fulfill(ok({found:committed,kind:'grant',result:{id,replayed:true}}));
+  requests.push(body);committed=true;return r.abort('connectionfailed');
+ });
+ await page.getByRole('button',{name:'لوحة المالك',exact:true}).click();await page.getByRole('navigation',{name:'أقسام لوحة المالك'}).getByRole('button',{name:'المفاتيح والمنح'}).click();
+ await page.getByLabel('معرّف الحساب الموثق').fill(id);await page.getByRole('button',{name:'مراجعة المنحة'}).click();
+ await page.getByLabel('سبب الإجراء').fill('منحة يجب ألا تتكرر');await page.getByRole('checkbox').check();await page.getByRole('button',{name:'تأكيد التنفيذ'}).click();
+ await expect(page.getByLabel('سبب الإجراء')).toBeDisabled();
+ await page.getByRole('dialog').getByRole('button',{name:'إغلاق',exact:true}).click();await page.reload();
+ await page.locator('.platform-account-trigger').click();await page.getByRole('menuitem',{name:'الملف الشخصي'}).click();await page.getByRole('button',{name:'لوحة المالك',exact:true}).click();
+ await page.getByRole('button',{name:'التحقق من العملية السابقة',exact:true}).click();
+ await page.getByRole('dialog').getByRole('button',{name:'تأكيد التنفيذ'}).click();
+ await expect(page.getByRole('dialog').getByRole('status')).toContainText('العملية السابقة');expect(requests).toHaveLength(1);
+});
+test('profile distinguishes an unavailable permission check from an ordinary account and can retry',async({page})=>{
+ await setup(page);let unavailable=true;
+ await page.route('**/api/owner',r=>r.fulfill(unavailable?{status:503,json:{code:'OWNER_BACKEND_UNAVAILABLE'}}:ok({owner:true})));
+ await page.getByRole('button',{name:'العودة للموقع'}).click();await page.locator('.platform-account-trigger').click();await page.getByRole('menuitem',{name:'الملف الشخصي'}).click();
+ await expect(page.getByRole('alert')).toContainText('تعذر التحقق من صلاحيات الحساب');unavailable=false;
+ await page.getByRole('button',{name:'إعادة التحقق من الصلاحيات'}).click();await expect(page.getByRole('button',{name:'لوحة المالك',exact:true})).toBeVisible();
+});
+test('an absent grant receipt retries the original frozen payload rather than opening a different grant',async({page})=>{
+ await setup(page);const requests:any[]=[];
+ await page.route('**/api/owner',r=>{
+  const body=r.request().postDataJSON();if(body.action==='profile')return r.fulfill(ok({owner:true}));if(body.action==='view')return r.fulfill(ok({rows:[]}));
+  if(body.action==='receipt')return r.fulfill(ok({found:false}));
+  requests.push(body);return requests.length===1?r.abort('connectionfailed'):r.fulfill(ok({id,replayed:false}));
+ });
+ await page.getByRole('button',{name:'لوحة المالك',exact:true}).click();await page.getByRole('navigation',{name:'أقسام لوحة المالك'}).getByRole('button',{name:'المفاتيح والمنح'}).click();
+ await page.getByLabel('معرّف الحساب الموثق').fill(id);await page.getByRole('button',{name:'مراجعة المنحة'}).click();await page.getByLabel('سبب الإجراء').fill('الطلب الأصلي');await page.getByRole('checkbox').check();await page.getByRole('button',{name:'تأكيد التنفيذ'}).click();
+ await expect(page.getByLabel('سبب الإجراء')).toBeDisabled();await page.getByRole('dialog').getByRole('button',{name:'إغلاق',exact:true}).click();
+ await page.getByRole('button',{name:'مراجعة المنحة'}).click();await expect(page.getByLabel('سبب الإجراء')).toHaveValue('الطلب الأصلي');await page.getByRole('button',{name:'تأكيد التنفيذ'}).click();
+ await expect(page.getByRole('dialog').getByRole('status')).toContainText('تمت العملية');expect(requests).toHaveLength(2);expect(requests[0]).toEqual(requests[1]);
+});
+test('unavailable tab storage blocks administrative dispatch before a mutation is sent',async({page})=>{
+ await setup(page);let mutations=0;
+ await page.route('**/api/owner',r=>{const body=r.request().postDataJSON();if(body.action==='profile')return r.fulfill(ok({owner:true}));if(body.action==='view')return r.fulfill(ok({rows:[]}));mutations++;return r.fulfill(ok({id,replayed:false}));});
+ await page.getByRole('button',{name:'لوحة المالك',exact:true}).click();await page.getByRole('navigation',{name:'أقسام لوحة المالك'}).getByRole('button',{name:'المفاتيح والمنح'}).click();
+ await page.evaluate(()=>{Object.defineProperty(window,'sessionStorage',{value:{getItem:()=>null,setItem:()=>{throw Error('fixture disabled storage');},removeItem:()=>{}}});});
+ await page.getByLabel('معرّف الحساب الموثق').fill(id);await page.getByRole('button',{name:'مراجعة المنحة'}).click();await page.getByLabel('سبب الإجراء').fill('لا يرسل دون مرجع');await page.getByRole('checkbox').check();await page.getByRole('button',{name:'تأكيد التنفيذ'}).click();
+ await expect(page.getByRole('dialog').getByRole('status')).toContainText('لم يُرسل الطلب');expect(mutations).toBe(0);
 });

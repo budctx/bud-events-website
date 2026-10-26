@@ -33,6 +33,10 @@ test('owner-only views, atomic source ledger and redemption receipts preserve pu
   await assert.rejects(redeem(user,3),/BUD_INVALID_CODE/);await assert.rejects(redeem(other,4),/BUD_INVALID_CODE/);
   await assert.rejects(redeem(user,2,'b'.repeat(64)),/BUD_KEY_REUSED/);
   const grant=await command(5,'grant',{hostId:user,qty:3,reason:'منحة اختبار'});assert.ok(grant.id);
+  const recorded=await value('select public.bud_owner_receipt($1,$2,$3) v',[owner,discord,op(5)]);assert.equal(recorded.found,true);assert.equal(recorded.result.id,grant.id);assert.equal(recorded.result.replayed,true);
+  assert.doesNotMatch(JSON.stringify(recorded),/"request"|digest/);
+  assert.equal((await value('select public.bud_owner_receipt($1,$2,$3) v',[owner,discord,op(999)])).found,false);
+  await assert.rejects(value('select public.bud_owner_receipt($1,$2,$3) v',[user,discord,op(5)]),/BUD_OWNER_REQUIRED/);
   await command(5,'grant',{hostId:user,qty:3,reason:'منحة اختبار'});
   assert.equal((await value('select public.bud_live_balance($1) v',[user])).credits,5);
   assert.equal(await value('select count(*)::int v from bud_platform.live_orders'),0);
@@ -70,6 +74,7 @@ test('owner-only views, atomic source ledger and redemption receipts preserve pu
    await db.exec('reset role;set role '+role);
    await assert.rejects(redeem(other,15),/permission denied/);
    await assert.rejects(value('select public.bud_owner_check($1,$2) v',[owner,discord]),/permission denied/);
+   await assert.rejects(value('select public.bud_owner_receipt($1,$2,$3) v',[owner,discord,op(5)]),/permission denied/);
    await assert.rejects(db.exec('select * from bud_platform.redeem_codes'),/permission denied/);
   }
  }finally{await db.close();}
@@ -104,5 +109,19 @@ test('SQL rolls back code usage and wallet when ledger fails; twenty competing r
   await db.query('select public.bud_owner_command($1,$2,$3,$4,$5)',[owner,discord,op(60),'createCode',{digest:'f'.repeat(64),qty:1,maxUses:1,expiresAt:new Date(Date.now()+3600000).toISOString(),reason:'اختبار التراجع'}]);
   await assert.rejects(db.query('select public.bud_bonus_redeem($1,$2,$3)',[user,'f'.repeat(64),op(61)]),/fixture failure/);
   assert.equal((await db.query<{n:number}>("select uses n from bud_platform.redeem_codes where digest=repeat('f',64)")).rows[0].n,0);
+ }finally{await db.close();}
+});
+test('secondary grant and access-event histories paginate even when the primary list is empty',async()=>{
+ const db=await ownerFixture();
+ try{
+  await db.query(`insert into bud_platform.bonus_ledger(host_id,source,actor,operation_id,qty,reason)
+    select $1,'admin_grant',$2,gen_random_uuid(),1,'fixture history' from generate_series(1,51)`,[user,owner]);
+  await db.exec("insert into bud_platform.owner_access_events(kind) select 'authentication_failed' from generate_series(1,51)");
+  const view=async(section:string,offset=0,search='')=>(await db.query<{v:any}>('select public.bud_owner_view($1,$2,$3,$4,$5) v',[owner,discord,section,search,offset])).rows[0].v;
+  const keys=await view('keys');assert.equal(keys.rows.length,0);assert.equal(keys.history.length,50);assert.equal(keys.mayHaveMore,true);
+  assert.equal((await view('keys',50)).history.length,1);
+  const audit=await view('audit');assert.equal(audit.rows.length,0);assert.equal(audit.mayHaveMore,true);assert.equal((await view('audit',50)).accessEvents.length,1);
+  assert.equal((await view('keys',0,'unmatched-reference')).history.length,0);
+  assert.equal((await view('audit',0,'unmatched-reference')).accessEvents.length,0);
  }finally{await db.close();}
 });
