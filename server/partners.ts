@@ -21,9 +21,12 @@ export async function handlePartners(request:Request,env:AuthEnv=envNow(),transp
   const partners=data.filter((item):item is PublicPartner=>{
    if(!item||typeof item!=='object'||Array.isArray(item))return false;
    const p=item as Record<string,unknown>;
-   return typeof p.id==='string'&&typeof p.name==='string'&&typeof p.logoUrl==='string'&&typeof p.websiteUrl==='string'
-    &&p.name.length<=80&&/^https:\/\/[^\\s/]+\/.+\.(png|jpe?g|webp)(\?[^#\\s]*)?$/i.test(p.logoUrl)
-    &&(p.websiteUrl===''||/^https:\/\/[^\\s/]+/.test(p.websiteUrl));
+   if(typeof p.id!=='string'||typeof p.name!=='string'||typeof p.logoUrl!=='string'||typeof p.websiteUrl!=='string'||p.name.length>80)return false;
+   const safe=(raw:string,logo:boolean)=>{
+    try{const url=new URL(raw);return url.protocol==='https:'&&!!url.hostname&&!url.username&&!url.password&&!url.hash&&(!logo||/\.(png|jpe?g|webp)$/i.test(url.pathname));}
+    catch{return false;}
+   };
+   return safe(p.logoUrl,true)&&(p.websiteUrl===''||safe(p.websiteUrl,false));
   });
   return liveResponse(200,'OK',partners);
  }catch{return liveResponse(503,'PARTNERS_UNAVAILABLE');}
