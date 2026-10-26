@@ -3,6 +3,35 @@ on: [push, pull_request]
 permissions:
   contents: read
 jobs:
+  owner-database-concurrency:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: owner-fixture-only
+          POSTGRES_DB: bud_owner_fixture
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd pg_isready --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 24
+      - run: node scripts/test-owner-postgres.mjs --local-only
+        env:
+          BUD_OWNER_SQL_FIXTURE: disposable
+          PGHOST: 127.0.0.1
+          PGPORT: '55432'
+          PGDATABASE: bud_owner_fixture
+          PGUSER: postgres
+          PGPASSWORD: owner-fixture-only
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 10
