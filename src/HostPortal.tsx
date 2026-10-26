@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatedSwitch, HelpTip, NumberStepper } from './InterfaceControls';
 import { BudSteps } from './BudUI';
 import { parsePrizeLines } from './prize-lines';
+import {clearHostSetupDraft,readHostSetupDraft,saveHostSetupDraft} from './host-setup-draft';
 import { formatEventResults } from './event-summary';
 import { closeBrowserHostRun, getHostDashboard, getHostSession, HostClientError, newHostRequestKey, resumeHostEvent, signInHost, signOutHost, startHostEvent, startBrowserHostEvent } from './host-client';
 import type { HostDashboard, HostEvent, HostSession, Locale, StartHostEvent } from './host-client';
@@ -24,6 +25,8 @@ export default function HostPortal({ onPlay, onExit, locale, view, onAuthLost }:
   const [title, setTitle] = useState(t.defaultTitle);
   const [config, setConfig] = useState<ManualConfig>({ duration: 5, timerEnabled: false, attempts: 1 });
   const [prizeText, setPrizeText] = useState('');
+  const [draftOwner,setDraftOwner] = useState<string|null>(null);
+  const [draftRestored,setDraftRestored] = useState(false);
   const [summary, setSummary] = useState<HostEvent | null>(null);
   const [copyStatus, setCopyStatus] = useState('');
   const summaryDialog = useRef<HTMLDialogElement>(null);
@@ -32,6 +35,22 @@ export default function HostPortal({ onPlay, onExit, locale, view, onAuthLost }:
   const locked = useRef(false);
   const [uncertain, setUncertain] = useState(false);
   useEffect(() => { if (view) heading.current?.focus(); }, [view]);
+  useEffect(() => {
+    if (view === 'history' || !session?.id) return;
+    const saved = readHostSetupDraft(session.id);
+    if (saved) {
+      setTitle(saved.title);
+      setPrizeText(saved.prizeText);
+      setConfig(saved.config);
+      setDraftRestored(true);
+    } else setDraftRestored(false);
+    setDraftOwner(session.id);
+  },[session?.id,view]);
+  useEffect(() => {
+    if (view === 'history' || !session?.id || draftOwner !== session.id || pendingStart.current) return;
+    // Only browser-local draft fields; financial keys and active game progress remain separate.
+    saveHostSetupDraft(session.id,{title,config,prizeText});
+  },[session?.id,view,draftOwner,title,config,prizeText]);
   useEffect(() => {
     const controller = new AbortController();
     setStatus('loading'); setError('');
@@ -52,7 +71,7 @@ export default function HostPortal({ onPlay, onExit, locale, view, onAuthLost }:
     if (!title.trim() || title.trim().length > 100) { setError(t.titleError); return; }
     if (!parsed.valid) { setError(t.prizeError); return; }
     if (!pendingStart.current) pendingStart.current = { action: 'start', idempotencyKey: newHostRequestKey(), title: title.trim(), config: { ...config }, prizeText };
-    try { const event = dashboard?.runtime==='browser-v1'&&session?await startBrowserHostEvent(session.id,pendingStart.current):await startHostEvent(pendingStart.current); pendingStart.current = null; setUncertain(false); onPlay(event); }
+    try { const event = dashboard?.runtime==='browser-v1'&&session?await startBrowserHostEvent(session.id,pendingStart.current):await startHostEvent(pendingStart.current); pendingStart.current = null; setUncertain(false); if(session)clearHostSetupDraft(session.id); onPlay(event); }
     catch (reason) { setUncertain(true); throw reason; }
   });
   const summaryText = summary ? formatEventResults(summary.state,locale) : '';
@@ -62,7 +81,7 @@ export default function HostPortal({ onPlay, onExit, locale, view, onAuthLost }:
       {error && <p className="host-message host-error" role="alert">{error}</p>}
       {status === 'loading' ? <p className="host-message" role="status">{t.loading}</p> : status !== 'ready' ? <section className="host-panel host-access"><h2>{status === 'signed-out' ? t.signin : t.unavailable}</h2><p>{status === 'signed-out' ? t.intro : t.failure}</p>{status === 'signed-out' && <button className="host-discord" disabled={busy} onClick={() => void perform(() => signInHost({page:'events',locale}))}><img src="/assets/discord-symbol-white.svg" width="24" height="18" alt="Discord" />{t.signin}</button>}<button disabled={busy} onClick={() => setReload(value => value + 1)}>{t.retry}</button></section> : dashboard && <>
         {!view && <section className="host-balance host-panel" aria-label={t.slots}><div><h2>{t.slots}</h2><p>{t.slotHint}</p></div><strong>{dashboard.credits}</strong></section>}
-        <div className={view ? 'host-single' : 'host-grid'}>{view !== 'history' && <section className="host-panel"><BudSteps steps={locale==='ar'?['الإعداد','شاشة الفعالية','الجوائز','الختام']:['Setup','Live','Prizes','Closing']} current={0}/><h2>{t.setup}</h2><form onSubmit={event => { event.preventDefault(); void start(); }}>
+        <div className={view ? 'host-single' : 'host-grid'}>{view !== 'history' && <section className="host-panel"><BudSteps steps={locale==='ar'?['الإعداد','شاشة الفعالية','الجوائز','الختام']:['Setup','Live','Prizes','Closing']} current={0}/><h2>{t.setup}</h2>{draftRestored&&<p className="host-local-policy" role="status">استُعيدت مسودة الإعداد من هذا المتصفح. لا تُحفظ المسودة على الخادم.</p>}<form onSubmit={event => { event.preventDefault(); void start(); }}>
           {uncertain && <p className="host-message" role="status">{t.confirmChange}</p>}
           <fieldset disabled={busy || uncertain}><label htmlFor="host-title">{t.eventTitle}</label><input id="host-title" value={title} maxLength={100} onChange={event => setTitle(event.target.value)} required />
             <div className="host-options"><AnimatedSwitch label={t.timer} checked={config.timerEnabled} onCheckedChange={timerEnabled => setConfig(previous => ({ ...previous, timerEnabled }))} /><div><label id="host-attempts-label">{t.attempts}</label><NumberStepper id="host-attempts" label={t.attempts} value={config.attempts} min={1} max={3} locale={locale} onChange={attempts => setConfig(previous => ({ ...previous, attempts: attempts as 1 | 2 | 3 }))} /></div></div>
