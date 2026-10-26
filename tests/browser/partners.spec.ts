@@ -46,7 +46,12 @@ test('partner carousel is published-only and owner can manage entries through co
  await page.getByRole('dialog').getByRole('button',{name:'إغلاق'}).click();
  await expect(page.getByText('1 منشور')).toBeVisible();
  await page.reload();
- await expect(page.getByTestId('partners-carousel')).toBeVisible();
- await expect(page.getByTestId('partners-carousel').getByRole('img',{name:'شريك بُعد'})).toBeVisible();
+ const visibleCarousel=page.locator('[data-testid="partners-carousel"]:visible');
+ await expect(visibleCarousel).toBeVisible();
+ await expect(visibleCarousel.getByRole('img',{name:'شريك بُعد'})).toBeVisible();
+ await page.setViewportSize({width:390,height:844});
+ await page.reload();
+ await expect(page.locator('[data-testid="partners-carousel"]:visible').getByRole('img',{name:'شريك بُعد'})).toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  expect(seen.filter(x=>x==='partnerSave')).toHaveLength(2);
 });
