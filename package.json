@@ -7,7 +7,7 @@
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview --host 0.0.0.0",
-    "test": "node --test tests/*.test.ts && playwright test tests/browser/production.spec.ts tests/browser/prize-draw.spec.ts tests/browser/event-preview.spec.ts tests/browser/host-portal.spec.ts tests/browser/payment-status.spec.ts tests/browser/owner-panel.spec.ts tests/browser/browser-event.spec.ts tests/browser/partners.spec.ts",
+    "test": "node --test tests/*.test.ts && playwright test tests/browser/production.spec.ts tests/browser/prize-draw.spec.ts tests/browser/event-preview.spec.ts tests/browser/host-portal.spec.ts tests/browser/payment-status.spec.ts tests/browser/owner-panel.spec.ts tests/browser/browser-event.spec.ts tests/browser/partners.spec.ts tests/browser/ux-journey.spec.ts",
     "typecheck:server": "tsc --ignoreConfig --noEmit --types node --target ES2022 --module ESNext --moduleResolution bundler --lib ES2022,DOM --allowImportingTsExtensions server/commerce.ts server/auth.ts server/host.ts server/rate-limit.ts server/checkout.ts server/whop.ts server/whop-production.ts server/whop-preflight.ts server/live-commerce.ts server/payment-operations.ts server/payment-status.ts api/payment-worker.ts api/payment-reconcile.ts api/payment-status.ts api/whop-preflight.ts api/whop-quote.ts api/auth.ts api/host.ts api/commerce.ts api/checkout.ts api/sandbox-webhook.ts api/whop-webhook.ts server/owner.ts api/owner.ts server/owner-monitor.ts server/partners.ts",
     "launch:check": "node scripts/launch-readiness.mjs",
     "launch:smoke": "node scripts/launch-smoke.mjs",
