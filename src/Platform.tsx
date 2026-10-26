@@ -39,7 +39,8 @@ function pageFromURL(): Page {
 }
 function panelFromURL(): 'history' | 'setup' | 'profile' | 'owner' | null {
   const value = new URLSearchParams(location.search).get('panel');
-  return value === 'history' || value === 'setup' || value === 'profile' || value === 'owner' ? value : null;
+  // The owner dashboard is an authenticated transient view: a hard reload returns to the public site.
+  return value === 'history' || value === 'setup' || value === 'profile' ? value : null;
 }
 export default function Platform({ onPlay }: PlatformProps) {
   const locale: Locale = 'ar';
