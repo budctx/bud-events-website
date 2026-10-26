@@ -3,7 +3,7 @@ const id='11111111-1111-4111-8111-111111111111';
 const ok=(data:unknown)=>({status:200,json:{code:'OK',data}});
 test('partner carousel is published-only and owner can manage entries through confirm workflow',async({page})=>{
  const rows:{id:string;name:string;logoUrl:string;websiteUrl:string;sortOrder:number;visible:boolean}[]=[];
- await page.route('**/api/partners',route=>route.fulfill(ok(rows.filter(x=>x.visible))));
+ await page.route('**/api/owner?public=partners',route=>route.fulfill(ok(rows.filter(x=>x.visible))));
  await page.route('https://cdn.example.com/logo.png',route=>route.fulfill({status:200,contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="100" height="50"><rect width="100" height="50" fill="#fbb03b"/></svg>'}));
  await page.route('**/api/auth?action=session',route=>route.fulfill(ok({id,displayName:'مالك بُعد'})));
  await page.route('**/api/host',route=>route.fulfill(ok({credits:2,events:[],products:[],contentVersions:[]})));
