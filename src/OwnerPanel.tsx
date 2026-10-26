@@ -4,6 +4,7 @@ import {ownerError,ownerRequest} from './owner-client';
 import type {OwnerData} from './owner-client';
 import {clearOwnerPending,readOwnerPending,saveOwnerPending} from './owner-pending';
 import type {PendingOwnerOperation} from './owner-pending';
+import {clearPublicPartnersCache} from './partners-client';
 import {Activity,ArrowRight,CalendarDays,ChevronLeft,FileClock,Gift,Handshake,KeyRound,LayoutDashboard,Plus,Receipt,RefreshCw,Search,Settings2,ShieldCheck,Users,X} from 'lucide-react';
 import {Empty,Health,Overview,OwnerTable,SearchResults,UserSummary,rowsOf} from './OwnerViews';
 import {PartnerManager} from './PartnerManager';
@@ -62,6 +63,7 @@ export default function OwnerPanel({onClose,ownerId,ownerName="المالك"}:{o
    }
    result??=await ownerRequest<OwnerData>({action:saved.kind,payload:saved.payload,operationId:saved.operationId,reason:saved.reason,confirmed:true});
    clearOwnerPending(ownerId,saved.operationId);pendingRef.current=null;if(!alive.current)return;setPending(null);
+   if(saved.kind==='partnerSave'||saved.kind==='partnerDelete')clearPublicPartnersCache();
    if(typeof result.code==='string'){setSecret(result.code);setNotice('احفظ المفتاح الآن. يُعرض مرة واحدة فقط.');}
    else{setNotice(saved.kind==='createCode'&&result.replayed===true?`تم تأكيد إنشاء المفتاح السابق دون تكراره. لا يمكن إعادة عرض نصه؛ يمكنك إيقافه من سجل المفاتيح. المرجع: ${String(result.id??'')}`:result.verified===true?'تم التحقق من الدفعة لدى Whop دون إضافة رصيد.':result.replayed===true?'تم تأكيد إيصال العملية السابقة دون تكرارها.':'تمت العملية وسُجلت في سجل العمليات.');}
    toast('تم اعتماد العملية وحفظها بنجاح.','success');setAction(null);setRevision(v=>v+1);

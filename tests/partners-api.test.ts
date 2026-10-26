@@ -13,7 +13,7 @@ test('public partners endpoint is read-only, filters unsafe logos and never retu
   ]);
  }) as typeof fetch;
  const response=await handlePartners(new Request(url),env,transport);
- assert.equal(response.status,200);assert.equal(response.headers.get('Cache-Control'),'no-store');
+ assert.equal(response.status,200);assert.equal(response.headers.get('Cache-Control'),'public, max-age=0, s-maxage=60, stale-while-revalidate=300');
  const payload=await response.json();assert.equal(payload.code,'OK');
  assert.deepEqual(payload.data,[{id:'a',name:'Approved',logoUrl:'https://cdn.example.com/logo.png',websiteUrl:'https://example.com'}]);
  assert.equal(traffic.length,1);assert.equal(traffic[0].method,'POST');

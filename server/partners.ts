@@ -5,6 +5,11 @@ import { boundedProviderText } from './whop.ts';
 const PROJECT='https://cepmvqqrjcvhyzszqand.supabase.co';
 const envNow=():AuthEnv=>(globalThis as unknown as {process?:{env?:AuthEnv}}).process?.env??{};
 export type PublicPartner={id:string;name:string;logoUrl:string;websiteUrl:string};
+function publicResponse(data:PublicPartner[]){
+ const response=liveResponse(200,'OK',data);
+ response.headers.set('Cache-Control','public, max-age=0, s-maxage=60, stale-while-revalidate=300');
+ return response;
+}
 export async function handlePartners(request:Request,env:AuthEnv=envNow(),transport:typeof fetch=fetch):Promise<Response>{
  if(request.method!=='GET')return liveResponse(405,'METHOD_NOT_ALLOWED');
  const url=new URL(request.url);
@@ -29,6 +34,6 @@ export async function handlePartners(request:Request,env:AuthEnv=envNow(),transp
    };
    return safe(p.logoUrl,true)&&(p.websiteUrl===''||safe(p.websiteUrl,false));
   });
-  return liveResponse(200,'OK',partners);
+  return publicResponse(partners);
  }catch{return liveResponse(503,'PARTNERS_UNAVAILABLE');}
 }
