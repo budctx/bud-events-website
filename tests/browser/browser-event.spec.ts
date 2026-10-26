@@ -26,7 +26,15 @@ test('unavailable local storage stops before paying for a new run',async({page})
 test('a cached application can reload an ongoing local event offline without server recovery',async({page,context})=>{
  await setup(page,'http://127.0.0.1:4175');await page.evaluate(async()=>{await navigator.serviceWorker.ready;await new Promise<void>(resolve=>{if(navigator.serviceWorker.controller)resolve();else navigator.serviceWorker.addEventListener('controllerchange',()=>resolve(),{once:true});});});
  await start(page);await page.getByRole('button',{name:'اكشف سؤال',exact:true}).click();
- await expect.poll(()=>page.evaluate(async()=>{const scripts=Array.from(document.scripts).filter(s=>s.src.includes('/assets/'));return (await Promise.all(scripts.map(s=>caches.match(s.src)))).every(Boolean);})).toBe(true);
+ await expect.poll(()=>page.evaluate(async()=>{
+  const cache=await caches.open('bud-public-app-v1');
+  const assets=Array.from(new Set([
+   ...Array.from(document.scripts).map(script=>script.src),
+   ...performance.getEntriesByType('resource').map(entry=>entry.name),
+  ].filter(name=>{try{const url=new URL(name);return url.origin===location.origin&&url.pathname.startsWith('/assets/')&&!url.search;}catch{return false;}})));
+  if(assets.length<2 || !(await cache.match('/')))return false;
+  return (await Promise.all(assets.map(url=>cache.match(url)))).every(Boolean);
+ }),{timeout:15000}).toBe(true);
  const cached=await page.evaluate(async()=>(await (await caches.open('bud-public-app-v1')).keys()).map(r=>r.url));expect(cached.some(url=>url.includes('/api/'))).toBe(false);await context.setOffline(true);await page.reload();await expect(page.getByRole('button',{name:'اكشف سؤال',exact:true})).toHaveAttribute('aria-pressed','true');await page.getByRole('button',{name:'اكشف شرط',exact:true}).click();await expect(page.getByRole('timer')).toHaveText('5');
 });
 
