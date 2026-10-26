@@ -113,7 +113,15 @@ export default function Platform({ onPlay }: PlatformProps) {
     window.addEventListener('popstate',onBackOrForward);
     return () => window.removeEventListener('popstate',onBackOrForward);
   }, []);
-  useEffect(() => { purchaseKey.current = null; setPanel(null); setPaymentHold(false); }, [account.session?.id]);
+  const previousAccountId = useRef<string|null>(null);
+  useEffect(() => {
+    const next = account.session?.id ?? null;
+    // Preserve a direct setup/profile URL during initial Discord session hydration.
+    if (previousAccountId.current !== null && previousAccountId.current !== next) setPanel(null);
+    previousAccountId.current = next;
+    purchaseKey.current = null;
+    setPaymentHold(false);
+  }, [account.session?.id]);
   const navigate = (next: Page) => {
     if (page === next && !panel) return;
     history.pushState(null,'',routeUrl(next));
