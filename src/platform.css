@@ -4,9 +4,9 @@
 .platform button:focus-visible, .platform a:focus-visible { outline:4px solid #333; outline-offset:4px; }
 .platform-art { position:absolute; z-index:-1; inset:0; overflow:hidden; pointer-events:none; }
 .platform-art img { width:100%; height:100%; display:block; object-fit:cover; }
-.platform-header { height:92px; flex:none; margin-top:12px; display:flex; direction:ltr; align-items:center; justify-content:space-between; gap:24px; }
+.platform-header { height:92px; flex:none; margin-top:12px; display:flex; direction:rtl; align-items:center; justify-content:space-between; gap:24px; }
 .platform-login { width:190px; height:44px; border:1px solid #333; border-radius:8px; background:#fdfdff; font-size:14px; font-weight:500; padding:8px; line-height:24px; }
-.platform-brand-navigation { display:flex; direction:ltr; align-items:center; justify-content:flex-end; gap:32px; }
+.platform-brand-navigation { display:flex; direction:rtl; align-items:center; justify-content:flex-end; gap:32px; }
 .platform-navigation { display:flex; flex-direction:row-reverse; align-items:center; gap:20px; }
 .platform-navigation button { border:0; background:transparent; padding:8px 0; min-height:44px; font-size:16px; line-height:24px; white-space:nowrap; font-weight:500; }
 .platform-navigation button[aria-current=page] { font-weight:700; text-decoration:underline; text-underline-offset:3px; }
@@ -339,12 +339,12 @@
 .platform-avatar--large { width:44px; height:44px; font-size:18px; }
 .platform-avatar img { display:block; width:100%; height:100%; object-fit:cover; }
 .platform-account-menu {
-  position:absolute; z-index:50; top:calc(100% + 10px); left:0;
+  position:absolute; z-index:50; top:calc(100% + 10px); right:0; left:auto;
   width:min(284px, calc(100vw - 40px)); padding:10px;
   background:#fdfdff; border:1.5px solid #333; border-radius:13px;
   box-shadow:4px 5px 0 #333; display:grid; gap:3px;
   direction:inherit; text-align:start;
-  transform-origin:top left;
+  transform-origin:top right;
   animation:platform-account-enter 180ms cubic-bezier(.16,1,.3,1) both;
 }
 .platform-account-user { display:flex; align-items:center; min-width:0; gap:10px; padding:7px 7px 11px; }
