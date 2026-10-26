@@ -4,8 +4,10 @@ import {ownerError,ownerRequest} from './owner-client';
 import type {OwnerData} from './owner-client';
 import {clearOwnerPending,readOwnerPending,saveOwnerPending} from './owner-pending';
 import type {PendingOwnerOperation} from './owner-pending';
-import {Activity,ArrowRight,CalendarDays,ChevronLeft,FileClock,Gift,KeyRound,LayoutDashboard,Plus,Receipt,RefreshCw,Search,Settings2,ShieldCheck,Users,X} from 'lucide-react';
+import {Activity,ArrowRight,CalendarDays,ChevronLeft,FileClock,Gift,Handshake,KeyRound,LayoutDashboard,Plus,Receipt,RefreshCw,Search,Settings2,ShieldCheck,Users,X} from 'lucide-react';
 import {Empty,Health,Overview,OwnerTable,SearchResults,UserSummary,rowsOf} from './OwnerViews';
+import {PartnerManager} from './PartnerManager';
+import {BudSkeleton,useBudToast} from './BudUI';
 import './owner.css';
 const sections=[
  ['overview','نظرة عامة وتنبيهات',LayoutDashboard,'ملخص المنصة وما يحتاج انتباهك.'],
@@ -16,11 +18,13 @@ const sections=[
  ['audit','سجل العمليات',FileClock,'سجل الإجراءات ومحاولات الوصول.'],
  ['health','صحة النظام',Activity,'آخر حالة معروفة للخدمات والمعالجات.'],
  ['settings','الإعدادات',Settings2,'ملاحظاتك التشغيلية الداخلية.'],
+ ['partners','الشركاء',Handshake,'أسماء الشركاء وشعاراتهم وروابطهم وظهورهم في الموقع.'],
  ['search','البحث الموحد',Search,'ابحث في الحسابات والطلبات والفعاليات والمفاتيح.']
 ] as const;
 function tabKeys(event:React.KeyboardEvent<HTMLDivElement>){if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;const tabs=Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role=tab]'));const index=tabs.indexOf(document.activeElement as HTMLButtonElement);if(index<0)return;event.preventDefault();const next=event.key==='Home'?0:event.key==='End'?tabs.length-1:event.key==='ArrowLeft'?(index+1)%tabs.length:(index-1+tabs.length)%tabs.length;tabs[next]?.click();tabs[next]?.focus();}
 type Action={kind:string;payload:Record<string,unknown>;title:string};
 export default function OwnerPanel({onClose,ownerId,ownerName="المالك"}:{onClose:()=>void;ownerId:string;ownerName?:string}){
+ const toast=useBudToast();
  const [section,setSection]=useState<string>('overview'),[query,setQuery]=useState(''),[search,setSearch]=useState(''),[offset,setOffset]=useState(0),[revision,setRevision]=useState(0);
  const [data,setData]=useState<OwnerData|null>(null),[error,setError]=useState(''),[loading,setLoading]=useState(false),[busy,setBusy]=useState(false),[reauth,setReauth]=useState(false);
  const [action,setAction]=useState<Action|null>(null),[reason,setReason]=useState(''),[checked,setChecked]=useState(false),[notice,setNotice]=useState(''),[secret,setSecret]=useState('');
@@ -33,7 +37,7 @@ export default function OwnerPanel({onClose,ownerId,ownerName="المالك"}:{o
  useEffect(()=>{alive.current=true;return()=>{alive.current=false;};},[]);
  useEffect(()=>{const controller=new AbortController();const run=++generation.current;setData(null);setError('');setLoading(true);
   if(section==='search'&&search.trim().length<2){setLoading(false);return()=>controller.abort();}
-  void ownerRequest({action:'view',section,search,offset},controller.signal).then(v=>{if(run===generation.current&&!controller.signal.aborted){setData(v);if(section==='settings')setNote(String(v.rows?.find(r=>r.name==='operations_note')?.value??''));}}).catch(e=>{if(!controller.signal.aborted&&run===generation.current)setError(ownerError(e));}).finally(()=>{if(!controller.signal.aborted&&run===generation.current)setLoading(false);});
+  void (section==='partners'?ownerRequest<import('./PartnerManager').OwnerPartner[]>({action:'partners'},controller.signal).then(rows=>({rows})):ownerRequest<OwnerData>({action:'view',section,search,offset},controller.signal)).then(v=>{if(run===generation.current&&!controller.signal.aborted){setData(v);if(section==='settings')setNote(String(v.rows?.find(r=>r.name==='operations_note')?.value??''));}}).catch(e=>{if(!controller.signal.aborted&&run===generation.current)setError(ownerError(e));}).finally(()=>{if(!controller.signal.aborted&&run===generation.current)setLoading(false);});
   return()=>controller.abort();
  },[section,search,offset,revision]);
  const navigate=(next:string)=>{setSection(next);setSearch('');setQuery('');setOffset(0);setNotice('');setComposer(null);setListTab('primary');};
@@ -60,7 +64,7 @@ export default function OwnerPanel({onClose,ownerId,ownerName="المالك"}:{o
    clearOwnerPending(ownerId,saved.operationId);pendingRef.current=null;if(!alive.current)return;setPending(null);
    if(typeof result.code==='string'){setSecret(result.code);setNotice('احفظ المفتاح الآن. يُعرض مرة واحدة فقط.');}
    else{setNotice(saved.kind==='createCode'&&result.replayed===true?`تم تأكيد إنشاء المفتاح السابق دون تكراره. لا يمكن إعادة عرض نصه؛ يمكنك إيقافه من سجل المفاتيح. المرجع: ${String(result.id??'')}`:result.verified===true?'تم التحقق من الدفعة لدى Whop دون إضافة رصيد.':result.replayed===true?'تم تأكيد إيصال العملية السابقة دون تكرارها.':'تمت العملية وسُجلت في سجل العمليات.');}
-   setAction(null);setRevision(v=>v+1);
+   toast('تم اعتماد العملية وحفظها بنجاح.','success');setAction(null);setRevision(v=>v+1);
   }catch(e){
    if(!previous&&e instanceof HostClientError&&[400,401,403,429].includes(e.status)){clearOwnerPending(ownerId);pendingRef.current=null;if(alive.current)setPending(null);}
    if(alive.current){setNotice(ownerError(e));setReauth(e instanceof HostClientError&&e.code==='OWNER_REAUTH_REQUIRED');}
@@ -88,7 +92,7 @@ export default function OwnerPanel({onClose,ownerId,ownerName="المالك"}:{o
    {['keys','user'].includes(section)&&composer==='grant'&&<article className="owner-card owner-composer"><div className="owner-block-heading"><h3><Gift aria-hidden="true"/>منحة إدارية</h3><button className="owner-icon-button" aria-label="إغلاق نموذج المنحة" onClick={()=>setComposer(null)}><X aria-hidden="true"/></button></div><p className="owner-subtle">رصيد مستقل عن الشراء. لا يُستخدم لتسوية دفعة.</p><form className="owner-form" onSubmit={e=>{e.preventDefault();open({kind:'grant',payload:{hostId:target,qty:Number(qty)},title:`منح ${qty} Slots للحساب ${target}`});}}><label>معرّف الحساب الموثق<input dir="ltr" required value={target} onChange={e=>setTarget(e.target.value)} pattern="[a-fA-F0-9-]{36}"/></label><label>عدد Slots<input type="number" min="1" max="100" required value={qty} onChange={e=>setQty(e.target.value)}/></label><button className="owner-button primary">مراجعة المنحة</button></form></article>}
    {section==='settings'&&<article className="owner-card"><div className="owner-block-heading"><h3><Settings2 aria-hidden="true"/>ملاحظة تشغيلية داخلية</h3></div><form className="owner-settings-form" onSubmit={e=>{e.preventDefault();open({kind:'setting',payload:{name:'operations_note',value:note},title:'حفظ الملاحظة التشغيلية'});}}><label>الملاحظة<textarea value={note} onChange={e=>setNote(e.target.value)} maxLength={500} placeholder="اكتب ملاحظة لفريق الإدارة…"/></label><div><small>{note.length} / 500</small><button className="owner-button primary">مراجعة الحفظ</button></div></form></article>}
    {section==='payments'&&composer==='recovery'&&<article className="owner-card owner-composer"><div className="owner-block-heading"><h3>استعادة دفعة موثقة</h3><button className="owner-icon-button" aria-label="إغلاق نموذج الاستعادة" onClick={()=>setComposer(null)}><X aria-hidden="true"/></button></div><p className="owner-subtle">تتحقق من Whop قبل التسليم. تفعيل الاستعادة مستقل عن المنح.</p><form className="owner-form" onSubmit={e=>{e.preventDefault();open({kind:'inspectPayment',payload:{orderId:recoveryOrder,paymentId:recoveryPayment},title:'فحص الدفعة لدى Whop دون إضافة رصيد'});}}><label>مرجع طلب بُعد<input required dir="ltr" value={recoveryOrder} onChange={e=>setRecoveryOrder(e.target.value)} pattern="[a-fA-F0-9-]{36}"/></label><label>معرّف دفع Whop<input required dir="ltr" value={recoveryPayment} onChange={e=>setRecoveryPayment(e.target.value)} pattern="pay_[A-Za-z0-9]{5,80}"/></label><button className="owner-button">فحص الدفعة</button><button type="button" className="owner-button primary" disabled={!/^[a-fA-F0-9-]{36}$/.test(recoveryOrder)||!/^pay_[A-Za-z0-9]{5,80}$/.test(recoveryPayment)} onClick={()=>open({kind:'recoverPayment',payload:{orderId:recoveryOrder,paymentId:recoveryPayment},title:'استعادة استحقاق الدفعة بعد إعادة التحقق من Whop'})}>مراجعة الاستعادة</button></form></article>}
-   {loading&&<div className="owner-loading" role="status"><RefreshCw className="owner-spinning" aria-hidden="true"/>جارٍ تحميل البيانات…</div>}{error&&<div className="owner-error" role="alert">{error}<button className="owner-text-button" onClick={()=>setRevision(v=>v+1)}>إعادة المحاولة</button></div>}
+   {loading&&<BudSkeleton label="جارٍ تحميل بيانات لوحة المالك" lines={3}/>}{error&&<div className="owner-error" role="alert">{error}<button className="owner-text-button" onClick={()=>setRevision(v=>v+1)}>إعادة المحاولة</button></div>}
    {!loading&&data&&<>
     {section==='overview'&&<Overview data={data} onNavigate={navigate} onAck={a=>open({kind:'ack',payload:{fingerprint:a.fingerprint},title:'إقرار الاطلاع على التنبيه'})}/>}
     {section==='users'&&<OwnerTable kind="users" title="المستخدمون" rows={rowsOf(data.rows)} onUser={userOpen}/>}
@@ -97,6 +101,7 @@ export default function OwnerPanel({onClose,ownerId,ownerName="المالك"}:{o
     {section==='events'&&<OwnerTable kind="events" title="الفعاليات" rows={rowsOf(data.rows)}/>}
     {section==='audit'&&<><div className="owner-tabs" role="tablist" onKeyDown={tabKeys} aria-label="سجلات الإدارة"><button role="tab" id="owner-audit-tab" aria-controls="owner-audit-records" aria-selected={listTab==='primary'} tabIndex={listTab==='primary'?0:-1} onClick={()=>setListTab('primary')}>العمليات الإدارية</button><button role="tab" id="owner-access-tab" aria-controls="owner-audit-records" aria-selected={listTab==='access'} tabIndex={listTab==='access'?0:-1} onClick={()=>setListTab('access')}>محاولات الوصول</button></div><div id="owner-audit-records" role="tabpanel" aria-labelledby={listTab==='primary'?'owner-audit-tab':'owner-access-tab'}><OwnerTable key={listTab} kind={listTab==='primary'?'audit':'accessEvents'} title={listTab==='primary'?'العمليات الإدارية':'محاولات الوصول'} rows={rowsOf(listTab==='primary'?data.rows:data.accessEvents)}/></div></>}
     {section==='health'&&<Health data={data}/>}
+    {section==='partners'&&<PartnerManager partners={(data.rows??[]) as import('./PartnerManager').OwnerPartner[]} onConfirm={open}/>}
     {section==='search'&&<SearchResults data={data} onUser={userOpen}/>}
     {section==='user'&&<><UserSummary data={data}/><div className="owner-user-tools"><button className="owner-text-button" onClick={()=>navigate('users')}><ArrowRight aria-hidden="true"/>كل المستخدمين</button><div><button className="owner-text-button danger" onClick={()=>open({kind:'restrict',payload:{hostId:search,suspended:true},title:'تقييد الاستخدام الجديد للحساب'})}>تقييد الاستخدام</button><button className="owner-text-button" onClick={()=>open({kind:'restrict',payload:{hostId:search,suspended:false},title:'رفع التقييد الإداري عن الحساب'})}>رفع التقييد</button></div></div><div className="owner-tabs" role="group" aria-label="نشاط المستخدم">{(['payments','history','events'] as const).map(tab=><button key={tab} aria-pressed={userTab===tab} onClick={()=>setUserTab(tab)}>{{payments:'المدفوعات',history:'المنح والاستردادات',events:'الفعاليات'}[tab]}</button>)}</div><OwnerTable key={userTab} kind={userTab} title={{payments:'مدفوعات المستخدم',history:'المنح والاستردادات',events:'فعاليات المستخدم'}[userTab]} rows={rowsOf(data[{payments:'orders',history:'grants',events:'events'}[userTab]])}/></>}
    </>}
