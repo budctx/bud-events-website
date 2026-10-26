@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Ref } from 'react';
 import type { Locale } from './i18n';
 import './event-preview.css';
+import { EventCountdown } from './EventCountdown';
 import { GameCard } from './GameCard';
 
 /** A fixed product sample. No host configuration, rounds, winners or prize state. */
@@ -30,10 +31,7 @@ export function EventPreview({ locale, previewRef }: { locale: Locale; previewRe
   };
   const reset = () => { setQuestion(false); setCondition(false); setDeadline(null); setRemaining(5000); requestAnimationFrame(() => firstCard.current?.focus()); };
   return <section className="qc-demo" dir={ar ? 'rtl' : 'ltr'} ref={previewRef} aria-label={ar ? 'جرّب بطاقتي سؤال وشرط' : 'Try the Question & Condition cards'} data-testid="event-preview">
-    <div className="qc-demo-timer" data-active={both} data-expired={expired}>
-      <svg viewBox="0 0 64 64" aria-hidden="true"><circle className="qc-demo-track" cx="32" cy="32" r="28" /><circle className="qc-demo-progress" cx="32" cy="32" r="28" pathLength="100" strokeDasharray="100" strokeDashoffset={100 * (1 - remaining / 5000)} /></svg>
-      {both && <span role="timer" aria-label={ar ? 'المؤقت التجريبي' : 'Sample timer'} aria-live="off"><bdi>{Math.ceil(remaining / 1000)}</bdi><small>{ar ? 'ث' : 's'}</small></span>}
-    </div>
+    <EventCountdown className="qc-demo-timer" duration={5} remaining={remaining / 1000} active={both} label={ar ? 'المؤقت التجريبي' : 'Sample timer'} unit={ar ? 'ث' : 's'} />
     <div className="qc-demo-cards">{(['question', 'condition'] as const).map((kind, index) => {
       const revealed = kind === 'question' ? question : condition;
       const text = ar ? (index === 0 ? 'اذكر دولة' : 'تبدأ بحرف «س»') : (index === 0 ? 'Name a country' : 'Starts with S');

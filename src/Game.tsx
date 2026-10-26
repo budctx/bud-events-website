@@ -9,6 +9,7 @@ import { formatEventResults } from './event-summary';
 import type { Locale } from './i18n';
 import { approveNewCycle, drawNext, initialDrawState } from './draw-engine';
 import type { PairId } from './draw-engine';
+import {EventCountdown} from './EventCountdown';
 import {CloudUpload} from 'lucide-react';
 import './game.css';
 import { WinnerList, WinnerNumber, WinnerIcon } from './WinnerList';
@@ -121,6 +122,7 @@ export default function Game({ onExit, locale = 'ar', initialState, cards, serve
   const clockOffset = useRef(serverNow === undefined ? 0 : serverNow - Date.now());
   useEffect(() => { if (serverNow !== undefined) clockOffset.current = serverNow - Date.now(); }, [serverNow]);
   const now = () => onBrowserAction?Date.now():onAction ? Date.now() + clockOffset.current : performance.now();
+  const timerRemaining = state.deadline===null?state.config.duration:Math.max(0,(state.deadline-(persisted?wallNow+(onBrowserAction?0:clockOffset.current):performance.now()))/1000);
   const displayedRemaining = persisted && state.deadline !== null ? Math.max(0, Math.ceil((state.deadline - wallNow - (onBrowserAction?0:clockOffset.current)) / 1000)) : state.remaining;
   const [config, setConfig] = useState<ManualConfig>({ duration: 5, timerEnabled: false, attempts: 1 });
   const [prizeText, setPrizeText] = useState('');
@@ -193,7 +195,7 @@ export default function Game({ onExit, locale = 'ar', initialState, cards, serve
       </form>
     </section>}
     {state.phase === 'live' && <section className="mg-live" aria-label={t.title}>
-      {state.config.timerEnabled && <div className="mg-timer" data-expired={displayedRemaining === 0} role="timer" aria-label={t.duration}><bdi>{displayedRemaining}</bdi></div>}
+      {state.config.timerEnabled && <EventCountdown className="mg-timer" duration={state.config.duration} remaining={timerRemaining} label={t.duration} />}
       <div className="mg-cards">{renderCard('question')}{renderCard('condition')}</div>
       {exhausted && <div className="mg-panel" role="status"><p>{ar ? 'استُخدمت جميع التركيبات في هذه الدورة. يمكنك بدء دورة جديدة بعد موافقتك.' : 'All pairs in this cycle were drawn. Start a new cycle only if you choose.'}</p><button type="button" className="mg-button mg-primary" onClick={() => persisted ? void dispatch({ type: 'restart-cycle' }) : setDraw(previous => previous.kind === 'exhausted' ? drawNext(practicePairs, approveNewCycle(previous.state)) : previous)} disabled={saving || retryPending}>{ar ? 'بدء دورة جديدة' : 'Start a new cycle'}</button></div>}
       <p className="mg-live-status" role="status">{exhausted ? (ar ? 'بانتظار قرار المضيف لبدء دورة جديدة' : 'Waiting for the host to start a new cycle') : full ? t.full : !visibleBoth ? t.waiting : state.config.timerEnabled && displayedRemaining === 0 ? t.expired : t.answer}</p>

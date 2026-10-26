@@ -19,10 +19,10 @@ for(const locale of ['ar','en']) for(const size of [{width:1440,height:900},{wid
     await question.click();
     await expect(page.getByRole('timer')).toHaveText(ar?'5ث':'5s');
     await expect(preview).toContainText(ar?'اذكر دولة':'Name a country');
-    const initial=Number(await preview.locator('.qc-demo-progress').getAttribute('stroke-dashoffset'));
+    const initial=Number(await preview.locator('.event-countdown-progress').getAttribute('stroke-dashoffset'));
     await page.clock.runFor(2100);
     await expect(page.getByRole('timer')).toHaveText(ar?'3ث':'3s');
-    expect(Number(await preview.locator('.qc-demo-progress').getAttribute('stroke-dashoffset'))).toBeGreaterThan(initial);
+    expect(Number(await preview.locator('.event-countdown-progress').getAttribute('stroke-dashoffset'))).toBeGreaterThan(initial);
     for(const card of await preview.locator('.mg-card').all()) {
       const spacing=await card.evaluate(el=>({content:el.querySelector('.mg-card-content')!.getBoundingClientRect().toJSON(),title:el.querySelector('.mg-face-title')!.getBoundingClientRect().toJSON(),footer:el.querySelector('.mg-face-footer')!.getBoundingClientRect().toJSON()}));
       expect(spacing.content.bottom).toBeLessThan(spacing.footer.top-2);

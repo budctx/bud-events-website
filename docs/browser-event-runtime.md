@@ -19,3 +19,9 @@ The server still verifies Discord authentication, tenant ownership, restrictions
 `npm run typecheck:server`, `npm run build`, `npm test`: pure local timing/reload/corruption/cycle tests; authenticated API tests rejecting state/tenant injection and redacting receipts; PGlite migration/owner isolation/RPC grants/single debit/idempotent closure; browser immediate timer, offline play/reload, no gameplay or private prize uploads, second-tab exclusion, lost data and blocked/failing storage, 390px layout. Fixtures do not prove a signed-in production host journey. No real credits, paid event or winning result are created by release QA.
 
 W-01 payment recovery and outbound monitoring remain suspended. This release does not automatically close a project stage or claim independent security certification. Notion holds exact commit, CI and production deployment evidence.
+
+## Approved circular timer — 26 October 2026
+
+The owner selected option 2, [React Countdown Circle Timer](https://github.com/vydimitrov/react-countdown-circle-timer). Version `3.2.1` is pinned with its lockfile (MIT, React peer `>=16.8.0`, no additional runtime dependency). The host game and inline event sample share `EventCountdown`. The package's official `useCountdown` provides the SVG geometry; its internal clock is paused, and the visible digits/progress are controlled by the existing local deadline. There is no second timer, restart on refresh, new progress upload or automatic judgment.
+
+The amber ring shrinks to zero, with a red urgency cue at the final 20%. Sizes follow existing desktop/mobile/short-screen layouts. The timer has an accessible name, quiet `role="timer"`, decorative SVG, and no interpolated motion when reduced motion is enabled. Regression coverage includes progress before/after the second card, persisted deadline after reload, expiry without automatic judgment, next-round reset, reduced motion, offline continuation and 390/1440px fixture screenshots.
