@@ -38,7 +38,8 @@ begin
  select * into v_prior from bud_platform.owner_audit where actor=p_actor and operation_id=p_operation;
  if found then
   if v_prior.kind<>p_kind then raise exception 'BUD_KEY_REUSED'; end if;
-  return v_prior.outcome||jsonb_build_object('replayed',true);
+  if v_prior.outcome->'request' is distinct from p_body then raise exception 'BUD_KEY_REUSED'; end if;
+  return (v_prior.outcome-'request')||jsonb_build_object('replayed',true);
  end if;
  if p_kind='partnerSave' then
   if (select count(*) from bud_platform.site_partners)>=30 and nullif(p_body->>'id','') is null then raise exception 'BUD_INVALID_REQUEST'; end if;
@@ -61,14 +62,14 @@ begin
   end if;
   v_result:=jsonb_build_object('id',v_id,'saved',true,'visible',v_visible,'replayed',false);
  else
-  if (p_body->>'id') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{4}-[0-9a-f]{12}$' then raise exception 'BUD_INVALID_REQUEST'; end if;
+  if (p_body->>'id') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$' then raise exception 'BUD_INVALID_REQUEST'; end if;
   v_id:=(p_body->>'id')::uuid;
   delete from bud_platform.site_partners where id=v_id;
   if not found then raise exception 'BUD_RESOURCE_NOT_FOUND'; end if;
   v_result:=jsonb_build_object('id',v_id,'deleted',true,'replayed',false);
  end if;
  insert into bud_platform.owner_audit(actor,operation_id,kind,subject,reason,outcome)
- values(p_actor,p_operation,p_kind,v_id::text,v_reason,v_result);
+ values(p_actor,p_operation,p_kind,v_id::text,v_reason,v_result||jsonb_build_object('request',p_body));
  return v_result;
 end;
 $$;
