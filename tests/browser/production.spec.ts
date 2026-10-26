@@ -254,3 +254,63 @@ test('artwork spans Home through the footer without opaque footer link boxes', a
     await expect(page.locator('.platform-footer-links button').first()).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
   }
 });
+
+
+test('Nav User opens by click, preserves account actions and supports keyboard navigation', async ({page}) => {
+  await page.route('**/api/auth?action=session', route => route.fulfill({
+    status:200, json:{code:'OK', data:{id:'test-host',displayName:'Discord Tester',avatarUrl:null}}
+  }));
+  await page.route('**/api/host', route => route.fulfill({
+    status:200, json:{code:'OK',data:{credits:3,events:[],products:[],contentVersions:[]}}
+  }));
+  await page.goto('/?lang=ar');
+  const trigger=page.locator('.platform-account-trigger');
+  await expect(trigger).toBeVisible();
+  await trigger.hover();
+  await expect(page.getByRole('menu')).toHaveCount(0);
+  await trigger.click();
+  const menu=page.getByRole('menu',{name:'قائمة حسابك'});
+  await expect(menu).toBeVisible();
+  await expect(menu).toContainText('Discord Tester');
+  await expect(menu).toContainText('رصيد المفاتيح');
+  await expect(menu.getByRole('menuitem',{name:'الملف الشخصي'})).toBeVisible();
+  await expect(menu.getByRole('menuitem',{name:'السجل'})).toBeVisible();
+  await expect(menu.getByRole('menuitem',{name:'استرداد مفتاح'})).toBeVisible();
+  await expect(menu.getByRole('menuitem',{name:'الدعم'})).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(menu).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+  await trigger.press('ArrowDown');
+  await expect(menu.getByRole('menuitem',{name:'الملف الشخصي'})).toBeFocused();
+  await page.keyboard.press('ArrowDown');
+  await expect(menu.getByRole('menuitem',{name:'السجل'})).toBeFocused();
+  await page.keyboard.press('End');
+  await expect(menu.getByRole('menuitem',{name:'تسجيل الخروج'})).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(trigger).toBeFocused();
+  await trigger.click();
+  await menu.getByRole('menuitem',{name:'الدعم'}).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+});
+
+test('Nav User stays inside a narrow mobile viewport and respects reduced motion', async ({page},info) => {
+  await page.setViewportSize({width:320,height:568});
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await page.route('**/api/auth?action=session', route => route.fulfill({
+    status:200,json:{code:'OK',data:{id:'mobile-host',displayName:'Discord account with a very long display name'}}
+  }));
+  await page.route('**/api/host', route => route.fulfill({
+    status:200,json:{code:'OK',data:{credits:10,events:[],products:[],contentVersions:[]}}
+  }));
+  await page.goto('/');
+  await page.locator('.platform-account-trigger').click();
+  const menu=page.getByRole('menu',{name:'قائمة حسابك'});
+  await expect(menu).toBeVisible();
+  await expect(menu).toHaveCSS('animation-name','none');
+  const bounds=await menu.boundingBox();
+  expect(bounds).not.toBeNull();
+  expect(bounds!.x).toBeGreaterThanOrEqual(0);
+  expect(bounds!.x+bounds!.width).toBeLessThanOrEqual(321);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth<=innerWidth+1)).toBeTruthy();
+  await page.screenshot({path:info.outputPath('nav-user-mobile.png'),animations:'disabled'});
+});
