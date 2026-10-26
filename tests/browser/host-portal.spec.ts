@@ -147,18 +147,18 @@ test('signed-out buy signs in with Events context directly and opens no product 
   await expect(page.locator('dialog[open]')).toHaveCount(0);
   await expect(page.getByTestId('event-keys')).toHaveCount(0);
 });
-test('account avatar and keyboard menu stay accessible on desktop; mouse hover reveals history', async ({ page }, info) => {
+test('account avatar and keyboard menu stay accessible on desktop; click reveals actions', async ({ page }, info) => {
   await session(page); await page.route('**/api/host', route => route.fulfill(ok({ ...dashboard, events: [] })));
   await page.route('https://cdn.discordapp.com/**', route => route.fulfill({ contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32" fill="#5865f2"/></svg>' }));
   await page.goto('/?screen=events&lang=ar');
   const account = page.locator('.platform-account-trigger');
   await expect(account).toContainText('مقدم المجتمع');
   await expect(account.locator('img')).toHaveAttribute('src', 'https://cdn.discordapp.com/avatars/123/abc.png');
-  await account.hover(); await expect(page.getByRole('menu')).toBeVisible();
+  await account.hover(); await expect(page.getByRole('menu')).toHaveCount(0); await account.click(); await expect(page.getByRole('menu')).toBeVisible();
   await account.focus(); await page.keyboard.press('Escape'); await expect(account).toBeFocused();
-  await page.keyboard.press('ArrowDown'); await expect(page.getByRole('menuitem', { name: 'السجل', exact: true })).toBeFocused();
+  await page.keyboard.press('ArrowDown'); await expect(page.getByRole('menuitem', { name: 'الملف الشخصي', exact: true })).toBeFocused(); await page.keyboard.press('ArrowDown'); await expect(page.getByRole('menuitem', { name: 'السجل', exact: true })).toBeFocused();
   await page.keyboard.press('End'); await expect(page.getByRole('menuitem', { name: 'تسجيل الخروج', exact: true })).toBeFocused();
-  await page.keyboard.press('Home'); await expect(page.getByRole('menuitem', { name: 'السجل', exact: true })).toBeFocused();
+  await page.keyboard.press('Home'); await expect(page.getByRole('menuitem', { name: 'الملف الشخصي', exact: true })).toBeFocused();
   await page.screenshot({ path: info.outputPath('account-menu-desktop.png'), fullPage: true, animations: 'disabled' });
   await page.keyboard.press('Escape'); await expect(page.getByRole('menu')).toHaveCount(0);
   await expect(page.getByTestId('event-keys')).toContainText('2');
@@ -225,7 +225,7 @@ test('pending logout suppresses focus refresh and clears private state even afte
   await page.goto('/?screen=events&lang=ar');
   await expect(page.getByTestId('event-keys')).toContainText('2');
   const account = page.locator('.platform-account-trigger'); await account.focus(); await page.keyboard.press('ArrowDown');
-  await expect(page.getByRole('menuitem', { name: 'السجل', exact: true })).toBeFocused(); await page.keyboard.press('End');
+  await expect(page.getByRole('menuitem', { name: 'الملف الشخصي', exact: true })).toBeFocused(); await page.keyboard.press('ArrowDown'); await expect(page.getByRole('menuitem', { name: 'السجل', exact: true })).toBeFocused(); await page.keyboard.press('End');
   await expect(page.getByRole('menuitem', { name: 'تسجيل الخروج', exact: true })).toBeFocused(); await page.keyboard.press('Enter');
   await expect.poll(() => logoutStarted).toBe(true); await expect(account).toBeDisabled();
   const before = { sessionReads, dashboardReads };
@@ -243,7 +243,7 @@ test('keyboard History and setup panels focus their headings and restore the ini
   await page.goto('/?screen=events&lang=ar');
   const account = page.locator('.platform-account-trigger');
   await account.focus(); await page.keyboard.press('ArrowDown');
-  await expect(page.getByRole('menuitem', { name: 'السجل', exact: true })).toBeFocused();
+  await expect(page.getByRole('menuitem', { name: 'الملف الشخصي', exact: true })).toBeFocused(); await page.keyboard.press('ArrowDown'); await expect(page.getByRole('menuitem', { name: 'السجل', exact: true })).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(page.locator('.host-embedded').getByRole('heading', { name: 'السجل', exact: true })).toBeFocused();
   await expect(page.locator('.host-balance')).toHaveCount(0); await expect(page.getByLabel('اسم الفعالية')).toHaveCount(0);
@@ -261,7 +261,7 @@ test('expired embedded history session clears parent account and keys instead of
   await page.goto('/?screen=events&lang=ar');
   await expect(page.getByTestId('event-keys')).toContainText('2');
   await page.locator('.platform-account-trigger').focus(); await page.keyboard.press('ArrowDown');
-  await expect(page.getByRole('menuitem', { name: 'السجل', exact: true })).toBeFocused(); await page.keyboard.press('Enter');
+  await expect(page.getByRole('menuitem', { name: 'الملف الشخصي', exact: true })).toBeFocused(); await page.keyboard.press('ArrowDown'); await expect(page.getByRole('menuitem', { name: 'السجل', exact: true })).toBeFocused(); await page.keyboard.press('Enter');
   await expect(page.getByRole('button', { name: 'سجّل دخولك عبر Discord', exact: true })).toBeVisible();
   await expect(page.locator('.platform-account-trigger')).toHaveCount(0);
   await expect(page.getByText('مقدم المجتمع', { exact: true })).toHaveCount(0);
