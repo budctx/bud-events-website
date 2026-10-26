@@ -84,6 +84,7 @@ export function AccountMenu({ session, locale, credits, busy, onHistory, onLogou
       if (!items.length) return;
       const current = items.indexOf(document.activeElement as HTMLButtonElement);
       const next = event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1
+        : current < 0 ? (event.key === 'ArrowUp' ? items.length - 1 : 0)
         : event.key === 'ArrowDown' ? (current + 1) % items.length : (current - 1 + items.length) % items.length;
       items[next]?.focus();
     }}>
