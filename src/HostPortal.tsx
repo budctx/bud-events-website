@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatedSwitch, HelpTip, NumberStepper } from './InterfaceControls';
+import { BudSteps } from './BudUI';
 import { parsePrizeLines } from './prize-lines';
 import { formatEventResults } from './event-summary';
 import { closeBrowserHostRun, getHostDashboard, getHostSession, HostClientError, newHostRequestKey, resumeHostEvent, signInHost, signOutHost, startHostEvent, startBrowserHostEvent } from './host-client';
@@ -61,7 +62,7 @@ export default function HostPortal({ onPlay, onExit, locale, view, onAuthLost }:
       {error && <p className="host-message host-error" role="alert">{error}</p>}
       {status === 'loading' ? <p className="host-message" role="status">{t.loading}</p> : status !== 'ready' ? <section className="host-panel host-access"><h2>{status === 'signed-out' ? t.signin : t.unavailable}</h2><p>{status === 'signed-out' ? t.intro : t.failure}</p>{status === 'signed-out' && <button className="host-discord" disabled={busy} onClick={() => void perform(() => signInHost({page:'events',locale}))}><img src="/assets/discord-symbol-white.svg" width="24" height="18" alt="Discord" />{t.signin}</button>}<button disabled={busy} onClick={() => setReload(value => value + 1)}>{t.retry}</button></section> : dashboard && <>
         {!view && <section className="host-balance host-panel" aria-label={t.slots}><div><h2>{t.slots}</h2><p>{t.slotHint}</p></div><strong>{dashboard.credits}</strong></section>}
-        <div className={view ? 'host-single' : 'host-grid'}>{view !== 'history' && <section className="host-panel"><h2>{t.setup}</h2><form onSubmit={event => { event.preventDefault(); void start(); }}>
+        <div className={view ? 'host-single' : 'host-grid'}>{view !== 'history' && <section className="host-panel"><BudSteps steps={locale==='ar'?['الإعداد','شاشة الفعالية','الجوائز','الختام']:['Setup','Live','Prizes','Closing']} current={0}/><h2>{t.setup}</h2><form onSubmit={event => { event.preventDefault(); void start(); }}>
           {uncertain && <p className="host-message" role="status">{t.confirmChange}</p>}
           <fieldset disabled={busy || uncertain}><label htmlFor="host-title">{t.eventTitle}</label><input id="host-title" value={title} maxLength={100} onChange={event => setTitle(event.target.value)} required />
             <div className="host-options"><AnimatedSwitch label={t.timer} checked={config.timerEnabled} onCheckedChange={timerEnabled => setConfig(previous => ({ ...previous, timerEnabled }))} /><div><label id="host-attempts-label">{t.attempts}</label><NumberStepper id="host-attempts" label={t.attempts} value={config.attempts} min={1} max={3} locale={locale} onChange={attempts => setConfig(previous => ({ ...previous, attempts: attempts as 1 | 2 | 3 }))} /></div></div>

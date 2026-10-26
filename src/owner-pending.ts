@@ -2,7 +2,7 @@
 export type PendingOwnerOperation={ownerId:string;operationId:string;kind:string;payload:Record<string,unknown>;reason:string;title:string};
 const prefix='bud-owner-pending:';
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
-const fields:Record<string,string[]>={createCode:['qty','maxUses','expiresAt'],suspendCode:['id'],grant:['hostId','qty'],restrict:['hostId','suspended'],setting:['name','value'],ack:['fingerprint'],inspectPayment:['orderId','paymentId'],recoverPayment:['orderId','paymentId']};
+const fields:Record<string,string[]>={createCode:['qty','maxUses','expiresAt'],suspendCode:['id'],grant:['hostId','qty'],restrict:['hostId','suspended'],setting:['name','value'],ack:['fingerprint'],inspectPayment:['orderId','paymentId'],recoverPayment:['orderId','paymentId'],partnerSave:['id','name','logoUrl','websiteUrl','sortOrder','visible'],partnerDelete:['id']};
 function valid(v:unknown,ownerId:string):v is PendingOwnerOperation{
  if(!v||typeof v!=='object'||Array.isArray(v))return false;
  const p=v as PendingOwnerOperation;

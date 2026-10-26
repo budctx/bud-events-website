@@ -49,7 +49,7 @@ export async function handleOwner(request: Request, env: AuthEnv = envNow(), tra
     try { body=JSON.parse(await boundedProviderText(request.body,4096)); } catch { return liveResponse(400,'INVALID_REQUEST'); }
     if(!object(body) || typeof body.action!=='string') throw new WhopError('INVALID_REQUEST',400);
     // Read-only navigation must not consume the stricter purchase/redemption/mutation budget.
-    const scope=['profile','view','receipt'].includes(body.action)?'host':'checkout';
+    const scope=['profile','view','receipt','partners'].includes(body.action)?'host':'checkout';
     const limited = await enforceRateLimit(request,env,transport,scope); if(limited) return limited;
     const session = await resolveOwnerSession(request,env,transport);
     if (!session) {
@@ -71,6 +71,11 @@ export async function handleOwner(request: Request, env: AuthEnv = envNow(), tra
     if(!isOwner) {
       await rpc('bud_owner_access_event',{p_actor:session.hostId,p_kind:['createCode','grant'].includes(body.action)?'issuance_denied':'owner_denied'},secret,transport);
       throw new WhopError('OWNER_REQUIRED',403);
+    }
+    if(body.action==='partners'&&exact(body,['action'])) {
+      const list=await rpc('bud_site_partners_owner',{p_actor:session.hostId,p_discord:session.discordId},secret,transport);
+      if(!Array.isArray(list)||list.length>30)throw new WhopError('OWNER_BACKEND_UNAVAILABLE');
+      return liveResponse(200,'OK',list,refreshed);
     }
     if(body.action==='receipt') {
       if(!exact(body,['action','operationId'])||typeof body.operationId!=='string'||!uuid.test(body.operationId))throw new WhopError('INVALID_REQUEST',400);
@@ -106,6 +111,26 @@ export async function handleOwner(request: Request, env: AuthEnv = envNow(), tra
       if(body.action==='inspectPayment')return liveResponse(200,'OK',{verified:true,orderId:p.orderId,amountMinor:stored.amountMinor,currency:stored.currency,fulfilled:stored.fulfilled,credited:false},refreshed);
       const receipt=await rpc('bud_owner_recover_payment',{p_actor:session.hostId,p_discord:session.discordId,p_operation:body.operationId,
         p_payment:p.paymentId,p_order:p.orderId,p_expected:stored,p_reason:body.reason.trim()},secret,transport);
+      return liveResponse(200,'OK',receipt,refreshed);
+    }
+    if(body.action==='partnerSave'||body.action==='partnerDelete'){
+      if(body.action==='partnerSave'){
+        if(!exact(p,['id','name','logoUrl','websiteUrl','sortOrder','visible'])||
+          (p.id!==null&&(typeof p.id!=='string'||!uuid.test(p.id)))||
+          typeof p.name!=='string'||p.name.trim().length<2||p.name.trim().length>80||
+          typeof p.logoUrl!=='string'||p.logoUrl.length>500||
+          typeof p.websiteUrl!=='string'||p.websiteUrl.length>500||
+          !Number.isInteger(p.sortOrder)||Number(p.sortOrder)<0||Number(p.sortOrder)>999||
+          typeof p.visible!=='boolean')throw new WhopError('INVALID_REQUEST',400);
+        const validUrl=(raw:string,isLogo:boolean)=>{
+          try{const url=new URL(raw);return url.protocol==='https:'&&!!url.hostname&&!url.username&&!url.password&&
+            (!isLogo||/\.(png|jpe?g|webp)$/i.test(url.pathname))&&url.hash==='';}catch{return false;}
+        };
+        if(!validUrl(p.logoUrl,true)||(p.websiteUrl!==''&&!validUrl(p.websiteUrl,false)))throw new WhopError('INVALID_REQUEST',400);
+      }else if(!exact(p,['id'])||typeof p.id!=='string'||!uuid.test(p.id))throw new WhopError('INVALID_REQUEST',400);
+      const receipt=await rpc('bud_site_partner_command',{p_actor:session.hostId,p_discord:session.discordId,
+        p_operation:body.operationId,p_kind:body.action,p_body:{...p,reason:body.reason.trim()}},secret,transport);
+      if(!object(receipt)||typeof receipt.replayed!=='boolean')throw new WhopError('OWNER_RECEIPT_UNCONFIRMED');
       return liveResponse(200,'OK',receipt,refreshed);
     }
     let rawCode: string | undefined;
