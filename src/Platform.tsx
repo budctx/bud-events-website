@@ -5,6 +5,8 @@ import { InterfaceIcon } from './InterfaceControls';
 import { EventPreview } from './EventPreview';
 import { Seo } from './Seo';
 import { AccountMenu } from './AccountMenu';
+import { BudBadge, BudLogoCarousel, BudMagnetic, useBudToast } from './BudUI';
+import type { PartnerLogo } from './BudUI';
 import { useAccount } from './use-account';
 import { HostClientError, newHostRequestKey, purchaseEvent, resumeHostEvent, signInHost } from './host-client';
 import PaymentStatus from './PaymentStatus';
@@ -42,6 +44,8 @@ export default function Platform({ onPlay }: PlatformProps) {
   const [busy, setBusy] = useState(false);
   const [panel, setPanel] = useState<'history' | 'setup' | 'profile' | 'owner' | null>(null);
   const account = useAccount();
+  const toast = useBudToast();
+  const [partners,setPartners] = useState<PartnerLogo[]>([]);
   const [redeemOpen,setRedeemOpen]=useState(false);
   const [paymentHold, setPaymentHold] = useState(false);
   const onReceiptState = useCallback((state: PaymentState) => {
@@ -59,6 +63,8 @@ export default function Platform({ onPlay }: PlatformProps) {
   const t = copy.ar;
   const main = useRef<HTMLElement>(null);
 
+  useEffect(() => { let mounted=true;fetch('/api/partners',{credentials:'omit'}).then(response=>response.ok?response.json():null).then(result=>{if(mounted&&result?.code==='OK'&&Array.isArray(result.data))setPartners(result.data);}).catch(()=>{});return()=>{mounted=false;};},[]);
+  useEffect(() => { if(notice)toast(notice,notice.includes('تعذر')||notice.includes('غير متاح')?'danger':'info'); },[notice,toast]);
   useEffect(() => { document.documentElement.lang = 'ar'; document.documentElement.dir = 'rtl'; try { localStorage.removeItem('bud-lang'); } catch { /* Legacy preferences are optional. */ } }, []);
   useEffect(() => {
     if (!modal || !dialog.current) return;
@@ -120,8 +126,8 @@ export default function Platform({ onPlay }: PlatformProps) {
       {account.session&&<Suspense fallback={null}><RedeemDialog key={account.session.id} open={redeemOpen} onClose={()=>setRedeemOpen(false)} onRefresh={()=>void account.refresh()}/></Suspense>}
     <main id="platform-content" className={page === 'home' && !panel ? 'platform-home-main' : 'platform-gallery-main'} ref={main} tabIndex={-1} key={page}>
       {panel === 'profile' && account.session ? <Suspense fallback={<p role="status">جارٍ تحميل البروفايل…</p>}><Profile key={account.session.id} session={account.session} credits={account.dashboard?.credits ?? null} onClose={closePanel} onOwner={() => setPanel('owner')} /></Suspense> : panel === 'history' && account.session ? <Suspense fallback={<p role="status">{locale === 'ar' ? 'جارٍ تحميل السجل…' : 'Loading history…'}</p>}><HostPortal onAuthLost={account.expire} view="history" locale={locale} onExit={closePanel} onPlay={event => onPlay(event, locale)} /></Suspense> : page === 'home' ? <>
-        <section className="platform-hero" data-node-id="339:2099"><p className="platform-eyebrow">{t.eyebrow}</p><h1>{t.title}</h1><p className="platform-hero-description">{t.description}</p><div className="platform-hero-actions"><button className="platform-action platform-action-primary" data-testid="hero-explore" onClick={() => navigate('events')}>{t.explore}<span aria-hidden="true">←</span></button></div><p className="platform-hero-hint">{t.browseHint}</p></section>
-        <aside className="platform-proof" aria-label={locale === 'ar' ? 'المجتمع والشركاء' : 'Community and partners'} data-node-id="359:2272"><div className="platform-review-empty"><strong>{t.review}</strong><p>{t.reviewNote}</p></div><div className="platform-partners-empty">{t.partners}</div></aside>
+        <section className="platform-hero" data-node-id="339:2099"><p className="platform-eyebrow">{t.eyebrow}</p><h1>{t.title}</h1><p className="platform-hero-description">{t.description}</p><div className="platform-hero-actions"><BudMagnetic><button className="platform-action platform-action-primary" data-testid="hero-explore" onClick={() => navigate('events')}>{t.explore}<span aria-hidden="true">←</span></button></BudMagnetic></div><p className="platform-hero-hint">{t.browseHint}</p>{partners.length>0&&<div className="platform-partners-mobile"><BudLogoCarousel logos={partners}/></div>}</section>
+        <aside className="platform-proof" aria-label={locale === 'ar' ? 'المجتمع والشركاء' : 'Community and partners'} data-node-id="359:2272"><div className="platform-review-empty"><strong>{t.review}</strong><p>{t.reviewNote}</p></div><div className="platform-partners-empty">{partners.length>0?<><strong>شركاؤنا</strong><BudLogoCarousel logos={partners}/></>:t.partners}</div></aside>
       </> : <>
         <div className="platform-gallery-intro"><h1>{page === 'events' ? t.galleryTitle : t[page]}</h1><p>{page === 'events' ? t.galleryDescription : t.soonDescription}</p>{page === 'events' && <button className="platform-action platform-action-secondary platform-event-how" data-testid="event-how" onClick={() => setModal('how')}>{t.how}</button>}</div>
         {page === 'events' ? <article className="platform-product-card" data-node-id="383:11116"><EventPreview key={locale} locale={locale} /><div className="platform-product-information"><p className="platform-product-eyebrow">{t.productEyebrow}</p><h2>{t.product}</h2><p className="platform-product-description">{t.productDescription}</p><p className="platform-features">{t.features}</p><div className="platform-event-ownership">
@@ -130,7 +136,7 @@ export default function Platform({ onPlay }: PlatformProps) {
           {account.session && account.dashboard && account.dashboard.credits > 0 && !paymentHold && !account.dashboard.paymentReview && <button className="platform-action platform-action-secondary" data-testid="event-setup" disabled={busy} onClick={() => setPanel(panel === 'setup' ? null : 'setup')}>{locale === 'ar' ? 'إعداد الفعالية' : 'Set up event'}</button>}
           {ongoing && <button className="platform-action platform-action-secondary" disabled={busy||ongoing.localMissing} onClick={() => void perform(async () => onPlay(await resumeHostEvent(ongoing.eventId,account.session?.id,account.dashboard?.runtime==='browser-v1'), locale))}>{locale === 'ar' ? 'استكمال الفعالية' : 'Resume event'}</button>}</div>
           {ongoing?.localMissing&&<p className="host-local-policy">تقدم هذه الفعالية غير موجود في هذا المتصفح. <button className="platform-inline-retry" onClick={()=>setPanel('history')}>عرض سجل التشغيل</button></p>}
-          </div></div></article> : <article className="platform-product-card platform-coming-soon"><div><p className="platform-status">{t.soon}</p><h2>{t[page]}</h2><p>{t.soonDescription}</p><button className="platform-action platform-action-secondary" onClick={() => setModal('soon')}>{locale === 'ar' ? 'تفاصيل المنتج' : 'Product details'}</button></div></article>}
+          </div></div></article> : <article className="platform-product-card platform-coming-soon"><div><p className="platform-status"><BudBadge tone="warning" variant="outline">{t.soon}</BudBadge></p><h2>{t[page]}</h2><p>{t.soonDescription}</p><button className="platform-action platform-action-secondary" onClick={() => setModal('soon')}>{locale === 'ar' ? 'تفاصيل المنتج' : 'Product details'}</button></div></article>}
         {page === 'events' && panel === 'setup' && account.session && <Suspense fallback={<p role="status">{locale === 'ar' ? 'جارٍ التحميل…' : 'Loading…'}</p>}><HostPortal onAuthLost={account.expire} view="setup" locale={locale} onExit={closePanel} onPlay={event => onPlay(event, locale)} /></Suspense>}
       </>}
     </main>
