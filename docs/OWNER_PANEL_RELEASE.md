@@ -1,4 +1,6 @@
-# Owner panel, Redeem and payment recovery — review candidate
+# Owner panel and Redeem — operations and release evidence
+
+Current deployment: owner panel and Redeem enabled in production after the owner explicitly requested completion. The migration and verified owner binding are applied; the server secret is production-only. Whop recovery and outbound monitoring remain disabled. The UI now follows the owner-selected Shadcn Admin layout, with icon navigation, concise summaries, tables, on-demand forms and full record details. Historical review gates below describe broader package closure and do not mean the deployed panel is still disabled.
 
 Arabic-only private account area. The account dropdown opens Redeem directly; Profile is the only entry to the owner page. Purchasing is available only from the event. The candidate contains overview/alerts, Discord user directory and detail, keys/grants/history, payment inspection/recovery, event monitoring, immutable administration audit, system health, an allowlisted operational note and unified search. It does not introduce new public home/header CTAs.
 
