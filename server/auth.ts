@@ -142,9 +142,12 @@ async function verifiedUser(access: string, settings: Config, transport: Transpo
   if (!discord) return null;
   // Display data is never authorization authority. Ignore editable user_metadata entirely.
   const display = discord.identity_data?.full_name;
-  return { id: user.id, displayName: typeof display === 'string' && display.trim() ? display.trim().slice(0, 80) : 'Host', avatarUrl: discordAvatar(discord) };
+  const ids = [discord.provider_id, discord.identity_data?.provider_id, discord.identity_data?.sub]
+    .filter((value): value is string => typeof value === 'string' && /^[1-9][0-9]{5,19}$/.test(value));
+  const discordId = ids.length && new Set(ids).size === 1 ? ids[0] : null;
+  return { id: user.id, discordId, displayName: typeof display === 'string' && display.trim() ? display.trim().slice(0, 80) : 'Host', avatarUrl: discordAvatar(discord) };
 }
-type Session = { access: string; refresh: string; accessExp: number; exp: number; hostId: string };
+type Session = { access: string; refresh: string; accessExp: number; exp: number; hostId: string; authenticatedAt?: number };
 function tokens(data: Record<string, unknown>, exp: number): Omit<Session, 'hostId'> | null {
   if (typeof data.access_token !== 'string' || data.access_token.length < 20 || data.access_token.length > 2400
     || typeof data.refresh_token !== 'string' || data.refresh_token.length < 10 || data.refresh_token.length > 512
@@ -162,19 +165,23 @@ async function resolve(request: Request, settings: Config, transport: Transport)
     });
     if (!response.ok) return null;
     const next = tokens(await readJson(response), session.exp); if (!next) return null;
-    session = { ...next, hostId: session.hostId }; rotated = true;
+    session = { ...next, hostId: session.hostId, authenticatedAt: session.authenticatedAt }; rotated = true;
   }
   const user = await verifiedUser(session.access, settings, transport);
   if (!user || user.id !== session.hostId) return null;
   const responseHeaders = new Headers();
   if (rotated) responseHeaders.append('Set-Cookie', cookie(SESSION, await seal(session, SESSION, settings), Math.max(0, Math.floor(session.exp - Date.now() / 1000))));
-  return { hostId: user.id, displayName: user.displayName, avatarUrl: user.avatarUrl, headers: responseHeaders, access: session.access };
+  return { hostId: user.id, discordId: user.discordId, authenticatedAt: session.authenticatedAt ?? 0, displayName: user.displayName, avatarUrl: user.avatarUrl, headers: responseHeaders, access: session.access };
 }
 /** Protected APIs must forward returned Set-Cookie headers after a refresh. Never return tokens. */
-export async function resolveSession(request: Request, env: AuthEnv, transport: Transport = fetch): Promise<{ hostId: string; headers: Headers } | null> {
+export async function resolveOwnerSession(request: Request, env: AuthEnv, transport: Transport = fetch): Promise<{ hostId: string; discordId: string | null; authenticatedAt: number; headers: Headers } | null> {
   const settings = config(env); if (!settings) return null;
   const session = await resolve(request, settings, transport);
-  return session ? { hostId: session.hostId, headers: session.headers } : null;
+  return session ? { hostId: session.hostId, discordId: session.discordId, authenticatedAt: session.authenticatedAt, headers: session.headers } : null;
+}
+export async function resolveSession(request: Request, env: AuthEnv, transport: Transport = fetch): Promise<{hostId: string; headers: Headers} | null> {
+  const session = await resolveOwnerSession(request, env, transport);
+  return session ? {hostId:session.hostId,headers:session.headers} : null;
 }
 export async function handleAuth(request: Request, env: AuthEnv = environment(), transport: Transport = fetch): Promise<Response> {
   const settings = config(env);
@@ -216,7 +223,7 @@ export async function handleAuth(request: Request, env: AuthEnv = environment(),
       const session = tokens(await readJson(exchange), Math.floor(Date.now() / 1000) + WEEK);
       const user = session ? await verifiedUser(session.access, settings, transport) : null;
       if (!session || !user) return result(401, 'DISCORD_AUTH_REQUIRED', undefined, responseHeaders);
-      responseHeaders.append('Set-Cookie', cookie(SESSION, await seal({ ...session, hostId: user.id }, SESSION, settings), WEEK));
+      responseHeaders.append('Set-Cookie', cookie(SESSION, await seal({ ...session, hostId: user.id, authenticatedAt: Math.floor(Date.now() / 1000) }, SESSION, settings), WEEK));
       const destination = new URL('/', settings.origin); const page = returnPage(flow.page);
       if (page !== 'home') destination.searchParams.set('screen', page);
       destination.searchParams.set('lang', returnLocale(flow.locale));

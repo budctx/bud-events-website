@@ -175,7 +175,7 @@ test('touch account menu toggles by tap and closes outside on mobile', async ({ 
   await page.screenshot({ path: info.outputPath('account-menu-mobile.png'), fullPage: true, animations: 'disabled' });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   await account.tap(); await expect(page.getByRole('menu')).toHaveCount(0);
-  await account.tap(); await page.getByRole('heading', { name: 'فعاليات بُعد' }).tap(); await expect(page.getByRole('menu')).toHaveCount(0);
+  await account.tap(); await page.getByRole('heading', { name: 'سؤال وشرط', exact: true }).tap(); await expect(page.getByRole('menu')).toHaveCount(0);
   await context.close();
 });
 test('real zero keys differs from an unavailable balance and refresh focus updates ownership', async ({ page }) => {
