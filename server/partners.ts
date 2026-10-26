@@ -7,7 +7,8 @@ const envNow=():AuthEnv=>(globalThis as unknown as {process?:{env?:AuthEnv}}).pr
 export type PublicPartner={id:string;name:string;logoUrl:string;websiteUrl:string};
 export async function handlePartners(request:Request,env:AuthEnv=envNow(),transport:typeof fetch=fetch):Promise<Response>{
  if(request.method!=='GET')return liveResponse(405,'METHOD_NOT_ALLOWED');
- if(new URL(request.url).search)return liveResponse(400,'INVALID_REQUEST');
+ const url=new URL(request.url);
+ if(!url.pathname.endsWith('/api/owner')||url.searchParams.size!==1||url.searchParams.get('public')!=='partners')return liveResponse(400,'INVALID_REQUEST');
  const secret=liveBackend(env);
  if(!secret)return liveResponse(503,'PARTNERS_NOT_CONFIGURED');
  try{
