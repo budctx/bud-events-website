@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {handlePartners} from '../server/partners.ts';
-const url='https://bud-events-website.vercel.app/api/partners';
+const url='https://bud-events-website.vercel.app/api/owner?public=partners';
 const env={BUD_BACKEND_ENABLED:'true',SUPABASE_URL:'https://cepmvqqrjcvhyzszqand.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'test-backend-secret'};
 test('public partners endpoint is read-only, filters unsafe logos and never returns owner data',async()=>{
  const traffic:{url:string;method:string}[]=[];
@@ -19,7 +19,7 @@ test('public partners endpoint is read-only, filters unsafe logos and never retu
  assert.equal(traffic.length,1);assert.equal(traffic[0].method,'POST');
  assert.match(traffic[0].url,/\/rpc\/bud_site_partners_public$/);
  assert.equal((await handlePartners(new Request(url,{method:'POST'}),env,transport)).status,405);
- assert.equal((await handlePartners(new Request(url+'?edit=1'),env,transport)).status,400);
+ assert.equal((await handlePartners(new Request(url+'&edit=1'),env,transport)).status,400);
  assert.equal(traffic.length,1);
  assert.equal((await handlePartners(new Request(url),{},transport)).status,503);
 });
