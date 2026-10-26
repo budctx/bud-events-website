@@ -1,6 +1,6 @@
 # Owner panel, Redeem and payment recovery — review candidate
 
-Arabic-only private account area. Profile is the only entry to redeem and the owner page. The candidate contains overview/alerts, Discord user directory and detail, keys/grants/history, payment inspection/recovery, event monitoring, immutable administration audit, system health, an allowlisted operational note and unified search. It does not introduce new public home/header CTAs.
+Arabic-only private account area. The account dropdown opens Redeem directly; Profile is the only entry to the owner page. Purchasing is available only from the event. The candidate contains overview/alerts, Discord user directory and detail, keys/grants/history, payment inspection/recovery, event monitoring, immutable administration audit, system health, an allowlisted operational note and unified search. It does not introduce new public home/header CTAs.
 
 ## Trust and credit boundaries
 

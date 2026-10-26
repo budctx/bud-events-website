@@ -29,9 +29,9 @@ for(const size of [{width:1440,height:900},{width:390,height:844}])test(`owner p
  const geometry=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));expect(geometry.scroll).toBeLessThanOrEqual(geometry.width);
  await page.screenshot({path:`docs/evidence/owner-panel-${size.width}.png`,fullPage:true});
 });
-test('profile is the sole redeem entry, ordinary user has no owner entry and invalid code can be corrected',async({page})=>{
+test('account menu is the redeem entry, ordinary user has no owner entry and invalid code can be corrected',async({page})=>{
  await setup(page,false);await expect(page.getByRole('button',{name:'لوحة المالك',exact:true})).toHaveCount(0);
- await page.getByRole('button',{name:'استرداد مفتاح',exact:true}).click();
+ await page.locator('.platform-account-trigger').click();await page.getByRole('menuitem',{name:'استرداد مفتاح',exact:true}).click();
  await page.route('**/api/owner',r=>r.fulfill({status:400,json:{code:'INVALID_OR_EXPIRED_CODE'}}));
  await page.getByLabel('المفتاح',{exact:true}).fill('BUD-ABCDEFGHIJKLMNOPQRSTUVWXYZ234567');await page.getByRole('button',{name:'استرداد',exact:true}).click();
  await expect(page.getByRole('alert')).toHaveText('المفتاح غير صالح أو غير متاح للاستخدام.');await expect(page.getByLabel('المفتاح',{exact:true})).toBeEnabled();
@@ -40,8 +40,8 @@ test('profile is the sole redeem entry, ordinary user has no owner entry and inv
 test('lost redeem response retries the same operation, then refreshes wallet',async({page})=>{
  await setup(page,false);const requests:any[]=[];
  await page.route('**/api/owner',r=>{const body=r.request().postDataJSON();if(body.action==='profile')return r.fulfill(ok({owner:false}));requests.push(body);return requests.length===1?r.abort('connectionfailed'):r.fulfill(ok({receipt:id,credits:3}));});
- await page.getByRole('button',{name:'استرداد مفتاح',exact:true}).click();await page.getByLabel('المفتاح',{exact:true}).fill('BUD-ABCDEFGHIJKLMNOPQRSTUVWXYZ234567');await page.getByRole('button',{name:'استرداد',exact:true}).click();
- await expect(page.getByRole('button',{name:'التحقق من الطلب السابق'})).toBeVisible();await page.getByRole('button',{name:'التحقق من الطلب السابق'}).click();
+ await page.locator('.platform-account-trigger').click();await page.getByRole('menuitem',{name:'استرداد مفتاح',exact:true}).click();await page.getByLabel('المفتاح',{exact:true}).fill('BUD-ABCDEFGHIJKLMNOPQRSTUVWXYZ234567');await page.getByRole('button',{name:'استرداد',exact:true}).click();
+ await expect(page.getByRole('button',{name:'التحقق من الطلب السابق'})).toBeVisible();await page.getByRole('dialog').getByRole('button',{name:'إغلاق',exact:true}).click();await page.locator('.platform-account-trigger').click();await page.getByRole('menuitem',{name:'استرداد مفتاح',exact:true}).click();await page.getByRole('button',{name:'التحقق من الطلب السابق'}).click();
  await expect(page.getByRole('status')).toContainText('تم استرداد المفتاح');expect(requests).toHaveLength(2);expect(requests[0]).toEqual(requests[1]);
 });
 test('owner mutation requires reason and confirmation; one-time code is removed when closing',async({page})=>{
@@ -97,4 +97,15 @@ test('unavailable tab storage blocks administrative dispatch before a mutation i
  await page.evaluate(()=>{Object.defineProperty(window,'sessionStorage',{value:{getItem:()=>null,setItem:()=>{throw Error('fixture disabled storage');},removeItem:()=>{}}});});
  await page.getByLabel('معرّف الحساب الموثق').fill(id);await page.getByRole('button',{name:'مراجعة المنحة'}).click();await page.getByLabel('سبب الإجراء').fill('لا يرسل دون مرجع');await page.getByRole('checkbox').check();await page.getByRole('button',{name:'تأكيد التنفيذ'}).click();
  await expect(page.getByRole('dialog').getByRole('status')).toContainText('لم يُرسل الطلب');expect(mutations).toBe(0);
+});
+
+test('disabled owner configuration is distinct from permission failure; profile offers no purchase or redeem',async({page})=>{
+ await setup(page,false);
+ await page.route('**/api/owner',r=>r.fulfill({status:503,json:{code:'OWNER_PANEL_NOT_CONFIGURED'}}));
+ await page.getByRole('button',{name:'العودة للموقع'}).click();await page.locator('.platform-account-trigger').click();await page.getByRole('menuitem',{name:'الملف الشخصي'}).click();
+ await expect(page.getByRole('status')).toHaveText('لوحة المالك غير مفعّلة حاليًا.');
+ await expect(page.getByRole('button',{name:'إعادة التحقق من الصلاحيات'})).toHaveCount(0);
+ await expect(page.getByRole('button',{name:'شراء مفاتيح'})).toHaveCount(0);
+ await expect(page.getByRole('button',{name:'استرداد مفتاح',exact:true})).toHaveCount(0);
+ await page.locator('.platform-account-trigger').click();await expect(page.getByRole('menuitem',{name:'استرداد مفتاح',exact:true})).toBeVisible();
 });

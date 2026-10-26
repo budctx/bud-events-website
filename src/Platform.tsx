@@ -12,6 +12,7 @@ import type { PaymentState } from './payment-state';
 import type { HostEvent } from './host-client';
 const HostPortal = lazy(() => import('./HostPortal'));
 const WhopPreflight = lazy(() => import('./WhopPreflight'));
+const RedeemDialog = lazy(() => import('./RedeemDialog'));
 const Profile = lazy(() => import('./Profile'));
 const OwnerPanel = lazy(() => import('./OwnerPanel'));
 
@@ -41,6 +42,7 @@ export default function Platform({ onPlay }: PlatformProps) {
   const [busy, setBusy] = useState(false);
   const [panel, setPanel] = useState<'history' | 'setup' | 'profile' | 'owner' | null>(null);
   const account = useAccount();
+  const [redeemOpen,setRedeemOpen]=useState(false);
   const [paymentHold, setPaymentHold] = useState(false);
   const onReceiptState = useCallback((state: PaymentState) => {
     if (['review','refunded','disputed'].includes(state)) setPaymentHold(true);
@@ -104,7 +106,7 @@ export default function Platform({ onPlay }: PlatformProps) {
     <Seo locale={locale} screen={page} /><a className="skip-link" href="#platform-content">{locale === 'ar' ? 'تجاوز إلى المحتوى' : 'Skip to content'}</a>
     {page === 'home' && !panel && <HeroArtwork />}
     <header className="platform-header" data-node-id="339:2072">
-      <div className="platform-header-tools">{account.session ? <AccountMenu session={account.session} locale={locale} busy={busy} onProfile={() => {setPanel('profile');setNotice('');}} onHistory={() => {setPanel('history'); setNotice('');}} onLogout={() => void perform(async () => {setPanel(null); await account.logout();})} /> : <button type="button" className="platform-login" disabled={busy || account.status === 'loading'} aria-label={locale === 'ar' ? 'سجّل دخولك عبر Discord' : 'Sign in with Discord'} onClick={() => void login()}><img src="/assets/discord-symbol-white.svg" width="24" height="18" alt="" />{t.login}</button>}</div>
+      <div className="platform-header-tools">{account.session ? <AccountMenu session={account.session} locale={locale} busy={busy} onProfile={() => {setPanel('profile');setNotice('');}} onRedeem={() => setRedeemOpen(true)} onHistory={() => {setPanel('history'); setNotice('');}} onLogout={() => void perform(async () => {setPanel(null); setRedeemOpen(false); await account.logout();})} /> : <button type="button" className="platform-login" disabled={busy || account.status === 'loading'} aria-label={locale === 'ar' ? 'سجّل دخولك عبر Discord' : 'Sign in with Discord'} onClick={() => void login()}><img src="/assets/discord-symbol-white.svg" width="24" height="18" alt="" />{t.login}</button>}</div>
       <div className="platform-brand-navigation">
         <nav className="platform-navigation" aria-label={locale === 'ar' ? 'التنقل الرئيسي' : 'Main navigation'}>{(['home', 'events', 'bots', 'designs'] as const).map(item => <button type="button" key={item} data-testid={`nav-${item}`} aria-label={`${t[item]}${item === 'bots' || item === 'designs' ? ` · ${t.soon}` : ''}`} aria-current={page === item ? 'page' : undefined} className={item === 'bots' || item === 'designs' ? 'platform-future-link' : ''} onClick={() => navigate(item)}><span className="platform-nav-icon"><InterfaceIcon kind={item} /></span><span className="platform-nav-label">{t[item]}{(item === 'bots' || item === 'designs') && <small> · {t.soon}</small>}</span></button>)}</nav>
         <button className="platform-brand" aria-label={locale === 'ar' ? 'بُعد — الرئيسية' : 'BU’D — Home'} onClick={() => navigate('home')}><Mark /><span>بُعد</span></button>
@@ -113,8 +115,9 @@ export default function Platform({ onPlay }: PlatformProps) {
     {notice && <p className="platform-account-notice" role="status">{notice}</p>}
     {page === 'events' && inspectWhop && account.session && <Suspense fallback={<p role="status">{locale === 'ar' ? 'جارٍ تحميل الفحص…' : 'Loading inspection…'}</p>}><WhopPreflight key={account.session.id} locale={locale} onAuthLost={account.expire} /></Suspense>}
     {page === 'events' && paymentOrder && account.session && <PaymentStatus key={account.session.id + paymentOrder} orderId={paymentOrder} locale={locale} onAuthLost={account.expire} onState={onReceiptState} />}
+      {account.session&&<Suspense fallback={null}><RedeemDialog key={account.session.id} open={redeemOpen} onClose={()=>setRedeemOpen(false)} onRefresh={()=>void account.refresh()}/></Suspense>}
     <main id="platform-content" className={page === 'home' && !panel ? 'platform-home-main' : 'platform-gallery-main'} ref={main} tabIndex={-1} key={page}>
-      {panel === 'profile' && account.session ? <Suspense fallback={<p role="status">جارٍ تحميل البروفايل…</p>}><Profile key={account.session.id} session={account.session} credits={account.dashboard?.credits ?? null} onClose={closePanel} onOwner={() => setPanel('owner')} onBuy={() => void buy()} onRefresh={() => void account.refresh()} /></Suspense> : panel === 'owner' && account.session ? <Suspense fallback={<p role="status">جارٍ تحميل لوحة المالك…</p>}><OwnerPanel key={account.session.id} ownerId={account.session.id} onClose={() => setPanel('profile')} /></Suspense> : panel === 'history' && account.session ? <Suspense fallback={<p role="status">{locale === 'ar' ? 'جارٍ تحميل السجل…' : 'Loading history…'}</p>}><HostPortal onAuthLost={account.expire} view="history" locale={locale} onExit={closePanel} onPlay={event => onPlay(event, locale)} /></Suspense> : page === 'home' ? <>
+      {panel === 'profile' && account.session ? <Suspense fallback={<p role="status">جارٍ تحميل البروفايل…</p>}><Profile key={account.session.id} session={account.session} credits={account.dashboard?.credits ?? null} onClose={closePanel} onOwner={() => setPanel('owner')} /></Suspense> : panel === 'owner' && account.session ? <Suspense fallback={<p role="status">جارٍ تحميل لوحة المالك…</p>}><OwnerPanel key={account.session.id} ownerId={account.session.id} onClose={() => setPanel('profile')} /></Suspense> : panel === 'history' && account.session ? <Suspense fallback={<p role="status">{locale === 'ar' ? 'جارٍ تحميل السجل…' : 'Loading history…'}</p>}><HostPortal onAuthLost={account.expire} view="history" locale={locale} onExit={closePanel} onPlay={event => onPlay(event, locale)} /></Suspense> : page === 'home' ? <>
         <section className="platform-hero" data-node-id="339:2099"><p className="platform-eyebrow">{t.eyebrow}</p><h1>{t.title}</h1><p className="platform-hero-description">{t.description}</p><div className="platform-hero-actions"><button className="platform-action platform-action-primary" data-testid="hero-explore" onClick={() => navigate('events')}>{t.explore}<span aria-hidden="true">←</span></button></div><p className="platform-hero-hint">{t.browseHint}</p></section>
         <aside className="platform-proof" aria-label={locale === 'ar' ? 'المجتمع والشركاء' : 'Community and partners'} data-node-id="359:2272"><div className="platform-review-empty"><strong>{t.review}</strong><p>{t.reviewNote}</p></div><div className="platform-partners-empty">{t.partners}</div></aside>
       </> : <>

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { HostSession, Locale } from './host-client';
 
-export function AccountMenu({session, locale, busy, onHistory, onLogout, onProfile}: {session: HostSession; locale: Locale; busy: boolean; onHistory: () => void; onLogout: () => void; onProfile?: () => void}) {
+export function AccountMenu({session, locale, busy, onHistory, onLogout, onProfile, onRedeem}: {session: HostSession; locale: Locale; busy: boolean; onHistory: () => void; onLogout: () => void; onProfile?: () => void; onRedeem?: () => void}) {
   const [open, setOpen] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   const root = useRef<HTMLDivElement>(null);
@@ -35,6 +35,7 @@ export function AccountMenu({session, locale, busy, onHistory, onLogout, onProfi
     {open && <div id="platform-account-menu" className="platform-account-menu" role="menu" aria-label={locale === 'ar' ? 'حسابك' : 'Your account'}>
       <button role="menuitem" onClick={() => {setOpen(false); onHistory();}}>{locale === 'ar' ? 'السجل' : 'History'}</button>
       {onProfile && <button role="menuitem" onClick={() => {setOpen(false); onProfile();}}>الملف الشخصي</button>}
+      {onRedeem && <button role="menuitem" onClick={() => {setOpen(false); onRedeem();}}>استرداد مفتاح</button>}
       <button role="menuitem" disabled={busy} onClick={() => {setOpen(false); onLogout();}}>{locale === 'ar' ? 'تسجيل الخروج' : 'Sign out'}</button>
     </div>}
   </div>;
