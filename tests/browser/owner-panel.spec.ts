@@ -18,10 +18,10 @@ async function setup(page:Page,owner=true){
  await page.getByRole('menuitem',{name:'الملف الشخصي'}).click();
  await expect(page.getByRole('heading',{name:'الملف الشخصي',exact:true})).toBeVisible();
 }
-for(const size of [{width:1440,height:900},{width:390,height:844}])test(`owner panel includes all nine sections and has no horizontal clipping ${size.width}`,async({page})=>{
+for(const size of [{width:1440,height:900},{width:390,height:844}])test(`owner panel includes all ten sections and has no horizontal clipping ${size.width}`,async({page})=>{
  await page.setViewportSize(size);await setup(page);
  await page.getByRole('button',{name:'لوحة المالك',exact:true}).click();
- const nav=page.getByRole('navigation',{name:'أقسام لوحة المالك'});await expect(nav.getByRole('button')).toHaveCount(9);
+ const nav=page.getByRole('navigation',{name:'أقسام لوحة المالك'});await expect(nav.getByRole('button')).toHaveCount(10);
  await expect(page.getByRole('heading',{name:'نظرة عامة وتنبيهات'})).toBeVisible();
  await nav.getByRole('button',{name:'المستخدمون',exact:true}).click();await expect(page.getByRole('button',{name:'فتح ملف المستخدم'})).toBeVisible();
  await nav.getByRole('button',{name:'صحة النظام',exact:true}).click();await expect(page.getByText('غير معروف',{exact:true}).first()).toBeVisible();
