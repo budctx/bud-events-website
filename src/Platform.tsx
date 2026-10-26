@@ -37,13 +37,18 @@ function pageFromURL(): Page {
   const screen = new URLSearchParams(location.search).get('screen');
   return screen === 'bots' || screen === 'designs' ? screen : ['events', 'host', 'game','local'].includes(screen ?? '') ? 'events' : 'home';
 }
+function panelFromURL(): 'history' | 'setup' | 'profile' | 'owner' | null {
+  const value = new URLSearchParams(location.search).get('panel');
+  return value === 'history' || value === 'setup' || value === 'profile' || value === 'owner' ? value : null;
+}
 export default function Platform({ onPlay }: PlatformProps) {
   const locale: Locale = 'ar';
   const [page, setPage] = useState<Page>(pageFromURL);
   const [modal, setModal] = useState<Modal>(null);
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
-  const [panel, setPanel] = useState<'history' | 'setup' | 'profile' | 'owner' | null>(null);
+  const [activeAction,setActiveAction] = useState<'login' | 'purchase' | null>(null);
+  const [panel, setPanel] = useState<'history' | 'setup' | 'profile' | 'owner' | null>(panelFromURL);
   const account = useAccount();
   const toast = useBudToast();
   const [partners,setPartners] = useState<PartnerLogo[]>([]);
@@ -84,26 +89,54 @@ export default function Platform({ onPlay }: PlatformProps) {
     document.body.style.overflow = 'hidden';
     return () => { if (node.open) node.close(); document.body.style.overflow = previousOverflow; previous?.focus(); };
   }, [modal]);
+  const routeUrl = (nextPage: Page, nextPanel: typeof panel = null) => {
+    const query = new URLSearchParams();
+    if (nextPage !== 'home') query.set('screen', nextPage);
+    query.set('lang', locale);
+    if (nextPage === 'events' && paymentOrder) query.set('order', paymentOrder);
+    if (nextPage === 'events' && inspectWhop) query.set('check', 'whop');
+    if (nextPanel) query.set('panel', nextPanel);
+    return `${location.pathname}?${query}`;
+  };
+  // Normalize deep links without adding an unwanted history entry; user navigation pushes entries.
   useEffect(() => {
-    const query = new URLSearchParams(); if (page !== 'home') query.set('screen', page); query.set('lang', locale);
-    if (page === 'events' && paymentOrder) query.set('order', paymentOrder);
-    if (page === 'events' && inspectWhop) query.set('check', 'whop');
-    history.replaceState(null, '', `${location.pathname}?${query}`);
-  }, [page, locale, paymentOrder, inspectWhop]);
+    const expected = routeUrl(page,panel);
+    if (`${location.pathname}${location.search}` !== expected) history.replaceState(null,'',expected);
+  }, [page,panel,locale,paymentOrder,inspectWhop]);
+  useEffect(() => {
+    const onBackOrForward = () => {
+      setPage(pageFromURL());
+      setPanel(panelFromURL());
+      setModal(null);
+      setNotice('');
+    };
+    window.addEventListener('popstate',onBackOrForward);
+    return () => window.removeEventListener('popstate',onBackOrForward);
+  }, []);
   useEffect(() => { purchaseKey.current = null; setPanel(null); setPaymentHold(false); }, [account.session?.id]);
-  const navigate = (next: Page) => { setPanel(null); setNotice(''); setPage(next); requestAnimationFrame(() => main.current?.focus({ preventScroll: true })); };
-  const perform = async (action: () => Promise<void>) => {
-    if (locked.current) return; locked.current = true; setBusy(true); setNotice('');
+  const navigate = (next: Page) => {
+    if (page === next && !panel) return;
+    history.pushState(null,'',routeUrl(next));
+    setPanel(null); setNotice(''); setPage(next);
+    requestAnimationFrame(() => main.current?.focus({ preventScroll: true }));
+  };
+  const openPanel = (next: 'history' | 'setup' | 'profile' | 'owner') => {
+    if (panel === next) return;
+    history.pushState(null,'',routeUrl(page,next));
+    setPanel(next);setNotice('');
+  };
+  const perform = async (action: () => Promise<void>, kind: 'login' | 'purchase' | null = null) => {
+    if (locked.current) return; locked.current = true; setBusy(true); setActiveAction(kind); setNotice('');
     try { await action(); }
     catch (reason) {
       if (reason instanceof HostClientError && reason.status === 401) { void account.refresh(); setNotice(locale === 'ar' ? 'انتهت جلسة الدخول. سجّل دخولك مجددًا.' : 'Your session ended. Please sign in again.'); }
       else setNotice(locale === 'ar' ? 'تعذر إتمام الطلب. حاول مجددًا.' : 'Unable to complete the request. Please try again.');
-    } finally { locked.current = false; setBusy(false); }
+    } finally { locked.current = false; setBusy(false); setActiveAction(null); }
   };
   const login = () => perform(async () => {
     const snapshot = account.status === 'loading' ? await account.whenReady() : {session:account.session,dashboard:account.dashboard};
     if (!snapshot.session) await signInHost({page, locale});
-  });
+  },'login');
   const buy = () => perform(async () => {
     const snapshot = account.status === 'loading' ? await account.whenReady() : {session:account.session,dashboard:account.dashboard};
     if (paymentHold || snapshot.dashboard?.paymentReview) return;
@@ -112,14 +145,18 @@ export default function Platform({ onPlay }: PlatformProps) {
     try { await purchaseEvent(purchaseKey.current.key, purchaseKey.current.locale); }
     catch (reason) { if (reason instanceof HostClientError && reason.status === 503 && (reason.code.startsWith('SANDBOX_CHECKOUT_')
       || ['LIVE_CHECKOUT_NOT_CONFIGURED','LIVE_COMMERCE_DISABLED','COMMERCE_MODE_UNAVAILABLE'].includes(reason.code))) { setNotice(t.purchaseUnavailable); return; } throw reason; }
-  });
+  },'purchase');
   const closePanel = () => {
     const target = panel !== 'setup' ? '.platform-account-trigger' : '[data-testid=event-setup]';
-    setPanel(null); void account.refresh();
+    setPanel(null);
+    if (new URLSearchParams(location.search).has('panel')) history.replaceState(null,'',routeUrl(page));
+    void account.refresh();
     requestAnimationFrame(() => document.querySelector<HTMLButtonElement>(target)?.focus());
   };
   const ongoing = account.dashboard?.events.find(event => !['completed', 'closing'].includes(event.phase) && event.state.phase !== 'closing');
   const modalTitle = modal === 'soon' ? t.soon : modal ? t[modal] : '';
+  const canSetup = !!account.session && !!account.dashboard && account.dashboard.credits > 0 && !paymentHold && !account.dashboard.paymentReview;
+  const canResume = !!ongoing && !ongoing.localMissing && !!account.session;
 
   if(panel==='owner'&&account.session)return <Suspense fallback={<p role="status">جارٍ تحميل لوحة المالك…</p>}><OwnerPanel key={account.session.id} ownerId={account.session.id} ownerName={account.session.displayName} onClose={()=>setPanel('profile')}/></Suspense>;
 
@@ -127,27 +164,30 @@ export default function Platform({ onPlay }: PlatformProps) {
     <Seo locale={locale} screen={page} /><a className="skip-link" href="#platform-content">{locale === 'ar' ? 'تجاوز إلى المحتوى' : 'Skip to content'}</a>
     {page === 'home' && !panel && <HeroArtwork />}
     <header className="platform-header" data-node-id="339:2072">
-      <div className="platform-header-tools">{account.session ? <AccountMenu session={account.session} locale={locale} credits={account.dashboard?.credits ?? null} busy={busy} onSupport={() => {setPanel(null); setModal('support'); setNotice('');}} onProfile={() => {setPanel('profile');setNotice('');}} onRedeem={() => setRedeemOpen(true)} onHistory={() => {setPanel('history'); setNotice('');}} onLogout={() => void perform(async () => {setPanel(null); setRedeemOpen(false); await account.logout();})} /> : <button type="button" className="platform-login" disabled={busy} aria-label={locale === 'ar' ? 'سجّل دخولك عبر Discord' : 'Sign in with Discord'} onClick={() => void login()}><img src="/assets/discord-symbol-white.svg" width="24" height="18" alt="" />{t.login}</button>}</div>
+      <div className="platform-header-tools">{account.session ? <AccountMenu session={account.session} locale={locale} credits={account.dashboard?.credits ?? null} busy={busy} onSupport={() => {setPanel(null); setModal('support'); setNotice('');}} onProfile={() => openPanel('profile')} onRedeem={() => setRedeemOpen(true)} onHistory={() => openPanel('history')} onLogout={() => void perform(async () => {setPanel(null); setRedeemOpen(false); await account.logout();})} /> : <button type="button" className="platform-login" disabled={busy} aria-busy={activeAction==='login'} aria-label={locale === 'ar' ? 'سجّل دخولك عبر Discord' : 'Sign in with Discord'} onClick={() => void login()}><img src="/assets/discord-symbol-white.svg" width="24" height="18" alt="" />{activeAction==='login'?'جارٍ فتح Discord…':t.login}</button>}</div>
       <div className="platform-brand-navigation">
         <nav className="platform-navigation" aria-label={locale === 'ar' ? 'التنقل الرئيسي' : 'Main navigation'}>{(['home', 'events', 'bots', 'designs'] as const).map(item => <button type="button" key={item} data-testid={`nav-${item}`} aria-label={`${t[item]}${item === 'bots' || item === 'designs' ? ` · ${t.soon}` : ''}`} aria-current={page === item ? 'page' : undefined} className={item === 'bots' || item === 'designs' ? 'platform-future-link' : ''} onPointerEnter={item === 'events' ? () => { void loadEventPreview(); } : undefined} onFocus={item === 'events' ? () => { void loadEventPreview(); } : undefined} onClick={() => navigate(item)}><span className="platform-nav-icon"><InterfaceIcon kind={item} /></span><span className="platform-nav-label">{t[item]}{(item === 'bots' || item === 'designs') && <small> · {t.soon}</small>}</span></button>)}</nav>
         <button className="platform-brand" aria-label={locale === 'ar' ? 'بُعد — الرئيسية' : 'BU’D — Home'} onClick={() => navigate('home')}><Mark /><span>بُعد</span></button>
       </div>
     </header>
+    {activeAction&&<p className="platform-account-notice" role="status">{activeAction==='purchase'?'جارٍ التحقق من طلب الشراء…':'جارٍ تجهيز تسجيل الدخول عبر Discord…'}</p>}
     {notice && <p className="platform-account-notice" role="status">{notice}</p>}
     {page === 'events' && inspectWhop && account.session && <Suspense fallback={<p role="status">{locale === 'ar' ? 'جارٍ تحميل الفحص…' : 'Loading inspection…'}</p>}><WhopPreflight key={account.session.id} locale={locale} onAuthLost={account.expire} /></Suspense>}
     {page === 'events' && paymentOrder && account.session && <Suspense fallback={<p role="status">جارٍ تحميل حالة الطلب…</p>}><PaymentStatus key={account.session.id + paymentOrder} orderId={paymentOrder} locale={locale} onAuthLost={account.expire} onState={onReceiptState} /></Suspense>}
       {account.session&&<Suspense fallback={null}><RedeemDialog key={account.session.id} open={redeemOpen} onClose={()=>setRedeemOpen(false)} onRefresh={()=>void account.refresh()}/></Suspense>}
     <main id="platform-content" className={page === 'home' && !panel ? 'platform-home-main' : 'platform-gallery-main'} ref={main} tabIndex={-1} key={page}>
-      {panel === 'profile' && account.session ? <Suspense fallback={<p role="status">جارٍ تحميل البروفايل…</p>}><Profile key={account.session.id} session={account.session} credits={account.dashboard?.credits ?? null} onClose={closePanel} onOwner={() => setPanel('owner')} /></Suspense> : panel === 'history' && account.session ? <Suspense fallback={<p role="status">{locale === 'ar' ? 'جارٍ تحميل السجل…' : 'Loading history…'}</p>}><HostPortal onAuthLost={account.expire} view="history" locale={locale} onExit={closePanel} onPlay={event => onPlay(event, locale)} /></Suspense> : page === 'home' ? <>
+      {panel === 'profile' && account.session ? <Suspense fallback={<p role="status">جارٍ تحميل البروفايل…</p>}><Profile key={account.session.id} session={account.session} credits={account.dashboard?.credits ?? null} onClose={closePanel} onOwner={() => openPanel('owner')} /></Suspense> : panel === 'history' && account.session ? <Suspense fallback={<p role="status">{locale === 'ar' ? 'جارٍ تحميل السجل…' : 'Loading history…'}</p>}><HostPortal onAuthLost={account.expire} view="history" locale={locale} onExit={closePanel} onPlay={event => onPlay(event, locale)} /></Suspense> : page === 'home' ? <>
         <section className="platform-hero" data-node-id="339:2099"><p className="platform-eyebrow">{t.eyebrow}</p><h1>{t.title}</h1><p className="platform-hero-description">{t.description}</p><div className="platform-hero-actions"><BudMagnetic><button className="platform-action platform-action-primary" data-testid="hero-explore" onPointerEnter={() => { void loadEventPreview(); }} onFocus={() => { void loadEventPreview(); }} onClick={() => navigate('events')}>{t.explore}<span aria-hidden="true">←</span></button></BudMagnetic></div><p className="platform-hero-hint">{t.browseHint}</p>{partners.length>0&&<div className="platform-partners-mobile"><BudLogoCarousel logos={partners}/></div>}</section>
         <aside className="platform-proof" aria-label={locale === 'ar' ? 'المجتمع والشركاء' : 'Community and partners'} data-node-id="359:2272"><div className="platform-review-empty"><strong>{t.review}</strong><p>{t.reviewNote}</p></div><div className="platform-partners-empty">{partners.length>0?<><strong>شركاؤنا</strong><BudLogoCarousel logos={partners}/></>:t.partners}</div></aside>
       </> : <>
         <div className="platform-gallery-intro"><h1>{page === 'events' ? t.galleryTitle : t[page]}</h1><p>{page === 'events' ? t.galleryDescription : t.soonDescription}</p>{page === 'events' && <button className="platform-action platform-action-secondary platform-event-how" data-testid="event-how" onClick={() => setModal('how')}>{t.how}</button>}</div>
         {page === 'events' ? <article className="platform-product-card" data-node-id="383:11116"><Suspense fallback={<div className="event-preview" role="status" aria-label="جارٍ تحميل معاينة الفعالية…" />}><EventPreview key={locale} locale={locale} /></Suspense><div className="platform-product-information"><p className="platform-product-eyebrow">{t.productEyebrow}</p><h2>{t.product}</h2><p className="platform-product-description">{t.productDescription}</p><p className="platform-features">{t.features}</p><div className="platform-event-ownership">
           {account.session && (account.keysLoading ? <p role="status">{locale === 'ar' ? 'جارٍ تحميل مفاتيحك…' : 'Loading your keys…'}</p> : account.keysError ? <p>{locale === 'ar' ? 'تعذر تحميل مفاتيحك.' : 'Unable to load your keys.'} <button className="platform-inline-retry" onClick={() => void account.refresh()}>{locale === 'ar' ? 'إعادة المحاولة' : 'Retry'}</button></p> : account.dashboard && <p className="platform-event-keys" data-testid="event-keys">{locale === 'ar' ? <>لديك <bdi>{account.dashboard.credits}</bdi> مفاتيح</> : <>You have <bdi>{account.dashboard.credits}</bdi> keys</>}</p>)}
-          <div className="platform-event-actions"><button className="platform-action platform-action-primary" data-testid="product-card-qc" disabled={busy || paymentHold || account.dashboard?.paymentReview} onClick={() => void buy()}>{t.buy}</button>
-          {account.session && account.dashboard && account.dashboard.credits > 0 && !paymentHold && !account.dashboard.paymentReview && <button className="platform-action platform-action-secondary" data-testid="event-setup" disabled={busy} onClick={() => setPanel(panel === 'setup' ? null : 'setup')}>{locale === 'ar' ? 'إعداد الفعالية' : 'Set up event'}</button>}
-          {ongoing && <button className="platform-action platform-action-secondary" disabled={busy||ongoing.localMissing} onClick={() => void perform(async () => onPlay(await resumeHostEvent(ongoing.eventId,account.session?.id,account.dashboard?.runtime==='browser-v1'), locale))}>{locale === 'ar' ? 'استكمال الفعالية' : 'Resume event'}</button>}</div>
+          <div className="platform-event-actions">
+          {canResume && <button className="platform-action platform-action-primary" data-testid="event-resume" disabled={busy} onClick={() => void perform(async () => onPlay(await resumeHostEvent(ongoing!.eventId,account.session?.id,account.dashboard?.runtime==='browser-v1'), locale))}>استكمال الفعالية</button>}
+          {canSetup && <button className={`platform-action ${canResume?'platform-action-secondary':'platform-action-primary'}`} data-testid="event-setup" disabled={busy} onClick={() => panel === 'setup' ? closePanel() : openPanel('setup')}>إعداد الفعالية</button>}
+          <button className={`platform-action ${canSetup||canResume?'platform-action-secondary':'platform-action-primary'}`} data-testid="product-card-qc" disabled={busy || paymentHold || account.dashboard?.paymentReview} aria-busy={activeAction==='purchase'} onClick={() => void buy()}>{activeAction==='purchase'?'جارٍ تجهيز الشراء…':t.buy}</button>
+          </div>
           {ongoing?.localMissing&&<p className="host-local-policy">تقدم هذه الفعالية غير موجود في هذا المتصفح. <button className="platform-inline-retry" onClick={()=>setPanel('history')}>عرض سجل التشغيل</button></p>}
           </div></div></article> : <article className="platform-product-card platform-coming-soon"><div><p className="platform-status"><BudBadge tone="warning" variant="outline">{t.soon}</BudBadge></p><h2>{t[page]}</h2><p>{t.soonDescription}</p><button className="platform-action platform-action-secondary" onClick={() => setModal('soon')}>{locale === 'ar' ? 'تفاصيل المنتج' : 'Product details'}</button></div></article>}
         {page === 'events' && panel === 'setup' && account.session && <Suspense fallback={<p role="status">{locale === 'ar' ? 'جارٍ التحميل…' : 'Loading…'}</p>}><HostPortal onAuthLost={account.expire} view="setup" locale={locale} onExit={closePanel} onPlay={event => onPlay(event, locale)} /></Suspense>}
