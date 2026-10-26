@@ -53,7 +53,7 @@ const errors: Record<string, [number, string]> = {
   BUD_NO_CREDIT: [409, 'NO_SLOT_CREDIT'], BUD_ACTIVE_EVENT: [409, 'ACTIVE_EVENT_EXISTS'], BUD_KEY_REUSED: [409, 'IDEMPOTENCY_KEY_REUSED'],
   BUD_EVENT_NOT_FOUND: [404, 'EVENT_NOT_FOUND'], BUD_VERSION_CONFLICT: [409, 'VERSION_CONFLICT'], BUD_EVENT_CLOSED: [409, 'EVENT_CLOSED'],
   BUD_CONTENT_NOT_READY: [503, 'CONTENT_NOT_READY'], BUD_CONTENT_UNAVAILABLE: [503, 'CONTENT_NOT_READY'], BUD_PRODUCT_UNAVAILABLE: [503, 'PRODUCT_UNAVAILABLE'],
-  BUD_LIVE_HOST_DISABLED: [503, 'LIVE_HOST_DISABLED'],
+  BUD_LIVE_HOST_DISABLED: [503, 'LIVE_HOST_DISABLED'], BUD_ACCOUNT_RESTRICTED:[403,'ACCOUNT_RESTRICTED'],
   BUD_PAYMENT_REVIEW: [409, 'PAYMENT_UNDER_REVIEW'], BUD_INVALID_EVENT: [400, 'INVALID_EVENT'],
   BUD_INVALID_DRAW_STATE: [409, 'INVALID_DRAW_STATE'], BUD_GAME_CATALOG_INVALID: [503, 'CONTENT_NOT_READY'],
 };
@@ -139,8 +139,22 @@ async function handleHostMode(request: Request, env: AuthEnv, transport: Transpo
       }
       return data;
     };
+    const browserRuntime=live&&env.BUD_LOCAL_EVENT_RUNTIME_ENABLED==='true';
+    if(browserRuntime&&['start','dispatch'].includes(body.action))throw new HostError(410,'BROWSER_RUNTIME_REQUIRED');
     let output: unknown;
-    if (body.action === 'dashboard') {
+    if(['localStart','localContent','localAdopt','localFinish'].includes(body.action)){
+      if(!browserRuntime)throw new HostError(503,'BROWSER_RUNTIME_NOT_CONFIGURED');
+      if(body.action==='localStart'){
+        if(!exact(body,['action','idempotencyKey','title'])||typeof body.idempotencyKey!=='string'||!keyPattern.test(body.idempotencyKey)||typeof body.title!=='string'||!body.title.trim()||body.title.trim().length>100)throw new HostError(400,'INVALID_EVENT');
+        const catalog=catalogFrom(await rpc('bud_host_draw_catalog',{p_event:null}));
+        const settings={duration:5,timerEnabled:false,attempts:1} as const;
+        const marker={...manualGameReducer(initialManualState(),{type:'start',config:settings,prizeText:''}),activityDraw:beginQuestionCondition(catalog.pairs).activity,storage:'browser-v1'};
+        output=await rpc('bud_host_start_draw',{p_key:body.idempotencyKey,p_title:body.title.trim(),p_config:settings,p_prize_text:'',p_state:marker,p_content_id:catalog.version,p_fingerprint:await fingerprint({title:body.title.trim(),storage:'browser-v1'})});
+      }else{
+        if(!exact(body,['action','eventId'])||typeof body.eventId!=='string'||!uuid.test(body.eventId))throw new HostError(400,'INVALID_EVENT');
+        output=await rpc(body.action==='localContent'?'bud_host_local_content':body.action==='localAdopt'?'bud_host_local_adopt':'bud_host_local_finish',{p_event:body.eventId});
+      }
+    }else if (body.action === 'dashboard') {
       if (!exact(body, ['action'])) throw new HostError(400, 'INVALID_REQUEST');
       output = await rpc('bud_host_dashboard', {});
     } else if (body.action === 'start') {
@@ -159,6 +173,7 @@ async function handleHostMode(request: Request, env: AuthEnv, transport: Transpo
     } else if (body.action === 'resume') {
       if (!exact(body, ['action', 'eventId']) || typeof body.eventId !== 'string' || !uuid.test(body.eventId)) throw new HostError(400, 'INVALID_EVENT');
       output = await rpc('bud_host_resume', { p_event: body.eventId });
+      if(browserRuntime&&object(output)&&object(output.state)&&output.state.storage==='browser-v1')throw new HostError(410,'LOCAL_EVENT_MISSING');
     } else if (body.action === 'dispatch') {
       if (!exact(body, ['action', 'eventId', 'version', 'idempotencyKey', 'command']) || typeof body.eventId !== 'string' || !uuid.test(body.eventId)
         || !Number.isSafeInteger(body.version) || Number(body.version) < 1 || typeof body.idempotencyKey !== 'string' || !keyPattern.test(body.idempotencyKey)) throw new HostError(400, 'INVALID_EVENT');
@@ -198,6 +213,10 @@ async function handleHostMode(request: Request, env: AuthEnv, transport: Transpo
     // Receipt snapshots retain the original state/version, but the response clock
     // must be fresh so a delayed retry cannot extend a persisted timer.
     if (object(output) && typeof output.eventId === 'string') output = { ...output, serverNow: Date.now() };
+    if(browserRuntime&&object(output)){
+      if(body.action==='dashboard'){output={...output,runtime:'browser-v1',ownerId:session.hostId,events:Array.isArray(output.events)?output.events.map(e=>object(e)&&object(e.state)&&e.state.storage==='browser-v1'?{eventId:e.eventId,title:e.title,phase:e.phase,version:e.version,updatedAt:e.updatedAt,state:{...initialManualState(),phase:e.phase==='completed'?'closing':'live',storage:'browser-v1'},storage:'browser-v1'}:e):[]};}
+      else if(body.action==='localStart')output={...output,storage:'browser-v1',ownerId:session.hostId};
+    }
     return response(200, 'OK', output, refreshed);
   } catch (error) {
     return error instanceof HostError ? response(error.status, error.code, undefined, refreshed) : response(503, 'BACKEND_UNAVAILABLE', undefined, refreshed);

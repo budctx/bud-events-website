@@ -32,7 +32,7 @@ function Mark({ className = '' }: { className?: string }) {
 
 function pageFromURL(): Page {
   const screen = new URLSearchParams(location.search).get('screen');
-  return screen === 'bots' || screen === 'designs' ? screen : ['events', 'host', 'game'].includes(screen ?? '') ? 'events' : 'home';
+  return screen === 'bots' || screen === 'designs' ? screen : ['events', 'host', 'game','local'].includes(screen ?? '') ? 'events' : 'home';
 }
 export default function Platform({ onPlay }: PlatformProps) {
   const locale: Locale = 'ar';
@@ -128,7 +128,8 @@ export default function Platform({ onPlay }: PlatformProps) {
           {account.session && (account.keysLoading ? <p role="status">{locale === 'ar' ? 'جارٍ تحميل مفاتيحك…' : 'Loading your keys…'}</p> : account.keysError ? <p>{locale === 'ar' ? 'تعذر تحميل مفاتيحك.' : 'Unable to load your keys.'} <button className="platform-inline-retry" onClick={() => void account.refresh()}>{locale === 'ar' ? 'إعادة المحاولة' : 'Retry'}</button></p> : account.dashboard && <p className="platform-event-keys" data-testid="event-keys">{locale === 'ar' ? <>لديك <bdi>{account.dashboard.credits}</bdi> مفاتيح</> : <>You have <bdi>{account.dashboard.credits}</bdi> keys</>}</p>)}
           <div className="platform-event-actions"><button className="platform-action platform-action-primary" data-testid="product-card-qc" disabled={busy || account.status === 'loading' || paymentHold || account.dashboard?.paymentReview} onClick={() => void buy()}>{t.buy}</button>
           {account.session && account.dashboard && account.dashboard.credits > 0 && !paymentHold && !account.dashboard.paymentReview && <button className="platform-action platform-action-secondary" data-testid="event-setup" disabled={busy} onClick={() => setPanel(panel === 'setup' ? null : 'setup')}>{locale === 'ar' ? 'إعداد الفعالية' : 'Set up event'}</button>}
-          {ongoing && <button className="platform-action platform-action-secondary" disabled={busy} onClick={() => void perform(async () => onPlay(await resumeHostEvent(ongoing.eventId), locale))}>{locale === 'ar' ? 'استكمال الفعالية' : 'Resume event'}</button>}</div>
+          {ongoing && <button className="platform-action platform-action-secondary" disabled={busy||ongoing.localMissing} onClick={() => void perform(async () => onPlay(await resumeHostEvent(ongoing.eventId,account.session?.id,account.dashboard?.runtime==='browser-v1'), locale))}>{locale === 'ar' ? 'استكمال الفعالية' : 'Resume event'}</button>}</div>
+          {ongoing?.localMissing&&<p className="host-local-policy">تقدم هذه الفعالية غير موجود في هذا المتصفح. <button className="platform-inline-retry" onClick={()=>setPanel('history')}>عرض سجل التشغيل</button></p>}
           </div></div></article> : <article className="platform-product-card platform-coming-soon"><div><p className="platform-status">{t.soon}</p><h2>{t[page]}</h2><p>{t.soonDescription}</p><button className="platform-action platform-action-secondary" onClick={() => setModal('soon')}>{locale === 'ar' ? 'تفاصيل المنتج' : 'Product details'}</button></div></article>}
         {page === 'events' && panel === 'setup' && account.session && <Suspense fallback={<p role="status">{locale === 'ar' ? 'جارٍ التحميل…' : 'Loading…'}</p>}><HostPortal onAuthLost={account.expire} view="setup" locale={locale} onExit={closePanel} onPlay={event => onPlay(event, locale)} /></Suspense>}
       </>}

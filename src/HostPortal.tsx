@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatedSwitch, HelpTip, NumberStepper } from './InterfaceControls';
 import { parsePrizeLines } from './prize-lines';
 import { formatEventResults } from './event-summary';
-import { getHostDashboard, getHostSession, HostClientError, newHostRequestKey, resumeHostEvent, signInHost, signOutHost, startHostEvent } from './host-client';
+import { closeBrowserHostRun, getHostDashboard, getHostSession, HostClientError, newHostRequestKey, resumeHostEvent, signInHost, signOutHost, startHostEvent, startBrowserHostEvent } from './host-client';
 import type { HostDashboard, HostEvent, HostSession, Locale, StartHostEvent } from './host-client';
 import type { ManualConfig } from './manual-game';
 import './host-portal.css';
@@ -41,7 +41,7 @@ export default function HostPortal({ onPlay, onExit, locale, view, onAuthLost }:
     return () => controller.abort();
   }, [reload, onAuthLost]);
   useEffect(() => { if (summary) summaryDialog.current?.showModal(); else summaryDialog.current?.close(); }, [summary]);
-  const reportError = (reason: unknown) => { const issue = reason instanceof HostClientError ? reason : null; setError(issue?.status === 401 ? t.expired : issue?.status === 503 ? t.unavailable : t.failure); if (issue?.status === 401) {setStatus('signed-out'); onAuthLost?.();} };
+  const reportError = (reason: unknown) => { const issue = reason instanceof HostClientError ? reason : null; setError(reason instanceof Error&&'code' in reason&&['LOCAL_STORAGE_UNAVAILABLE','LOCAL_EVENT_MISSING','LOCAL_CONTENT_INVALID'].includes(String(reason.code))?'تعذر فتح الحفظ المحلي. استخدم المتصفح الأصلي؛ لا توجد نسخة تقدم على الخادم.':issue?.status === 401 ? t.expired : issue?.status === 503 ? t.unavailable : t.failure); if (issue?.status === 401) {setStatus('signed-out'); onAuthLost?.();} };
   const perform = async (action: () => Promise<void>) => { if (locked.current) return; locked.current = true; setBusy(true); setError(''); try { await action(); } catch (reason) { reportError(reason); } finally { locked.current = false; setBusy(false); } };
   const parsed = parsePrizeLines(prizeText);
   const product = dashboard?.products.find(item => item.id === 'question-condition') ?? dashboard?.products[0];
@@ -51,7 +51,7 @@ export default function HostPortal({ onPlay, onExit, locale, view, onAuthLost }:
     if (!title.trim() || title.trim().length > 100) { setError(t.titleError); return; }
     if (!parsed.valid) { setError(t.prizeError); return; }
     if (!pendingStart.current) pendingStart.current = { action: 'start', idempotencyKey: newHostRequestKey(), title: title.trim(), config: { ...config }, prizeText };
-    try { const event = await startHostEvent(pendingStart.current); pendingStart.current = null; setUncertain(false); onPlay(event); }
+    try { const event = dashboard?.runtime==='browser-v1'&&session?await startBrowserHostEvent(session.id,pendingStart.current):await startHostEvent(pendingStart.current); pendingStart.current = null; setUncertain(false); onPlay(event); }
     catch (reason) { setUncertain(true); throw reason; }
   });
   const summaryText = summary ? formatEventResults(summary.state,locale) : '';
@@ -68,10 +68,11 @@ export default function HostPortal({ onPlay, onExit, locale, view, onAuthLost }:
             {config.timerEnabled && <div className="host-duration"><label htmlFor="host-duration">{t.duration}</label><input id="host-duration" type="number" min={3} max={30} step={1} value={config.duration} onChange={event => setConfig(previous => ({ ...previous, duration: Number(event.target.value) }))} required /></div>}
             <div className="host-field-label"><label htmlFor="host-prizes">{t.prizes}</label><HelpTip label={locale === 'ar' ? 'توضيح الجوائز' : 'About prizes'}>{t.prizeHelp}</HelpTip></div><textarea id="host-prizes" rows={5} value={prizeText} onChange={event => setPrizeText(event.target.value)} aria-invalid={!parsed.valid} aria-describedby={!parsed.valid ? 'host-prize-error' : undefined} />{!parsed.valid && <p id="host-prize-error" role="alert" className="host-error">{t.prizeError}</p>}
           </fieldset>
+          {dashboard.runtime==='browser-v1'&&<p className="host-local-policy">تُحفظ الفعالية ونتائجها في هذا المتصفح فقط. حذف بيانات الموقع أو تغيير الجهاز يعني فقدانها، ولا يمكن استعادتها من الخادم.</p>}
           {!enoughRuns && <p>{t.noSlots}</p>}{(!product?.available || !contentReady) && <p>{t.noContent}</p>}
           <button type="submit" className="host-primary" disabled={busy || !parsed.valid || !enoughRuns || !product?.available || !contentReady}>{busy ? t.starting : uncertain ? t.retry : t.start}</button>
         </form></section>}
-        {view !== 'setup' && <div className="host-session-lists">{[false, true].map(history => <section className="host-panel" key={String(history)}><h2>{history ? t.history : t.running}</h2>{dashboard.events.filter(event => completed(event) === history).length === 0 ? <p className="host-empty">{history ? t.emptyHistory : t.emptyActive}</p> : <ul>{dashboard.events.filter(event => completed(event) === history).map(event => <li key={event.eventId}><div><h3>{event.title}</h3><small>{history ? t.completed : event.phase === 'setup' ? t.preparing : t.live}{event.updatedAt && !Number.isNaN(Date.parse(event.updatedAt)) && <> · <time dateTime={event.updatedAt}>{new Date(event.updatedAt).toLocaleDateString(locale)}</time></>}</small></div><button disabled={busy} onClick={() => { if (history) { setCopyStatus(''); setSummary(event); } else void perform(async () => onPlay(await resumeHostEvent(event.eventId))); }}>{history ? t.summary : t.resume}</button></li>)}</ul>}</section>)}</div>}</div>
+        {view !== 'setup' && <div className="host-session-lists">{[false, true].map(history => <section className="host-panel" key={String(history)}><h2>{history ? t.history : t.running}</h2>{dashboard.events.filter(event => completed(event) === history).length === 0 ? <p className="host-empty">{history ? t.emptyHistory : t.emptyActive}</p> : <ul>{dashboard.events.filter(event => completed(event) === history).map(event => <li key={event.eventId}><div><h3>{event.title}</h3><small>{history ? t.completed : event.phase === 'setup' ? t.preparing : t.live}{event.updatedAt && !Number.isNaN(Date.parse(event.updatedAt)) && <> · <time dateTime={event.updatedAt}>{new Date(event.updatedAt).toLocaleDateString(locale)}</time></>}</small></div><button disabled={busy||!!event.localMissing} onClick={() => { if (history) { setCopyStatus(''); setSummary(event); } else void perform(async () => onPlay(await resumeHostEvent(event.eventId,session?.id,dashboard.runtime==='browser-v1'))); }}>{event.localMissing?'السجل غير موجود في هذا المتصفح':history?t.summary:t.resume}</button>{event.localMissing&&!history&&<button disabled={busy} onClick={()=>{if(window.confirm('التقدم المحلي غير موجود. إغلاق سجل التشغيل لا يعيد الرصيد ولا يستعيد النتائج. هل تريد المتابعة؟'))void perform(async()=>{await closeBrowserHostRun(event.eventId);setReload(v=>v+1);});}}>إغلاق سجل التشغيل</button>}</li>)}</ul>}</section>)}</div>}</div>
       </>}
     </div>
     <dialog className="host-summary" ref={summaryDialog} onCancel={() => setSummary(null)} onClose={() => setSummary(null)} aria-labelledby="host-summary-title"><h2 id="host-summary-title">{summary?.title}</h2>{summary && <><p>{t.winners}: {summary.state.winners.length} · {t.opened}: {summary.state.prizes.filter(prize => prize.revealed).length}</p><pre tabIndex={0}>{summaryText || t.noPrizes}</pre><div className="host-summary-actions"><button onClick={() => { void navigator.clipboard?.writeText(summaryText).then(() => setCopyStatus(t.copied)).catch(() => setCopyStatus(t.copyFailed)); if (!navigator.clipboard) setCopyStatus(t.copyFailed); }}>{t.copy}</button><button className="host-primary" autoFocus onClick={() => setSummary(null)}>{t.close}</button></div>{copyStatus && <p role="status">{copyStatus}</p>}</>}</dialog>

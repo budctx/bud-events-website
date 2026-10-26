@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { handleAuth } from '../server/auth.ts';
-import { handleHost } from '../server/host.ts';
+import { handleHost,handleLiveHost } from '../server/host.ts';
 import { initialManualState, manualGameReducer } from '../src/manual-game.ts';
 const origin = 'https://bud-events-website.vercel.app';
 const project = 'https://cepmvqqrjcvhyzszqand.supabase.co';
@@ -116,4 +116,17 @@ test('upstream errors are sanitized; content gate and body bounds are explicit',
     assert.equal(result.status, status); assert.deepEqual(await result.json(), { code });
   }
   assert.equal((await handleHost(request({ action: 'start', title: 'x'.repeat(17000) }, cookie), env, mock())).status, 413);
+});
+
+test('live browser runtime keeps only financial receipts server-side and rejects gameplay uploads',async()=>{
+ const cookie=await session();const calls:Call[]=[];const live={...env,BUD_LIVE_HOST_ENABLED:'true',WHOP_ENVIRONMENT:'production',BUD_WHOP_PRODUCTION_MODE:'pilot',BUD_WHOP_PILOT_HOST_ID:id,BUD_LOCAL_EVENT_RUNTIME_ENABLED:'true'};
+ const transport=mock((name,body)=>Response.json(name==='bud_live_host_draw_catalog'?{version:'v1',pairs:[['0','0']],questionCount:1,conditionCount:1}:name==='bud_live_host_dashboard'?{credits:1,events:[{...event,state:{...state,storage:'browser-v1',winners:[{id:'winner-1',name:'private legacy'}]}}]}:name==='bud_live_host_resume'?{...event,state:{...state,storage:'browser-v1'}}:event),calls);
+ const result=await handleLiveHost(request({action:'localStart',idempotencyKey:key,title:'Local'},cookie),live,transport);assert.equal(result.status,200);assert.equal((await result.json()).data.storage,'browser-v1');
+ assert.deepEqual(calls.map(c=>c.name),['bud_live_host_draw_catalog','bud_live_host_start_draw']);const body=calls[1].body;assert.equal(body.p_host,id);assert.equal(body.p_prize_text,'');assert.deepEqual((body.p_state as any).winners,[]);assert.equal((body.p_state as any).storage,'browser-v1');
+ const count=calls.length;for(const action of ['start','dispatch'])assert.equal((await handleLiveHost(request({action,state},cookie),live,transport)).status,410);
+ for(const action of ['localStart','localContent','localAdopt','localFinish'])assert.equal((await handleLiveHost(request({action,eventId,idempotencyKey:key,title:'Local',state,hostId:eventId},cookie),live,transport)).status,400);assert.equal(calls.length,count);
+ const dash=await handleLiveHost(request({action:'dashboard'},cookie),live,transport);const data=(await dash.json()).data;assert.equal(data.ownerId,id);assert.equal(data.runtime,'browser-v1');assert.deepEqual(data.events[0].state.winners,[]);assert.doesNotMatch(JSON.stringify(data),/private legacy/);
+ assert.equal((await handleLiveHost(request({action:'resume',eventId},cookie),live,transport)).status,410);
+ for(const [action,rpc] of [['localContent','bud_live_host_local_content'],['localAdopt','bud_live_host_local_adopt'],['localFinish','bud_live_host_local_finish']]){assert.equal((await handleLiveHost(request({action,eventId},cookie),live,transport)).status,200);assert.deepEqual(calls.at(-1),{name:rpc,body:{p_event:eventId,p_host:id}});}
+ assert.equal((await handleLiveHost(request({action:'localContent',eventId},cookie),{...live,BUD_LOCAL_EVENT_RUNTIME_ENABLED:'false'},transport)).status,503);
 });

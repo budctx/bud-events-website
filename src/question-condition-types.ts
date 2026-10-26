@@ -1,5 +1,5 @@
 /** Persisted, versioned activity state inside the shared event's state JSON.
- * No browser authority: the server produces and commits this value.
+ * Produced by the browser for local runs; legacy server sessions use the same shape.
  */
 import type { DrawRecord, DrawState } from './draw-engine.ts';
 export type QuestionConditionActivity = {

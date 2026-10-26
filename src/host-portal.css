@@ -54,3 +54,5 @@
 .host-embedded .host-header { margin-bottom:12px; }
 .host-single { display:grid; gap:24px; }
 .host-embedded .host-single > .host-panel { max-width:680px; width:100%; }
+
+.host-local-policy{padding:12px 14px;background:#fff7e8;border:1px solid #ead7b6;border-radius:8px;font-size:12px;line-height:1.9;margin-block:14px;color:#806333}
