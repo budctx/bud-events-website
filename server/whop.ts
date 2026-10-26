@@ -97,8 +97,15 @@ export async function verifyWhopEnvelope(request: Request, secret: string, compa
   }
   if (!valid) throw new WhopError('INVALID_WEBHOOK_SIGNATURE', 401);
   let envelope: unknown; try { envelope = JSON.parse(raw); } catch { throw new WhopError('INVALID_WEBHOOK_BODY', 400); }
-  if (!object(envelope) || envelope.id !== messageId || envelope.api_version !== 'v1' || envelope.api_version_date !== version
-    || envelope.account_id !== company || typeof envelope.type !== 'string' || !object(envelope.data)
+  // Whop v1 has two independently documented signed envelope formats:
+  // - dated/pinned historical integration: account_id + the configured date;
+  // - unpinned v1: company_id + an explicit null api_version_date.
+  // Require an exact company match for either format; never accept arbitrary dates
+  // or trust event payment fields in place of the authoritative GET /payments lookup.
+  const pinned = object(envelope) && envelope.api_version_date === version && envelope.account_id === company;
+  const unpinned = object(envelope) && envelope.api_version_date === null && envelope.company_id === company;
+  if (!object(envelope) || envelope.id !== messageId || envelope.api_version !== 'v1' || (!pinned && !unpinned)
+    || typeof envelope.type !== 'string' || !object(envelope.data)
     || typeof envelope.data.id !== 'string' || !/^pay_[A-Za-z0-9]{5,80}$/.test(envelope.data.id)) throw new WhopError('WEBHOOK_SCOPE_MISMATCH', 400);
   return { messageId, paymentId: envelope.data.id, type: envelope.type };
 }
