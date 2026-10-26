@@ -391,3 +391,19 @@
  .platform-event-actions { flex-direction:column; align-items:stretch; }
  .platform-event-actions .platform-action { width:100%; }
 }
+
+/* Published partner logos are rendered only after owner approval. */
+.platform-partners-empty:has(.bud-logo-carousel){min-height:62px;margin-top:8px;display:grid;gap:7px;text-align:start}
+.platform-partners-empty>strong{font-size:11px;color:#5e574d;font-weight:600}
+.platform-partners-empty .bud-logo-item{width:100px}
+.platform-partners-mobile{display:none}
+.platform-hero-actions>.bud-magnetic{max-width:100%}
+@media(max-width:700px){
+ .platform-hero-actions>.bud-magnetic{width:100%}
+ .platform-partners-mobile{display:none}
+}
+@media(max-width:700px) and (min-height:760px){
+ .platform-partners-mobile{display:block;margin-top:10px;max-width:100%;overflow:hidden}
+ .platform-partners-mobile .bud-logo-item{min-height:24px;width:78px}
+ .platform-partners-mobile .bud-logo-item img{max-height:26px}
+}
