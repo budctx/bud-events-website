@@ -136,9 +136,19 @@ async function signed(changes: Record<string, unknown> = {}, offset = 0) {
   return new Request(config.origin + '/api/whop-webhook', { method: 'POST', headers: { 'content-type': 'application/json', 'webhook-id': messageId,
     'webhook-timestamp': timestamp, 'webhook-signature': 'v1,' + btoa(String.fromCharCode(...mac)) }, body: raw });
 }
-test('production webhook pins subscription version and account; stale, tampered and unsupported messages never verify', async () => {
+test('production webhook accepts signed pinned and unpinned Whop v1 accounts, and rejects untrusted bindings', async () => {
   assert.equal((await verifyProductionWebhook(await signed(), config)).paymentId, payment.id);
-  for (const changes of [{ account_id: 'biz_other123' }, { api_version_date: '2026-08-14' }, { type: 'payment.failed' }]) {
+  // Actual production webhook payload root is company_id with a null date.
+  const unpinned = { api_version_date: null, account_id: undefined, company_id: config.company };
+  assert.equal((await verifyProductionWebhook(await signed(unpinned), config)).paymentId, payment.id);
+  for (const changes of [
+    { account_id: 'biz_other123' }, { api_version_date: '2026-08-14' },
+    { api_version_date: null, account_id: undefined, company_id: 'biz_other123' },
+    { api_version_date: null, account_id: undefined, company_id: undefined },
+    { api_version_date: '2026-08-14', account_id: undefined, company_id: config.company },
+    { id: 'msg_forged123' }, { api_version: 'v2' }, { data: { id: 'not-a-payment' } },
+    { type: 'payment.failed' },
+  ]) {
     await assert.rejects(verifyProductionWebhook(await signed(changes), config));
   }
   for (const offset of [-301, 301]) await assert.rejects(verifyProductionWebhook(await signed({}, offset), config));
