@@ -314,3 +314,70 @@ test('Nav User stays inside a narrow mobile viewport and respects reduced motion
   expect(await page.evaluate(() => document.documentElement.scrollWidth<=innerWidth+1)).toBeTruthy();
   await page.screenshot({path:info.outputPath('nav-user-mobile.png'),animations:'disabled'});
 });
+
+
+test('Arabic header keeps brand on left and account entry on right across pages and sizes', async ({page}, info) => {
+  const sizes=[
+    {width:320,height:568},
+    {width:360,height:800},
+    {width:390,height:844},
+    {width:667,height:375},
+    {width:768,height:1024},
+    {width:1440,height:900}
+  ];
+  for (const size of sizes) {
+    await page.setViewportSize(size);
+    for (const screen of ['home','events'] as const) {
+      await page.goto(screen==='home'?'/?lang=ar':'/?screen=events&lang=ar');
+      const brand=page.getByRole('button',{name:'بُعد — الرئيسية'});
+      const login=page.getByRole('button',{name:'سجّل دخولك عبر Discord'});
+      await expect(brand).toBeVisible();
+      await expect(login).toBeVisible();
+      const mark=await brand.boundingBox();
+      const access=await login.boundingBox();
+      expect(mark).not.toBeNull();
+      expect(access).not.toBeNull();
+      expect(mark!.x+mark!.width).toBeLessThan(access!.x);
+      expect(access!.x+access!.width).toBeLessThanOrEqual(size.width+1);
+      expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBeTruthy();
+      await expect(page.getByTestId('nav-events')).toBeVisible();
+      if ((size.width===320||size.width===1440)&&screen==='home') {
+        await page.screenshot({path:info.outputPath(`header-guest-${size.width}.png`),animations:'disabled'});
+      }
+    }
+  }
+});
+
+test('Arabic signed-in header anchors Nav User and its dropdown inside the right edge',async ({page},info)=>{
+  await page.route('**/api/auth?action=session',route=>route.fulfill({
+    status:200,json:{code:'OK',data:{id:'account-right-test',displayName:'Discord user with a long nickname',avatarUrl:null}}
+  }));
+  await page.route('**/api/host',route=>route.fulfill({
+    status:200,json:{code:'OK',data:{credits:7,events:[],products:[],contentVersions:[]}}
+  }));
+  for(const size of [{width:320,height:568},{width:390,height:844},{width:667,height:375},{width:1440,height:900}]){
+    await page.setViewportSize(size);
+    for(const screen of ['home','events'] as const){
+      await page.goto(screen==='home'?'/?lang=ar':'/?screen=events&lang=ar');
+      const account=page.locator('.platform-account-trigger');
+      const brand=page.getByRole('button',{name:'بُعد — الرئيسية'});
+      await expect(account).toBeVisible();
+      await expect(brand).toBeVisible();
+      const a=await account.boundingBox(),b=await brand.boundingBox();
+      expect(a).not.toBeNull();expect(b).not.toBeNull();
+      expect(b!.x+b!.width).toBeLessThan(a!.x);
+      expect(a!.x+a!.width).toBeLessThanOrEqual(size.width+1);
+      await account.click();
+      const menu=page.getByRole('menu',{name:'قائمة حسابك'});
+      await expect(menu).toBeVisible();
+      const m=await menu.boundingBox();
+      expect(m).not.toBeNull();
+      expect(m!.x).toBeGreaterThanOrEqual(-1);
+      expect(m!.x+m!.width).toBeLessThanOrEqual(size.width+1);
+      expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBeTruthy();
+      if((size.width===320||size.width===1440)&&screen==='home'){
+        await page.screenshot({path:info.outputPath(`header-account-${size.width}.png`),animations:'disabled'});
+      }
+    }
+  }
+});
