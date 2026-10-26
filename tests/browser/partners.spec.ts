@@ -3,7 +3,8 @@ const id='11111111-1111-4111-8111-111111111111';
 const ok=(data:unknown)=>({status:200,json:{code:'OK',data}});
 test('partner carousel is published-only and owner can manage entries through confirm workflow',async({page})=>{
  const rows:{id:string;name:string;logoUrl:string;websiteUrl:string;sortOrder:number;visible:boolean}[]=[];
- await page.route('**/api/owner?public=partners',route=>route.fulfill(ok(rows.filter(x=>x.visible))));
+ let publicCalls=0;
+ await page.route('**/api/owner?public=partners',route=>{publicCalls++;return route.fulfill(ok(rows.filter(x=>x.visible)));});
  await page.route('https://cdn.example.com/logo.png',route=>route.fulfill({status:200,contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="100" height="50"><rect width="100" height="50" fill="#fbb03b"/></svg>'}));
  await page.route('**/api/auth?action=session',route=>route.fulfill(ok({id,displayName:'مالك بُعد'})));
  await page.route('**/api/host',route=>route.fulfill(ok({credits:2,events:[],products:[],contentVersions:[]})));
@@ -23,6 +24,7 @@ test('partner carousel is published-only and owner can manage entries through co
  });
  await page.goto('/?lang=ar');
  await expect(page.getByTestId('partners-carousel')).toHaveCount(0);
+ await expect.poll(()=>publicCalls).toBe(1);
  await page.locator('.platform-account-trigger').click();
  await page.getByRole('menuitem',{name:'الملف الشخصي'}).click();
  await page.getByRole('button',{name:'لوحة المالك'}).click();
@@ -46,12 +48,14 @@ test('partner carousel is published-only and owner can manage entries through co
  await page.getByRole('dialog').getByRole('button',{name:'إغلاق'}).click();
  await expect(page.getByText('1 منشور')).toBeVisible();
  await page.reload();
+ await expect.poll(()=>publicCalls).toBe(2);
  const visibleCarousel=page.locator('[data-testid="partners-carousel"]:visible');
  await expect(visibleCarousel).toBeVisible();
  await expect(visibleCarousel.getByRole('img',{name:'شريك بُعد'})).toBeVisible();
  await page.setViewportSize({width:390,height:844});
  await page.reload();
  await expect(page.locator('[data-testid="partners-carousel"]:visible').getByRole('img',{name:'شريك بُعد'})).toBeVisible();
+ expect(publicCalls).toBe(2);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  expect(seen.filter(x=>x==='partnerSave')).toHaveLength(2);
 });

@@ -7,6 +7,21 @@ test.beforeEach(async ({page}) => {
 
 const sizes = [ {width:1440,height:900}, {width:1366,height:768}, {width:390,height:844}, {width:375,height:667}, {width:360,height:800} ];
 
+test('public controls stay responsive while account and partners load in the background',async({page})=>{
+  let releaseSession=()=>{},releasePartners=()=>{};
+  const sessionPending=new Promise<void>(resolve=>{releaseSession=resolve;});
+  const partnersPending=new Promise<void>(resolve=>{releasePartners=resolve;});
+  await page.unroute('**/api/auth**');
+  await page.route('**/api/auth?action=session',async route=>{await sessionPending;await route.fulfill({status:401,json:{code:'DISCORD_AUTH_REQUIRED'}});});
+  await page.route('**/api/owner?public=partners',async route=>{await partnersPending;await route.fulfill({status:200,json:{code:'OK',data:[]}});});
+  await page.goto('/?lang=ar');
+  await expect(page.locator('.platform-login')).toBeEnabled();
+  await expect(page.getByTestId('hero-explore')).toBeEnabled();
+  await page.getByTestId('nav-events').click();
+  await expect(page.getByTestId('product-card-qc')).toBeEnabled();
+  releaseSession();releasePartners();
+});
+
 test('built application renders and navigates under the configured production CSP',async({page})=>{
   const config=JSON.parse(readFileSync('vercel.json','utf8'));
   const headers=Object.fromEntries(config.headers.find((rule:any)=>rule.source==='/(.*)').headers.map((entry:any)=>[entry.key,entry.value]));

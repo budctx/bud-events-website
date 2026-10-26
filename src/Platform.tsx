@@ -2,14 +2,12 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import './platform.css';
 import { HeroArtwork } from './HeroArtwork';
 import { InterfaceIcon } from './InterfaceControls';
-import { EventPreview } from './EventPreview';
 import { Seo } from './Seo';
 import { AccountMenu } from './AccountMenu';
 import { BudBadge, BudLogoCarousel, BudMagnetic, useBudToast } from './BudUI';
 import type { PartnerLogo } from './BudUI';
 import { useAccount } from './use-account';
 import { HostClientError, newHostRequestKey, purchaseEvent, resumeHostEvent, signInHost } from './host-client';
-import PaymentStatus from './PaymentStatus';
 import type { PaymentState } from './payment-state';
 import type { HostEvent } from './host-client';
 const HostPortal = lazy(() => import('./HostPortal'));
@@ -17,6 +15,9 @@ const WhopPreflight = lazy(() => import('./WhopPreflight'));
 const RedeemDialog = lazy(() => import('./RedeemDialog'));
 const Profile = lazy(() => import('./Profile'));
 const OwnerPanel = lazy(() => import('./OwnerPanel'));
+const loadEventPreview = () => import('./EventPreview').then(module => ({default:module.EventPreview}));
+const EventPreview = lazy(loadEventPreview);
+const PaymentStatus = lazy(() => import('./PaymentStatus'));
 
 type Locale = 'ar' | 'en';
 type Page = 'home' | 'events' | 'bots' | 'designs';
@@ -63,7 +64,15 @@ export default function Platform({ onPlay }: PlatformProps) {
   const t = copy.ar;
   const main = useRef<HTMLElement>(null);
 
-  useEffect(() => { let mounted=true;fetch('/api/owner?public=partners',{credentials:'omit'}).then(response=>response.ok?response.json():null).then(result=>{if(mounted&&result?.code==='OK'&&Array.isArray(result.data))setPartners(result.data);}).catch(()=>{});return()=>{mounted=false;};},[]);
+  useEffect(() => {
+    if (page !== 'home') return;
+    const controller = new AbortController(); let mounted = true;
+    const load = () => { void import('./partners-client').then(module => module.getPublicPartners(controller.signal)).then(result => { if (mounted && !controller.signal.aborted) setPartners(result); }).catch(() => {}); };
+    let idle: number | undefined, timeout: number | undefined;
+    if ('requestIdleCallback' in window) idle = window.requestIdleCallback(load, {timeout:1500});
+    else timeout = setTimeout(load, 300);
+    return () => { mounted = false; controller.abort(); if (idle !== undefined) window.cancelIdleCallback(idle); if (timeout !== undefined) clearTimeout(timeout); };
+  },[page]);
   useEffect(() => { if(notice)toast(notice,notice.includes('تعذر')||notice.includes('غير متاح')?'danger':'info'); },[notice,toast]);
   useEffect(() => { document.documentElement.lang = 'ar'; document.documentElement.dir = 'rtl'; try { localStorage.removeItem('bud-lang'); } catch { /* Legacy preferences are optional. */ } }, []);
   useEffect(() => {
@@ -91,10 +100,14 @@ export default function Platform({ onPlay }: PlatformProps) {
       else setNotice(locale === 'ar' ? 'تعذر إتمام الطلب. حاول مجددًا.' : 'Unable to complete the request. Please try again.');
     } finally { locked.current = false; setBusy(false); }
   };
-  const login = () => perform(() => signInHost({page, locale}));
+  const login = () => perform(async () => {
+    const snapshot = account.status === 'loading' ? await account.whenReady() : {session:account.session,dashboard:account.dashboard};
+    if (!snapshot.session) await signInHost({page, locale});
+  });
   const buy = () => perform(async () => {
-    if (paymentHold || account.dashboard?.paymentReview) return;
-    if (!account.session) { await signInHost({page, locale}); return; }
+    const snapshot = account.status === 'loading' ? await account.whenReady() : {session:account.session,dashboard:account.dashboard};
+    if (paymentHold || snapshot.dashboard?.paymentReview) return;
+    if (!snapshot.session) { await signInHost({page, locale}); return; }
     purchaseKey.current ??= {key:newHostRequestKey(),locale};
     try { await purchaseEvent(purchaseKey.current.key, purchaseKey.current.locale); }
     catch (reason) { if (reason instanceof HostClientError && reason.status === 503 && (reason.code.startsWith('SANDBOX_CHECKOUT_')
@@ -114,25 +127,25 @@ export default function Platform({ onPlay }: PlatformProps) {
     <Seo locale={locale} screen={page} /><a className="skip-link" href="#platform-content">{locale === 'ar' ? 'تجاوز إلى المحتوى' : 'Skip to content'}</a>
     {page === 'home' && !panel && <HeroArtwork />}
     <header className="platform-header" data-node-id="339:2072">
-      <div className="platform-header-tools">{account.session ? <AccountMenu session={account.session} locale={locale} credits={account.dashboard?.credits ?? null} busy={busy} onSupport={() => {setPanel(null); setModal('support'); setNotice('');}} onProfile={() => {setPanel('profile');setNotice('');}} onRedeem={() => setRedeemOpen(true)} onHistory={() => {setPanel('history'); setNotice('');}} onLogout={() => void perform(async () => {setPanel(null); setRedeemOpen(false); await account.logout();})} /> : <button type="button" className="platform-login" disabled={busy || account.status === 'loading'} aria-label={locale === 'ar' ? 'سجّل دخولك عبر Discord' : 'Sign in with Discord'} onClick={() => void login()}><img src="/assets/discord-symbol-white.svg" width="24" height="18" alt="" />{t.login}</button>}</div>
+      <div className="platform-header-tools">{account.session ? <AccountMenu session={account.session} locale={locale} credits={account.dashboard?.credits ?? null} busy={busy} onSupport={() => {setPanel(null); setModal('support'); setNotice('');}} onProfile={() => {setPanel('profile');setNotice('');}} onRedeem={() => setRedeemOpen(true)} onHistory={() => {setPanel('history'); setNotice('');}} onLogout={() => void perform(async () => {setPanel(null); setRedeemOpen(false); await account.logout();})} /> : <button type="button" className="platform-login" disabled={busy} aria-label={locale === 'ar' ? 'سجّل دخولك عبر Discord' : 'Sign in with Discord'} onClick={() => void login()}><img src="/assets/discord-symbol-white.svg" width="24" height="18" alt="" />{t.login}</button>}</div>
       <div className="platform-brand-navigation">
-        <nav className="platform-navigation" aria-label={locale === 'ar' ? 'التنقل الرئيسي' : 'Main navigation'}>{(['home', 'events', 'bots', 'designs'] as const).map(item => <button type="button" key={item} data-testid={`nav-${item}`} aria-label={`${t[item]}${item === 'bots' || item === 'designs' ? ` · ${t.soon}` : ''}`} aria-current={page === item ? 'page' : undefined} className={item === 'bots' || item === 'designs' ? 'platform-future-link' : ''} onClick={() => navigate(item)}><span className="platform-nav-icon"><InterfaceIcon kind={item} /></span><span className="platform-nav-label">{t[item]}{(item === 'bots' || item === 'designs') && <small> · {t.soon}</small>}</span></button>)}</nav>
+        <nav className="platform-navigation" aria-label={locale === 'ar' ? 'التنقل الرئيسي' : 'Main navigation'}>{(['home', 'events', 'bots', 'designs'] as const).map(item => <button type="button" key={item} data-testid={`nav-${item}`} aria-label={`${t[item]}${item === 'bots' || item === 'designs' ? ` · ${t.soon}` : ''}`} aria-current={page === item ? 'page' : undefined} className={item === 'bots' || item === 'designs' ? 'platform-future-link' : ''} onPointerEnter={item === 'events' ? () => { void loadEventPreview(); } : undefined} onFocus={item === 'events' ? () => { void loadEventPreview(); } : undefined} onClick={() => navigate(item)}><span className="platform-nav-icon"><InterfaceIcon kind={item} /></span><span className="platform-nav-label">{t[item]}{(item === 'bots' || item === 'designs') && <small> · {t.soon}</small>}</span></button>)}</nav>
         <button className="platform-brand" aria-label={locale === 'ar' ? 'بُعد — الرئيسية' : 'BU’D — Home'} onClick={() => navigate('home')}><Mark /><span>بُعد</span></button>
       </div>
     </header>
     {notice && <p className="platform-account-notice" role="status">{notice}</p>}
     {page === 'events' && inspectWhop && account.session && <Suspense fallback={<p role="status">{locale === 'ar' ? 'جارٍ تحميل الفحص…' : 'Loading inspection…'}</p>}><WhopPreflight key={account.session.id} locale={locale} onAuthLost={account.expire} /></Suspense>}
-    {page === 'events' && paymentOrder && account.session && <PaymentStatus key={account.session.id + paymentOrder} orderId={paymentOrder} locale={locale} onAuthLost={account.expire} onState={onReceiptState} />}
+    {page === 'events' && paymentOrder && account.session && <Suspense fallback={<p role="status">جارٍ تحميل حالة الطلب…</p>}><PaymentStatus key={account.session.id + paymentOrder} orderId={paymentOrder} locale={locale} onAuthLost={account.expire} onState={onReceiptState} /></Suspense>}
       {account.session&&<Suspense fallback={null}><RedeemDialog key={account.session.id} open={redeemOpen} onClose={()=>setRedeemOpen(false)} onRefresh={()=>void account.refresh()}/></Suspense>}
     <main id="platform-content" className={page === 'home' && !panel ? 'platform-home-main' : 'platform-gallery-main'} ref={main} tabIndex={-1} key={page}>
       {panel === 'profile' && account.session ? <Suspense fallback={<p role="status">جارٍ تحميل البروفايل…</p>}><Profile key={account.session.id} session={account.session} credits={account.dashboard?.credits ?? null} onClose={closePanel} onOwner={() => setPanel('owner')} /></Suspense> : panel === 'history' && account.session ? <Suspense fallback={<p role="status">{locale === 'ar' ? 'جارٍ تحميل السجل…' : 'Loading history…'}</p>}><HostPortal onAuthLost={account.expire} view="history" locale={locale} onExit={closePanel} onPlay={event => onPlay(event, locale)} /></Suspense> : page === 'home' ? <>
-        <section className="platform-hero" data-node-id="339:2099"><p className="platform-eyebrow">{t.eyebrow}</p><h1>{t.title}</h1><p className="platform-hero-description">{t.description}</p><div className="platform-hero-actions"><BudMagnetic><button className="platform-action platform-action-primary" data-testid="hero-explore" onClick={() => navigate('events')}>{t.explore}<span aria-hidden="true">←</span></button></BudMagnetic></div><p className="platform-hero-hint">{t.browseHint}</p>{partners.length>0&&<div className="platform-partners-mobile"><BudLogoCarousel logos={partners}/></div>}</section>
+        <section className="platform-hero" data-node-id="339:2099"><p className="platform-eyebrow">{t.eyebrow}</p><h1>{t.title}</h1><p className="platform-hero-description">{t.description}</p><div className="platform-hero-actions"><BudMagnetic><button className="platform-action platform-action-primary" data-testid="hero-explore" onPointerEnter={() => { void loadEventPreview(); }} onFocus={() => { void loadEventPreview(); }} onClick={() => navigate('events')}>{t.explore}<span aria-hidden="true">←</span></button></BudMagnetic></div><p className="platform-hero-hint">{t.browseHint}</p>{partners.length>0&&<div className="platform-partners-mobile"><BudLogoCarousel logos={partners}/></div>}</section>
         <aside className="platform-proof" aria-label={locale === 'ar' ? 'المجتمع والشركاء' : 'Community and partners'} data-node-id="359:2272"><div className="platform-review-empty"><strong>{t.review}</strong><p>{t.reviewNote}</p></div><div className="platform-partners-empty">{partners.length>0?<><strong>شركاؤنا</strong><BudLogoCarousel logos={partners}/></>:t.partners}</div></aside>
       </> : <>
         <div className="platform-gallery-intro"><h1>{page === 'events' ? t.galleryTitle : t[page]}</h1><p>{page === 'events' ? t.galleryDescription : t.soonDescription}</p>{page === 'events' && <button className="platform-action platform-action-secondary platform-event-how" data-testid="event-how" onClick={() => setModal('how')}>{t.how}</button>}</div>
-        {page === 'events' ? <article className="platform-product-card" data-node-id="383:11116"><EventPreview key={locale} locale={locale} /><div className="platform-product-information"><p className="platform-product-eyebrow">{t.productEyebrow}</p><h2>{t.product}</h2><p className="platform-product-description">{t.productDescription}</p><p className="platform-features">{t.features}</p><div className="platform-event-ownership">
+        {page === 'events' ? <article className="platform-product-card" data-node-id="383:11116"><Suspense fallback={<div className="event-preview" role="status" aria-label="جارٍ تحميل معاينة الفعالية…" />}><EventPreview key={locale} locale={locale} /></Suspense><div className="platform-product-information"><p className="platform-product-eyebrow">{t.productEyebrow}</p><h2>{t.product}</h2><p className="platform-product-description">{t.productDescription}</p><p className="platform-features">{t.features}</p><div className="platform-event-ownership">
           {account.session && (account.keysLoading ? <p role="status">{locale === 'ar' ? 'جارٍ تحميل مفاتيحك…' : 'Loading your keys…'}</p> : account.keysError ? <p>{locale === 'ar' ? 'تعذر تحميل مفاتيحك.' : 'Unable to load your keys.'} <button className="platform-inline-retry" onClick={() => void account.refresh()}>{locale === 'ar' ? 'إعادة المحاولة' : 'Retry'}</button></p> : account.dashboard && <p className="platform-event-keys" data-testid="event-keys">{locale === 'ar' ? <>لديك <bdi>{account.dashboard.credits}</bdi> مفاتيح</> : <>You have <bdi>{account.dashboard.credits}</bdi> keys</>}</p>)}
-          <div className="platform-event-actions"><button className="platform-action platform-action-primary" data-testid="product-card-qc" disabled={busy || account.status === 'loading' || paymentHold || account.dashboard?.paymentReview} onClick={() => void buy()}>{t.buy}</button>
+          <div className="platform-event-actions"><button className="platform-action platform-action-primary" data-testid="product-card-qc" disabled={busy || paymentHold || account.dashboard?.paymentReview} onClick={() => void buy()}>{t.buy}</button>
           {account.session && account.dashboard && account.dashboard.credits > 0 && !paymentHold && !account.dashboard.paymentReview && <button className="platform-action platform-action-secondary" data-testid="event-setup" disabled={busy} onClick={() => setPanel(panel === 'setup' ? null : 'setup')}>{locale === 'ar' ? 'إعداد الفعالية' : 'Set up event'}</button>}
           {ongoing && <button className="platform-action platform-action-secondary" disabled={busy||ongoing.localMissing} onClick={() => void perform(async () => onPlay(await resumeHostEvent(ongoing.eventId,account.session?.id,account.dashboard?.runtime==='browser-v1'), locale))}>{locale === 'ar' ? 'استكمال الفعالية' : 'Resume event'}</button>}</div>
           {ongoing?.localMissing&&<p className="host-local-policy">تقدم هذه الفعالية غير موجود في هذا المتصفح. <button className="platform-inline-retry" onClick={()=>setPanel('history')}>عرض سجل التشغيل</button></p>}
