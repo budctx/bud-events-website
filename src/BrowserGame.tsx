@@ -1,5 +1,6 @@
 import {useEffect,useRef,useState} from 'react';
 import Game from './Game';
+import {primePublicOfflineAssets} from './offline-shell';
 import {BrowserEventError,browserCards,readBrowserRun,saveBrowserRun,selectBrowserRun,stepBrowserRun} from './browser-event';
 import type {BrowserRun} from './browser-event';
 import type {ManualAction} from './manual-game';
@@ -7,6 +8,7 @@ export default function BrowserGame({initial,onExit}:{initial:BrowserRun;onExit:
  const [run,setRun]=useState(()=>readBrowserRun(initial.ownerId,initial.eventId)??initial);const current=useRef(run);
  const [access,setAccess]=useState<'checking'|'ready'|'locked'|'unsupported'>('checking'),[storageError,setStorageError]=useState('');
  const [expired,setExpired]=useState(()=>Date.now()>=Date.parse(run.expiresAt)&&run.state.phase!=='closing');
+ useEffect(()=>{void primePublicOfflineAssets().catch(()=>{/* In-memory gameplay continues if cache warming fails. */});},[]);
  useEffect(()=>{
   let disposed=false;let release:(()=>void)|undefined;
   if(!navigator.locks){setAccess('unsupported');return;}
