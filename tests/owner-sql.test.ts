@@ -11,7 +11,7 @@ export async function ownerFixture(){
   create table auth.identities(user_id uuid,provider text,identity_data jsonb);
   insert into auth.users(id) values('${owner}'),('${user}'),('${other}');
   insert into auth.identities values('${owner}','discord','{"full_name":"المالك","sub":"${discord}"}'),('${user}','discord','{"full_name":"مستخدم","sub":"223456789012345678"}'),('${other}','discord','{"full_name":"آخر","sub":"323456789012345678"}');`);
- for(const name of ['20261022215208_host_persistence_foundation.sql','20261023173930_production_commerce_foundation.sql','20261023193330_live_payment_queue_and_event_consumption.sql','20261023202259_live_payment_operations_and_receipts.sql','20261026042029_owner_panel_and_bonus_ledger.sql'])await db.exec(await readFile(new URL('../supabase/migrations/'+name,import.meta.url),'utf8'));
+ for(const name of ['20261022215208_host_persistence_foundation.sql','20261023173930_production_commerce_foundation.sql','20261023193330_live_payment_queue_and_event_consumption.sql','20261023202259_live_payment_operations_and_receipts.sql','20261026042029_owner_panel_and_bonus_ledger.sql','20261027123500_owner_payment_states.sql'])await db.exec(await readFile(new URL('../supabase/migrations/'+name,import.meta.url),'utf8'));
  await db.query('insert into bud_platform.platform_owners values($1,$2)',[owner,discord]);
  await db.exec('set role service_role');
  return db;
@@ -79,6 +79,29 @@ test('owner-only views, atomic source ledger and redemption receipts preserve pu
   }
  }finally{await db.close();}
 });
+test('owner payments separate never-started checkouts from unverified payment without implying a charge',async()=>{
+ const db=await ownerFixture();
+ const value=async(sql:string,args:unknown[]=[])=> (await db.query<{v:any}>(sql,args)).rows[0].v;
+ try{
+  await db.exec('reset role;update bud_platform.live_commerce_control set enabled=true;set role service_role;');
+  const create='select public.bud_live_create_order($1,$2,$3,$4,$5,$6,$7,$8) v';
+  const args=[user,'w03-payment-state-a','biz_fixture123','prod_fixture123','plan_fixture123','sar',300,'ar'];
+  const unstarted=await value(create,args);
+  const checkout=await value(create,[...args.slice(0,1),'w03-payment-state-b',...args.slice(2)]);
+  await value('select public.bud_live_attach_checkout($1,$2,$3,$4) v',[user,checkout.orderId,'ch_fixture123','https://whop.com/checkout/ch_fixture123/']);
+  const view=await value('select public.bud_owner_view($1,$2,$3) v',[owner,discord,'payments']);
+  const state=(id:string)=>view.rows.find((r:any)=>r.id===id)?.state;
+  assert.equal(state(unstarted.orderId),'checkout_not_started');
+  assert.equal(state(checkout.orderId),'checkout_unverified');
+  assert.ok(view.rows.every((r:any)=>r.state!=='pending'));
+  const overview=await value('select public.bud_owner_view($1,$2,$3) v',[owner,discord,'overview']);
+  assert.equal(overview.pendingOrders,2);
+  assert.equal(overview.checkoutNotStarted,1);
+  assert.equal(overview.checkoutUnverified,1);
+  assert.equal(await value('select count(*)::int v from bud_platform.live_credit_ledger'),0);
+ }finally{await db.close();}
+});
+
 test('operator recovery calls the existing purchase ledger transaction exactly once and retains audit',async()=>{
  const db=await ownerFixture();
  const value=async(sql:string,args:unknown[]=[])=> (await db.query<{v:any}>(sql,args)).rows[0].v;
