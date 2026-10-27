@@ -88,14 +88,14 @@ test('isolated production orchestration: real SQL, authenticated pilot, durable 
   };
   const deliver = async (messageId?: string, changes?: object) => handleProductionWebhook(await webhook(messageId, changes), env, transport);
   const resetLimits = async () => { await db.exec('reset role;delete from bud_platform.rate_limits;set role service_role'); };
-  const due = async () => { await db.exec("reset role;update bud_platform.live_payment_jobs set available_at=clock_timestamp()-interval '1 second' where status='pending';set role service_role"); };
+  const due = async () => { await db.exec("reset role;update bud_platform.live_payment_jobs set available_at=clock_timestamp()-interval '1 second' where status in ('pending','review');set role service_role"); };
   const work = () => runProductionPaymentJob(env, transport);
   const hostAction = (body: unknown, live = true, changedEnv = env) => (live ? handleLiveHost : handleHost)(new Request(origin + '/api/host', {
     method: 'POST', headers: { origin, ...edge, cookie, 'content-type': 'application/json' }, body: JSON.stringify(body) }), changedEnv, transport);
   const credits = async () => (await db.query<{ credits: number }>('select credits from bud_platform.live_wallets where host_id=$1', [host])).rows[0]?.credits ?? 0;
   try {
     await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key);insert into auth.users values('${host}'),('${other}');`);
-    for (const name of ['20261022215208_host_persistence_foundation.sql', '20261023083912_launch_sandbox_hardening.sql', '20261023173930_production_commerce_foundation.sql', '20261023193330_live_payment_queue_and_event_consumption.sql', '20261023202259_live_payment_operations_and_receipts.sql', '20261025093000_question_condition_activity_draw.sql','20261025093001_question_condition_live_draw.sql'])
+    for (const name of ['20261022215208_host_persistence_foundation.sql', '20261023083912_launch_sandbox_hardening.sql', '20261023173930_production_commerce_foundation.sql', '20261023193330_live_payment_queue_and_event_consumption.sql', '20261023202259_live_payment_operations_and_receipts.sql', '20261025093000_question_condition_activity_draw.sql','20261025093001_question_condition_live_draw.sql','20261027094000_payment_permanent_review.sql'])
       await db.exec(await readFile(new URL('../supabase/migrations/' + name, import.meta.url), 'utf8'));
     await db.query('insert into bud_platform.wallets(host_id,credits) values($1,5)', [host]);
     await db.exec('set role service_role');
