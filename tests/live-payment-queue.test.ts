@@ -10,7 +10,7 @@ test('live queue SQL fences expired workers, retains retries/review and denies p
   const host = '11111111-1111-4111-8111-111111111111';
   try {
     await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key);insert into auth.users values('${host}');`);
-    for (const name of ['20261022215208_host_persistence_foundation.sql', '20261023173930_production_commerce_foundation.sql', '20261023193330_live_payment_queue_and_event_consumption.sql'])
+    for (const name of ['20261022215208_host_persistence_foundation.sql', '20261023173930_production_commerce_foundation.sql', '20261023193330_live_payment_queue_and_event_consumption.sql','20261027094000_payment_permanent_review.sql'])
       await db.exec(await readFile(new URL('../supabase/migrations/' + name, import.meta.url), 'utf8'));
     await db.exec('set role service_role');
     // Intake survives a pause; it does not grant money/credit or bypass fulfillment control.
@@ -46,6 +46,16 @@ test('live queue SQL fences expired workers, retains retries/review and denies p
     await db.exec("reset role;update bud_platform.live_payment_jobs set lease_until=clock_timestamp()-interval '1 second' where status='processing';set role service_role");
     assert.deepEqual(await call('bud_live_claim_payments', [1]), []);
     status = await call('bud_live_queue_status'); assert.equal(status.review, 2); assert.equal(status.processing, 0);
+    await call('bud_live_enqueue_payment', ['msg_terminal123', 'pay_terminal123']);
+    const terminal = (await call('bud_live_claim_payments', [1]))[0];
+    assert.ok(terminal);
+    await call('bud_live_retry_payment', [terminal.messageId, terminal.leaseToken, 'PAYMENT_REVIEW']);
+    status = await call('bud_live_queue_status');
+    assert.equal(status.review, 3);
+    assert.equal(status.pending, 0);
+    await call('bud_live_enqueue_payment', ['msg_terminal123', 'pay_terminal123']);
+    assert.deepEqual(await call('bud_live_claim_payments', [1]), []);
+    await assert.rejects(call('bud_live_retry_payment', [terminal.messageId, terminal.leaseToken, 'PAYMENT_REVIEW']), /BUD_LIVE_LEASE_LOST/);
     assert.equal((await call('bud_live_balance', [host])).credits, 0);
     assert.equal((await db.query<{ n: number }>('select count(*)::int n from bud_platform.live_credit_ledger')).rows[0].n, 0);
     for (const role of ['anon', 'authenticated']) {
