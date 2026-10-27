@@ -31,7 +31,12 @@ test('partner carousel is published-only and owner can manage entries through co
  await page.getByRole('navigation',{name:'أقسام لوحة المالك'}).getByRole('button',{name:/الشركاء/}).click();
  await expect(page.getByRole('heading',{name:'إضافة شريك'})).toBeVisible();
  await page.getByLabel('اسم الشريك').fill('شريك بُعد');
+ await page.getByLabel(/رابط الشعار/).fill('https://img2url.org/i/a7110c1a0b05b9d19765bb84');
+ await expect(page.getByRole('alert')).toContainText('رابط الشعار يجب أن يكون HTTPS وينتهي بـ .png');
+ await expect(page.getByRole('button',{name:'مراجعة الحفظ'})).toBeDisabled();
  await page.getByLabel(/رابط الشعار/).fill('https://cdn.example.com/logo.png');
+ await expect(page.locator('#owner-partner-logo-error')).toHaveCount(0);
+ await expect(page.getByRole('button',{name:'مراجعة الحفظ'})).toBeEnabled();
  await page.getByRole('button',{name:'مراجعة الحفظ'}).click();
  await expect(page.getByRole('dialog').getByRole('heading',{name:'إضافة شريك جديد'})).toBeVisible();
  await page.getByRole('dialog').getByLabel('سبب الإجراء').fill('شريك تم اعتماده');
