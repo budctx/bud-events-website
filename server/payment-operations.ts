@@ -99,6 +99,7 @@ export async function diagnoseReviewedPayment(env: CommerceEnv, transport: typeo
     // Whop may omit a disputes array in payment GET. Test its separate dispute
     // listing API using a bounded, payment-date-scoped, read-only complete scan.
     let disputeList: 'clear' | 'active' | 'incomplete' | 'unavailable' | undefined;
+    let disputeListReason: 'access_denied' | 'rejected' | 'not_found' | 'schema_or_network' | undefined;
     if (fields.some(field => ['disputes_null','disputes_absent','disputes_format'].includes(field))) {
       try {
         const when = typeof payment.created_at === 'string' && Number.isFinite(Date.parse(payment.created_at))
@@ -124,10 +125,16 @@ export async function diagnoseReviewedPayment(env: CommerceEnv, transport: typeo
           after = listing.page_info.end_cursor;
         }
         disputeList ??= 'incomplete';
-      } catch { disputeList = 'unavailable'; }
+      } catch (error) {
+        disputeList = 'unavailable';
+        disputeListReason = error instanceof WhopError && error.code === 'WHOP_PRODUCTION_ACCESS_DENIED' ? 'access_denied'
+          : error instanceof WhopError && error.code === 'WHOP_PRODUCTION_REQUEST_REJECTED' ? 'rejected'
+          : error instanceof WhopError && error.code === 'WHOP_PRODUCTION_RESOURCE_NOT_FOUND' ? 'not_found' : 'schema_or_network';
+      }
     }
     return { stage: fields.length ? 'payment_contract' : 'verified_unfulfilled', fields,
-      ...(alternateDisputes ? { alternateDisputes } : {}), ...(disputeList ? { disputeList } : {}) };
+      ...(alternateDisputes ? { alternateDisputes } : {}), ...(disputeList ? { disputeList } : {}),
+      ...(disputeListReason ? { disputeListReason } : {}) };
   } catch {
     // A provider/network/backend error is not proof that a paid invoice is invalid.
     return { stage, fields: ['unavailable'] };
