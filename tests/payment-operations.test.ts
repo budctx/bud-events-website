@@ -36,6 +36,12 @@ test('payment operations: protected worker, own receipts, authoritative refund h
     }
     assert.equal(url.origin, 'https://api.whop.com'); assert.equal(init?.method ?? 'GET', 'GET'); providerCalls++;
     if (unavailable) return new Response('fixture-provider-secret', { status: 503 });
+    if (url.pathname === '/api/v1/disputes') {
+      assert.equal(url.searchParams.get('account_id'), env.WHOP_PRODUCTION_COMPANY_ID);
+      assert.equal(url.searchParams.get('first'), '50');
+      assert.ok(url.searchParams.get('created_after'));
+      return Response.json({ data: [], page_info: { has_next_page: false, end_cursor: null } });
+    }
     assert.equal(url.pathname, '/api/v1/payments/pay_operations123');
     return Response.json({ id: 'pay_operations123', company: { id: env.WHOP_PRODUCTION_COMPANY_ID }, product: { id: env.WHOP_PRODUCTION_PRODUCT_ID },
       plan: { id: env.WHOP_PRODUCTION_PLAN_ID }, metadata: badMetadata ? {} : { bud_order_id: orderId, bud_environment: 'production' }, total: 2, currency: 'sar',
@@ -91,7 +97,7 @@ test('payment operations: protected worker, own receipts, authoritative refund h
       badMetadata = false;
       badDisputes = true;
       const disputed = await handlePaymentWorker(workerRequest('?diagnose=1'), env, transport);
-      assert.deepEqual((await disputed.json()).data, { stage: 'payment_contract', fields: ['disputes_null'], alternateDisputes: 'clear' });
+      assert.deepEqual((await disputed.json()).data, { stage: 'payment_contract', fields: ['disputes_null'], alternateDisputes: 'clear', disputeList: 'clear' });
       badDisputes = false;
       const after = (await db.query<{ n: number }>('select count(*)::int n from bud_platform.live_credit_ledger')).rows[0].n;
       assert.equal(before, after);
