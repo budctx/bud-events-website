@@ -444,7 +444,17 @@
 }
 /* If the readable content cannot fit a short landscape screen, scroll rather
    than cutting it off or overlapping the footer. */
-@media (min-width:701px) and (max-height:620px) {
+@media (min-width:701px) and (min-height:501px) and (max-height:620px) {
  .platform-home { height:auto; min-height:100dvh; }
  .platform-home .platform-home-main { min-height:475px; }
+}
+/* Preserve the previously approved one-screen tablet-landscape layout. */
+@media (min-width:701px) and (max-width:1000px) and (max-height:500px) {
+ .platform-home { height:100dvh; min-height:100dvh; }
+ .platform-home .platform-header { height:54px; }
+ .platform-home .platform-home-main { min-height:0; }
+ .platform-home .platform-hero { align-self:start; padding-top:8px; }
+ .platform-home .platform-hero h1 { font-size:26px; line-height:1.2; margin-block:5px; }
+ .platform-home .platform-hero-actions { margin-top:10px; }
+ .platform-home .platform-footer { height:32px; min-height:32px; }
 }
