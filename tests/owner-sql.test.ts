@@ -83,7 +83,7 @@ test('owner payments separate never-started checkouts from unverified payment wi
  const db=await ownerFixture();
  const value=async(sql:string,args:unknown[]=[])=> (await db.query<{v:any}>(sql,args)).rows[0].v;
  try{
-  await db.exec('reset role;update bud_platform.live_commerce_control set enabled=true;set role service_role;');
+  await db.exec('reset role;update bud_platform.live_commerce_control set enabled=true,fulfillment_enabled=true;set role service_role;');
   const create='select public.bud_live_create_order($1,$2,$3,$4,$5,$6,$7,$8) v';
   const args=[user,'w03-payment-state-a','biz_fixture123','prod_fixture123','plan_fixture123','sar',300,'ar'];
   const unstarted=await value(create,args);
