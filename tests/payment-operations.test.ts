@@ -19,7 +19,7 @@ test('payment operations: protected worker, own receipts, authoritative refund h
     WHOP_PRODUCTION_COMPANY_ID: 'biz_fixture123', WHOP_PRODUCTION_PRODUCT_ID: 'prod_fixture123', WHOP_PRODUCTION_PLAN_ID: 'plan_fixture123',
     WHOP_PRODUCTION_CURRENCY: 'sar', WHOP_PRODUCTION_AMOUNT_MINOR: '200', WHOP_PRODUCTION_WEBHOOK_API_VERSION: '2026-10-15-1', BUD_WHOP_PILOT_HOST_ID: host,
     BUD_PAYMENT_WORKER_ENABLED: 'true', BUD_LIVE_RECEIPTS_ENABLED: 'true', BUD_LIVE_HOST_ENABLED: 'true', CRON_SECRET: 'fixture-only-cron-secret-with-32-characters' };
-  let cookie = '', orderId = '', providerCalls = 0, refunded = false, unavailable = false, badMetadata = false;
+  let cookie = '', orderId = '', providerCalls = 0, refunded = false, unavailable = false, badMetadata = false, badDisputes = false;
   const value = async (name: string, params: Record<string, unknown>) => {
     const entries = Object.entries(params);
     return (await db.query<{ result: any }>(`select public.${name}(${entries.map(([key], i) => key + ' => $' + (i + 1)).join(',')}) as result`, entries.map(([, v]) => v))).rows[0].result;
@@ -40,7 +40,7 @@ test('payment operations: protected worker, own receipts, authoritative refund h
     return Response.json({ id: 'pay_operations123', company: { id: env.WHOP_PRODUCTION_COMPANY_ID }, product: { id: env.WHOP_PRODUCTION_PRODUCT_ID },
       plan: { id: env.WHOP_PRODUCTION_PLAN_ID }, metadata: badMetadata ? {} : { bud_order_id: orderId, bud_environment: 'production' }, total: 2, currency: 'sar',
       checkout_configuration_id: 'ch_operations123', status: refunded ? 'refunded' : 'paid', substatus: 'succeeded', paid_at: '2026-10-23T10:00:00Z',
-      refunded_amount: refunded ? 2 : 0, refunded_at: refunded ? '2026-10-23T11:00:00Z' : null, auto_refunded: false, disputes: [], customer_email: 'must-not-leak@example.test' });
+      refunded_amount: refunded ? 2 : 0, refunded_at: refunded ? '2026-10-23T11:00:00Z' : null, auto_refunded: false, disputes: badDisputes && new Headers(init?.headers).get('api-version-date') !== '2026-10-15-1' ? null : [], customer_email: 'must-not-leak@example.test' });
   };
   const workerRequest = (query = '') => new Request(origin + '/api/payment-worker' + query, { headers: { authorization: 'Bearer ' + env.CRON_SECRET } });
   const receiptRequest = (id = orderId) => new Request(origin + '/api/payment-status', { method: 'POST', headers: { origin, ...edge, cookie, 'content-type': 'application/json' }, body: JSON.stringify({ orderId: id }) });
@@ -89,6 +89,10 @@ test('payment operations: protected worker, own receipts, authoritative refund h
       const bad = await handlePaymentWorker(workerRequest('?diagnose=1'), env, transport);
       assert.deepEqual((await bad.json()).data, { stage: 'provider_metadata', fields: ['order_metadata','environment_metadata'] });
       badMetadata = false;
+      badDisputes = true;
+      const disputed = await handlePaymentWorker(workerRequest('?diagnose=1'), env, transport);
+      assert.deepEqual((await disputed.json()).data, { stage: 'payment_contract', fields: ['disputes_null'], alternateDisputes: 'clear' });
+      badDisputes = false;
       const after = (await db.query<{ n: number }>('select count(*)::int n from bud_platform.live_credit_ledger')).rows[0].n;
       assert.equal(before, after);
       assert.doesNotMatch(JSON.stringify(result), /pay_operations|orderId|customer|fixture-provider|fixture-service/);
