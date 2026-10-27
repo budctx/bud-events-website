@@ -78,10 +78,26 @@ export async function diagnoseReviewedPayment(env: CommerceEnv, transport: typeo
     check('refund_amount', payment.refunded_amount === 0);
     check('auto_refund', payment.auto_refunded === false);
     check('refunded_at', payment.refunded_at === null);
-    check('disputes', Array.isArray(payment.disputes) && payment.disputes.length === 0);
+    if (!Array.isArray(payment.disputes)) fields.push(payment.disputes === null ? 'disputes_null' :
+      payment.disputes === undefined ? 'disputes_absent' : 'disputes_format');
+    else check('disputes_nonempty', payment.disputes.length === 0);
     try { assertProductionPaymentMatches(payment, stored as ProductionOrder, config); }
     catch { if (fields.length === 0) fields.push('additional_contract'); }
-    return { stage: fields.length ? 'payment_contract' : 'verified_unfulfilled', fields };
+    // A second strictly read-only GET tests whether the explicitly supported newer
+    // Whop API pin supplies authoritative dispute data that the legacy pin omitted.
+    // Never use the diagnostic response to fulfill or restart the payment.
+    let alternateDisputes: 'clear' | 'active' | 'missing' | 'identity_mismatch' | 'unavailable' | undefined;
+    if (fields.some(field => ['disputes_null','disputes_absent','disputes_format'].includes(field))) {
+      try {
+        const newer = await productionProvider('/payments/' + encodeURIComponent(candidate.paymentId), config, transport, {}, '2026-10-15-1');
+        if (newer.id !== candidate.paymentId || !object(newer.metadata) || newer.metadata.bud_order_id !== orderId
+          || newer.metadata.bud_environment !== 'production') alternateDisputes = 'identity_mismatch';
+        else if (!Array.isArray(newer.disputes)) alternateDisputes = 'missing';
+        else alternateDisputes = newer.disputes.length === 0 ? 'clear' : 'active';
+      } catch { alternateDisputes = 'unavailable'; }
+    }
+    return { stage: fields.length ? 'payment_contract' : 'verified_unfulfilled', fields,
+      ...(alternateDisputes ? { alternateDisputes } : {}) };
   } catch {
     // A provider/network/backend error is not proof that a paid invoice is invalid.
     return { stage, fields: ['unavailable'] };
