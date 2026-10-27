@@ -19,7 +19,7 @@ test('payment operations: protected worker, own receipts, authoritative refund h
     WHOP_PRODUCTION_COMPANY_ID: 'biz_fixture123', WHOP_PRODUCTION_PRODUCT_ID: 'prod_fixture123', WHOP_PRODUCTION_PLAN_ID: 'plan_fixture123',
     WHOP_PRODUCTION_CURRENCY: 'sar', WHOP_PRODUCTION_AMOUNT_MINOR: '200', WHOP_PRODUCTION_WEBHOOK_API_VERSION: '2026-10-15-1', BUD_WHOP_PILOT_HOST_ID: host,
     BUD_PAYMENT_WORKER_ENABLED: 'true', BUD_LIVE_RECEIPTS_ENABLED: 'true', BUD_LIVE_HOST_ENABLED: 'true', CRON_SECRET: 'fixture-only-cron-secret-with-32-characters' };
-  let cookie = '', orderId = '', providerCalls = 0, refunded = false, unavailable = false;
+  let cookie = '', orderId = '', providerCalls = 0, refunded = false, unavailable = false, badMetadata = false;
   const value = async (name: string, params: Record<string, unknown>) => {
     const entries = Object.entries(params);
     return (await db.query<{ result: any }>(`select public.${name}(${entries.map(([key], i) => key + ' => $' + (i + 1)).join(',')}) as result`, entries.map(([, v]) => v))).rows[0].result;
@@ -38,7 +38,7 @@ test('payment operations: protected worker, own receipts, authoritative refund h
     if (unavailable) return new Response('fixture-provider-secret', { status: 503 });
     assert.equal(url.pathname, '/api/v1/payments/pay_operations123');
     return Response.json({ id: 'pay_operations123', company: { id: env.WHOP_PRODUCTION_COMPANY_ID }, product: { id: env.WHOP_PRODUCTION_PRODUCT_ID },
-      plan: { id: env.WHOP_PRODUCTION_PLAN_ID }, metadata: { bud_order_id: orderId, bud_environment: 'production' }, total: 2, currency: 'sar',
+      plan: { id: env.WHOP_PRODUCTION_PLAN_ID }, metadata: badMetadata ? {} : { bud_order_id: orderId, bud_environment: 'production' }, total: 2, currency: 'sar',
       checkout_configuration_id: 'ch_operations123', status: refunded ? 'refunded' : 'paid', substatus: 'succeeded', paid_at: '2026-10-23T10:00:00Z',
       refunded_amount: refunded ? 2 : 0, refunded_at: refunded ? '2026-10-23T11:00:00Z' : null, auto_refunded: false, disputes: [], customer_email: 'must-not-leak@example.test' });
   };
@@ -49,7 +49,7 @@ test('payment operations: protected worker, own receipts, authoritative refund h
   const due = async () => { await db.exec("reset role;update bud_platform.live_reconciliation set next_check_at=clock_timestamp()-interval '1 second';set role service_role"); };
   try {
     await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key);insert into auth.users values('${host}'),('${other}');`);
-    for (const migration of ['20261022215208_host_persistence_foundation.sql','20261023083912_launch_sandbox_hardening.sql','20261023173930_production_commerce_foundation.sql','20261023193330_live_payment_queue_and_event_consumption.sql','20261023202259_live_payment_operations_and_receipts.sql','20261025093000_question_condition_activity_draw.sql','20261025093001_question_condition_live_draw.sql'])
+    for (const migration of ['20261022215208_host_persistence_foundation.sql','20261023083912_launch_sandbox_hardening.sql','20261023173930_production_commerce_foundation.sql','20261023193330_live_payment_queue_and_event_consumption.sql','20261023202259_live_payment_operations_and_receipts.sql','20261025093000_question_condition_activity_draw.sql','20261025093001_question_condition_live_draw.sql','20261027081000_payment_readonly_review_probe.sql'])
       await db.exec(await readFile(new URL('../supabase/migrations/' + migration, import.meta.url), 'utf8'));
     await db.exec("update bud_platform.live_commerce_control set enabled=true,fulfillment_enabled=true,host_enabled=true;update bud_platform.content_versions set eligible_pairs='[[\"0\",\"0\"],[\"1\",\"1\"]]'::jsonb,status='published';update bud_platform.products set status='published';set role service_role");
     const begin = await handleAuth(new Request(origin + '/api/auth?action=signin', { method: 'POST', headers: { origin, ...edge } }), env, transport);
@@ -74,6 +74,27 @@ test('payment operations: protected worker, own receipts, authoritative refund h
         p_plan: env.WHOP_PRODUCTION_PLAN_ID, p_currency: 'sar', p_amount: 200, p_locale: 'ar' });
       assert.equal((await handlePaymentStatus(receiptRequest(foreign.orderId), env, transport)).status, 404);
       assert.equal((await handlePaymentStatus(receiptRequest(), { ...env, BUD_WHOP_PILOT_HOST_ID: other }, transport)).status, 403);
+    });
+    await t.test('diagnosis reads provider without crediting or exposing identities', async () => {
+      await value('bud_live_enqueue_payment', { p_message: 'msg_operations123', p_payment: 'pay_operations123' });
+      await db.exec("reset role;update bud_platform.live_payment_jobs set status='review' where message_id='msg_operations123';set role service_role");
+      const before = (await db.query<{ n: number }>('select count(*)::int n from bud_platform.live_credit_ledger')).rows[0].n;
+      const ok = await handlePaymentWorker(workerRequest('?diagnose=1'), env, transport);
+      assert.equal(ok.status, 200);
+      const result = await ok.json();
+      assert.equal(result.code, 'PAYMENT_DIAGNOSIS');
+      assert.equal(result.data.stage, 'verified_unfulfilled');
+      assert.deepEqual(result.data.fields, []);
+      badMetadata = true;
+      const bad = await handlePaymentWorker(workerRequest('?diagnose=1'), env, transport);
+      assert.deepEqual((await bad.json()).data, { stage: 'provider_metadata', fields: ['order_metadata','environment_metadata'] });
+      badMetadata = false;
+      const after = (await db.query<{ n: number }>('select count(*)::int n from bud_platform.live_credit_ledger')).rows[0].n;
+      assert.equal(before, after);
+      assert.doesNotMatch(JSON.stringify(result), /pay_operations|orderId|customer|fixture-provider|fixture-service/);
+      await db.exec("reset role;set role authenticated");
+      await assert.rejects(value('bud_live_review_candidate', {}), /permission denied/);
+      await db.exec("reset role;update bud_platform.live_payment_jobs set status='pending',available_at=clock_timestamp()-interval '1 second' where message_id='msg_operations123';set role service_role");
     });
     await t.test('authorized worker grants once, heartbeat and sanitized health show progress', async () => {
       await value('bud_live_enqueue_payment', { p_message: 'msg_operations123', p_payment: 'pay_operations123' });
