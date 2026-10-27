@@ -1,4 +1,9 @@
 -- Terminal review for deterministic provider/payment contract conflicts.
+-- Expand the existing safe, fixed retry-code enum before the worker can write PAYMENT_REVIEW.
+alter table bud_platform.live_payment_jobs drop constraint live_payment_jobs_last_code_check;
+alter table bud_platform.live_payment_jobs add constraint live_payment_jobs_last_code_check
+check (last_code in ('PROVIDER_RETRY','PAYMENT_RETRY','PAYMENT_REVIEW','BACKEND_RETRY','ATTEMPTS_EXHAUSTED'));
+
 -- Existing transient retry/backoff, service-only grants, and ledger fencing remain unchanged.
 create or replace function public.bud_live_retry_payment(p_message text, p_lease uuid, p_code text)
 returns jsonb language plpgsql set search_path to ''
