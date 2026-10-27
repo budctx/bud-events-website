@@ -96,8 +96,38 @@ export async function diagnoseReviewedPayment(env: CommerceEnv, transport: typeo
         else alternateDisputes = newer.disputes.length === 0 ? 'clear' : 'active';
       } catch { alternateDisputes = 'unavailable'; }
     }
+    // Whop may omit a disputes array in payment GET. Test its separate dispute
+    // listing API using a bounded, payment-date-scoped, read-only complete scan.
+    let disputeList: 'clear' | 'active' | 'incomplete' | 'unavailable' | undefined;
+    if (fields.some(field => ['disputes_null','disputes_absent','disputes_format'].includes(field))) {
+      try {
+        const when = typeof payment.created_at === 'string' && Number.isFinite(Date.parse(payment.created_at))
+          ? payment.created_at : payment.paid_at;
+        if (typeof when !== 'string' || !Number.isFinite(Date.parse(when))) throw new Error();
+        const start = new Date(Date.parse(when) - 86_400_000).toISOString();
+        let after: string | null = null;
+        for (let page = 0; page < 5; page++) {
+          const query = new URLSearchParams({ account_id: config.company, first: '50', created_after: start });
+          if (after) query.set('after', after);
+          const listing = await productionProvider('/disputes?' + query.toString(), config, transport);
+          if (!Array.isArray(listing.data) || !object(listing.page_info)
+            || typeof listing.page_info.has_next_page !== 'boolean') throw new Error();
+          for (const item of listing.data) {
+            if (!object(item) || !object(item.payment) || !object(item.company)
+              || item.company.id !== config.company || typeof item.payment.id !== 'string') throw new Error();
+            if (item.payment.id === candidate.paymentId) disputeList = 'active';
+          }
+          if (disputeList === 'active') break;
+          if (!listing.page_info.has_next_page) { disputeList = 'clear'; break; }
+          if (typeof listing.page_info.end_cursor !== 'string' || !listing.page_info.end_cursor
+            || listing.page_info.end_cursor === after) throw new Error();
+          after = listing.page_info.end_cursor;
+        }
+        disputeList ??= 'incomplete';
+      } catch { disputeList = 'unavailable'; }
+    }
     return { stage: fields.length ? 'payment_contract' : 'verified_unfulfilled', fields,
-      ...(alternateDisputes ? { alternateDisputes } : {}) };
+      ...(alternateDisputes ? { alternateDisputes } : {}), ...(disputeList ? { disputeList } : {}) };
   } catch {
     // A provider/network/backend error is not proof that a paid invoice is invalid.
     return { stage, fields: ['unavailable'] };
