@@ -86,7 +86,10 @@ for(const viewport of [
   expect(viewport.width-metrics.identity.right).toBeLessThanOrEqual(68);
   expect(viewport.width-metrics.footerLinks.right).toBeGreaterThanOrEqual(60);
   expect(viewport.width-metrics.footerLinks.right).toBeLessThanOrEqual(68);
-  expect(metrics.navigation.left).toBeGreaterThanOrEqual(metrics.brand.right-1);
+  expect(metrics.navigation.left).toBeGreaterThanOrEqual(metrics.brand.right+12);
+  expect(metrics.navigation.right).toBeLessThanOrEqual(metrics.identity.left-12);
+  expect((metrics.navigation.left+metrics.navigation.right)/2).toBeGreaterThanOrEqual(viewport.width/2-4);
+  expect((metrics.navigation.left+metrics.navigation.right)/2).toBeLessThanOrEqual(viewport.width/2+4);
   expect(metrics.headline.right).toBeLessThanOrEqual(viewport.width-60);
   expect(metrics.headline.right).toBeGreaterThanOrEqual(viewport.width-69);
   expect(metrics.horizontalOverflow).toBeLessThanOrEqual(1);
