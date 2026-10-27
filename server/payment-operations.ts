@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { liveBackend, liveResponse, liveRpc, runProductionPaymentJob } from './live-commerce.ts';
-import { assertProductionPaymentIdentity, lookupProductionPayment, productionPaymentCondition, whopProductionProcessingConfig } from './whop-production.ts';
+import { assertProductionPaymentIdentity, assertProductionPaymentMatches, lookupProductionPayment, productionOrderMatches, productionPaymentCondition, productionProvider, whopProductionProcessingConfig } from './whop-production.ts';
 import type { ProductionOrder } from './whop-production.ts';
 import { WhopError } from './whop.ts';
 import type { CommerceEnv } from './whop.ts';
@@ -31,6 +31,63 @@ export async function reconcileProductionPayment(env: CommerceEnv, transport: ty
   return { processed: 1, attention: state !== 'clear' };
 }
 
+
+/**
+ * Read-only diagnosis for an exhausted payment. This never claims a lease,
+ * restarts a job, creates an order, grants credit or returns provider data.
+ * Only fixed field names are returned to the authenticated cron caller.
+ */
+export async function diagnoseReviewedPayment(env: CommerceEnv, transport: typeof fetch = fetch) {
+  const secret = liveBackend(env), config = whopProductionProcessingConfig(env);
+  if (!secret || !config) throw new WhopError('DIAGNOSIS_NOT_CONFIGURED');
+  const candidate = await liveRpc('bud_live_review_candidate', {}, secret, transport);
+  if (candidate === null) return { stage: 'no_review', fields: [] as string[] };
+  if (!object(candidate) || typeof candidate.paymentId !== 'string' || !/^pay_[A-Za-z0-9]{5,80}$/.test(candidate.paymentId))
+    throw new WhopError('DIAGNOSIS_UNCONFIRMED');
+  let stage = 'provider_read';
+  try {
+    const payment = await productionProvider('/payments/' + encodeURIComponent(candidate.paymentId), config, transport);
+    if (payment.id !== candidate.paymentId) return { stage: 'provider_identity', fields: ['payment_id'] };
+    const metadata = object(payment.metadata) ? payment.metadata : null;
+    const orderId = metadata?.bud_order_id;
+    if (typeof orderId !== 'string' || !uuid.test(orderId) || metadata?.bud_environment !== 'production') {
+      const fields: string[] = [];
+      if (typeof orderId !== 'string' || !uuid.test(orderId)) fields.push('order_metadata');
+      if (metadata?.bud_environment !== 'production') fields.push('environment_metadata');
+      return { stage: 'provider_metadata', fields };
+    }
+    stage = 'server_order';
+    const stored = await liveRpc('bud_live_order', { p_order: orderId }, secret, transport);
+    if (!object(stored) || !productionOrderMatches(stored as ProductionOrder, config)
+      || stored.orderId !== orderId || stored.fulfilled !== false
+      || typeof stored.checkoutId !== 'string' || typeof stored.checkoutUrl !== 'string')
+      return { stage: 'server_order', fields: ['order_contract'] };
+    stage = 'payment_contract';
+    const fields: string[] = [];
+    const check = (name: string, passes: boolean) => { if (!passes) fields.push(name); };
+    check('checkout', payment.checkout_configuration_id === stored.checkoutId);
+    check('company', object(payment.company) && payment.company.id === stored.companyId);
+    check('product', object(payment.product) && payment.product.id === stored.productId);
+    check('plan', object(payment.plan) && payment.plan.id === stored.planId);
+    check('currency', payment.currency === stored.currency);
+    check('amount', typeof payment.total === 'number' && Number.isFinite(payment.total)
+      && /^\\d{1,7}(?:\\.\\d{1,2})?$/.test(String(payment.total)) && Math.round(payment.total * 100) === stored.amountMinor);
+    check('status', payment.status === 'paid');
+    check('substatus', payment.substatus === 'succeeded');
+    check('paid_at', typeof payment.paid_at === 'string' && Number.isFinite(Date.parse(payment.paid_at)));
+    check('refund_amount', payment.refunded_amount === 0);
+    check('auto_refund', payment.auto_refunded === false);
+    check('refunded_at', payment.refunded_at === null);
+    check('disputes', Array.isArray(payment.disputes) && payment.disputes.length === 0);
+    try { assertProductionPaymentMatches(payment, stored as ProductionOrder, config); }
+    catch { if (fields.length === 0) fields.push('additional_contract'); }
+    return { stage: fields.length ? 'payment_contract' : 'verified_unfulfilled', fields };
+  } catch {
+    // A provider/network/backend error is not proof that a paid invoice is invalid.
+    return { stage, fields: ['unavailable'] };
+  }
+}
+
 function authorized(request: Request, secret: string | undefined) {
   const header = request.headers.get('authorization') ?? '';
   if (!secret || !/^[A-Za-z0-9_-]{32,128}$/.test(secret) || header.length > 256) return false;
@@ -49,6 +106,10 @@ export async function handlePaymentWorker(request: Request, env: CommerceEnv = e
   if (url.origin !== env.BUD_APP_ORIGIN || [...url.searchParams.keys()].some(key => key !== 'health') || request.body !== null)
     return liveResponse(400, 'INVALID_WORKER_REQUEST');
   try {
+    if (url.search === '?diagnose=1' && task === 'payments') {
+      const diagnosis = await diagnoseReviewedPayment(env, transport);
+      return liveResponse(200, 'PAYMENT_DIAGNOSIS', diagnosis);
+    }
     if (url.search) {
       if (url.search !== '?health=1') return liveResponse(400, 'INVALID_WORKER_REQUEST');
       const health = await liveRpc('bud_live_operations_health', {}, secret, transport);
