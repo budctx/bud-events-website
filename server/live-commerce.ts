@@ -3,7 +3,7 @@ import { resolveSession } from './auth.ts';
 import { enforceRateLimit } from './rate-limit.ts';
 import { boundedProviderText, WhopError } from './whop.ts';
 import type { CommerceEnv } from './whop.ts';
-import { assertProductionCheckoutUrl, assertProductionPaymentMatches, createProductionCheckout, lookupProductionPayment,
+import { assertProductionCheckoutUrl, assertProductionPaymentIdentity, assertProductionPaymentMatches, createProductionCheckout, lookupProductionPayment,
   ProductionPlanMismatch, productionOrderMatches, verifyProductionWebhook, whopProductionConfig, whopProductionProcessingConfig } from './whop-production.ts';
 import type { ProductionConfig, ProductionOrder } from './whop-production.ts';
 import { liveHostAllowed } from './live-access.ts';
@@ -134,11 +134,19 @@ export async function runProductionPaymentJob(env: CommerceEnv, transport: typeo
     || typeof job.paymentId !== 'string' || !/^pay_[A-Za-z0-9]{5,80}$/.test(job.paymentId)
     || typeof job.leaseToken !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(job.leaseToken))
     throw new WhopError('LIVE_QUEUE_UNCONFIRMED');
+  // Deliberately fixed stage names only: no payment IDs, body, PII, tokens, or amounts in logs.
+  let verificationStage: 'provider_lookup' | 'order_lookup' | 'order_binding' | 'payment_identity' | 'payment_status' | 'ledger_write' = 'provider_lookup';
   try {
     const { orderId, payment } = await lookupProductionPayment(job.paymentId, config, transport);
+    verificationStage = 'order_lookup';
     const stored = order(await rpc('bud_live_order', { p_order: orderId }, secret, transport), config);
+    verificationStage = 'order_binding';
     if (stored.orderId !== orderId) throw new WhopError('LIVE_ORDER_MISMATCH', 409);
+    verificationStage = 'payment_identity';
+    assertProductionPaymentIdentity(payment, stored, config);
+    verificationStage = 'payment_status';
     assertProductionPaymentMatches(payment, stored, config);
+    verificationStage = 'ledger_write';
     const receipt = await rpc('bud_live_finish_payment', { p_message: job.messageId, p_lease: job.leaseToken, p_order: stored.orderId,
       p_company: stored.companyId, p_product: stored.productId, p_plan: stored.planId, p_currency: stored.currency,
       p_amount: stored.amountMinor, p_checkout: stored.checkoutId, p_payment: job.paymentId }, secret, transport);
@@ -146,6 +154,9 @@ export async function runProductionPaymentJob(env: CommerceEnv, transport: typeo
       throw new WhopError('LIVE_FULFILLMENT_UNCONFIRMED');
     return { processed: 1, completed: 1, retryRecorded: 0, unconfirmed: 0 };
   } catch (error) {
+    if (error instanceof WhopError && error.status === 409) {
+      console.warn(JSON.stringify({ event: 'bud_payment_verification_blocked', stage: verificationStage }));
+    }
     const code = error instanceof WhopError && error.code.startsWith('WHOP_PRODUCTION') ? 'PROVIDER_RETRY'
       : error instanceof WhopError && error.status === 409 ? 'PAYMENT_RETRY' : 'BACKEND_RETRY';
     try {
