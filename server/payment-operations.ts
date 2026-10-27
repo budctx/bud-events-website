@@ -103,7 +103,7 @@ export async function handlePaymentWorker(request: Request, env: CommerceEnv = e
   const secret = liveBackend(env);
   if (!secret || !whopProductionProcessingConfig(env) || env.VERCEL_ENV !== 'production') return liveResponse(503, 'WORKER_NOT_CONFIGURED');
   const url = new URL(request.url);
-  if (url.origin !== env.BUD_APP_ORIGIN || [...url.searchParams.keys()].some(key => key !== 'health') || request.body !== null)
+  if (url.origin !== env.BUD_APP_ORIGIN || [...url.searchParams.keys()].some(key => key !== 'health' && key !== 'diagnose') || request.body !== null)
     return liveResponse(400, 'INVALID_WORKER_REQUEST');
   try {
     if (url.search === '?diagnose=1' && task === 'payments') {
