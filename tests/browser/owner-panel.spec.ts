@@ -39,7 +39,7 @@ test('owner payments do not label checkout drafts as paid and overview separates
  });
  await page.getByRole('button',{name:'لوحة المالك',exact:true}).click();
  await expect(page.getByText('طلبات غير مكتملة')).toBeVisible();
- await expect(page.getByText('1 لم يبدأ الدفع • 1 لم يثبت تسليمه')).toBeVisible();
+ await expect(page.getByText('1 لم يبدأ الدفع • 1 الدفع غير مؤكد')).toBeVisible();
  await page.getByRole('navigation',{name:'أقسام لوحة المالك'}).getByRole('button',{name:'المدفوعات'}).click();
  await expect(page.getByText('لم يبدأ الدفع',{exact:true})).toBeVisible();
  await expect(page.getByText('الدفع غير مؤكد',{exact:true})).toBeVisible();
