@@ -79,7 +79,7 @@
 .platform-home-main,.platform-gallery-main { animation:platform-section-enter var(--bud-motion-section,240ms) var(--bud-motion-ease,ease); outline:none; }
 @keyframes platform-dialog-enter { from {opacity:0;transform:translateY(12px) scale(.98)} to {opacity:1;transform:none} }
 @keyframes platform-section-enter { from {opacity:0;transform:translateY(8px)} to {opacity:1;transform:none} }
-@media(min-width:1600px) { .platform { padding-inline:max(64px,calc((100vw - 1312px)/2)); } }
+@media(min-width:1600px) { .platform:not(.platform-home) { padding-inline:max(64px,calc((100vw - 1312px)/2)); } .platform-home { padding-inline:64px; } }
 @media(max-width:1000px) and (min-width:701px) { .platform { padding-inline:32px; } .platform-header { gap:16px; } .platform-brand-navigation { gap:16px; } .platform-navigation { gap:12px; } .platform-navigation button {font-size:13px;} .platform-login {width:170px;} .platform-hero { width:48%; } .platform-hero h1 {font-size:40px;} .platform-proof {width:48%;} .platform-product-preview {width:42%;} .platform-mini-card {width:140px;height:149px;} }
 @media(max-width:700px) {
   .platform { padding-inline:24px; min-height:100dvh; }
@@ -457,4 +457,19 @@
  .platform-home .platform-hero h1 { font-size:26px; line-height:1.2; margin-block:5px; }
  .platform-home .platform-hero-actions { margin-top:10px; }
  .platform-home .platform-footer { height:32px; min-height:32px; }
+}
+
+/* The logo, page navigation and account occupy the left, center and right
+   thirds of the HOME header independently: no fixed-width center wrapper. */
+@media(min-width:701px) {
+ .platform-home .platform-header {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+  align-items:center;
+  column-gap:16px;
+ }
+ .platform-home .platform-brand-navigation { display:contents; }
+ .platform-home .platform-header-tools { grid-column:1; grid-row:1; justify-self:start; }
+ .platform-home .platform-navigation { grid-column:2; grid-row:1; justify-self:center; }
+ .platform-home .platform-brand { grid-column:3; grid-row:1; justify-self:end; }
 }
