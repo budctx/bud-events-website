@@ -158,7 +158,7 @@ export async function runProductionPaymentJob(env: CommerceEnv, transport: typeo
       console.warn(JSON.stringify({ event: 'bud_payment_verification_blocked', stage: verificationStage }));
     }
     const code = error instanceof WhopError && error.code.startsWith('WHOP_PRODUCTION') ? 'PROVIDER_RETRY'
-      : error instanceof WhopError && error.status === 409 ? 'PAYMENT_RETRY' : 'BACKEND_RETRY';
+      : error instanceof WhopError && error.status === 409 ? 'PAYMENT_REVIEW' : 'BACKEND_RETRY';
     try {
       const retry = await rpc('bud_live_retry_payment', { p_message: job.messageId, p_lease: job.leaseToken, p_code: code }, secret, transport);
       if (!object(retry) || retry.recorded !== true) throw new Error();
