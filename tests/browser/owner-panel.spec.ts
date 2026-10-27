@@ -29,6 +29,23 @@ for(const size of [{width:1440,height:900},{width:390,height:844}])test(`owner p
  const geometry=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));expect(geometry.scroll).toBeLessThanOrEqual(geometry.width);
  await page.getByRole('navigation',{name:'أقسام لوحة المالك'}).getByRole('button',{name:'نظرة عامة',exact:true}).click();await expect(page.locator('.owner-metric')).toHaveCount(4);await page.evaluate(()=>{const label=document.createElement('small');label.textContent='بيانات اختبار — معاينة التصميم';label.style.cssText='position:fixed;bottom:6px;left:10px;z-index:90;background:#fdfdff;color:#71717a;border:1px solid #e5e5e8;border-radius:4px;padding:3px 8px;font-size:10px';document.body.append(label);});await page.screenshot({path:`docs/evidence/owner-panel-${size.width}.png`,fullPage:true});
 });
+test('owner payments do not label checkout drafts as paid and overview separates incomplete orders',async({page})=>{
+ await setup(page);
+ await page.route('**/api/owner',r=>{
+  const body=r.request().postDataJSON();
+  if(body.action==='profile')return r.fulfill(ok({owner:true}));
+  if(body.action==='view'&&body.section==='overview')return r.fulfill(ok({users:3,slots:1,events:0,pendingOrders:2,checkoutNotStarted:1,checkoutUnverified:1,alerts:[]}));
+  return r.fulfill(ok({rows:[{id,host_id:id,amount_minor:300,currency:'sar',state:'checkout_not_started',created_at:'2026-10-26T08:00:00Z'},{id:'22222222-2222-4222-8222-222222222222',host_id:id,amount_minor:300,currency:'sar',state:'checkout_unverified',created_at:'2026-10-26T08:00:00Z'}]}));
+ });
+ await page.getByRole('button',{name:'لوحة المالك',exact:true}).click();
+ await expect(page.getByText('طلبات غير مكتملة')).toBeVisible();
+ await expect(page.getByText('1 لم يبدأ الدفع • 1 الدفع غير مؤكد')).toBeVisible();
+ await page.getByRole('navigation',{name:'أقسام لوحة المالك'}).getByRole('button',{name:'المدفوعات'}).click();
+ await expect(page.getByText('لم يبدأ الدفع',{exact:true})).toBeVisible();
+ await expect(page.getByText('الدفع غير مؤكد',{exact:true})).toBeVisible();
+ await expect(page.getByText('بانتظار التسليم',{exact:true})).toHaveCount(0);
+});
+
 test('account menu is the redeem entry, ordinary user has no owner entry and invalid code can be corrected',async({page})=>{
  await setup(page,false);await expect(page.getByRole('button',{name:'لوحة المالك',exact:true})).toHaveCount(0);
  await page.locator('.platform-account-trigger').click();await page.getByRole('menuitem',{name:'استرداد مفتاح',exact:true}).click();
