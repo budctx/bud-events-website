@@ -16,6 +16,8 @@ async function home(page:import('@playwright/test').Page,withPartner=false,signe
  await page.goto('/?lang=ar');
  await expect(page.getByTestId('hero-explore')).toBeVisible();
  await expect.poll(()=>page.locator('.platform-scene img').evaluate((img:HTMLImageElement)=>img.complete&&img.naturalWidth>0)).toBe(true);
+ // Measure final layout after the platform-section-enter motion completes.
+ await page.locator('.platform-home-main').evaluate(async el=>{await Promise.all(el.getAnimations().map(animation=>animation.finished));});
  if(withPartner)await expect(page.locator('.platform-proof [data-testid="partners-carousel"]')).toBeVisible();
 }
 for(const viewport of standardDesktop)for(const withPartner of [false,true]){
