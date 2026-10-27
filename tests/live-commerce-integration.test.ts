@@ -135,7 +135,10 @@ test('isolated production orchestration: real SQL, authenticated pilot, durable 
       queueFailure = 'after'; assert.equal((await deliver()).status, 503);
       assert.equal((await deliver()).status, 202);
       total = 1.99; assert.equal((await work()).retryRecorded, 1); total = 2; await due();
-      refund = 0.01; assert.equal((await work()).retryRecorded, 1); refund = 0; await due();
+      refund = 0.01; const secondAttempt = await work();
+      assert.equal(secondAttempt.retryRecorded, 1, JSON.stringify({
+        attempt: secondAttempt, job: (await db.query('select status, attempts, last_code, available_at, clock_timestamp() as now from bud_platform.live_payment_jobs')).rows
+      })); refund = 0; await due();
       assert.equal(await credits(), 0);
     });
     await t.test('commit failure retries and lost committed response each result in exactly one live credit', async () => {
