@@ -71,7 +71,7 @@ export async function diagnoseReviewedPayment(env: CommerceEnv, transport: typeo
     check('plan', object(payment.plan) && payment.plan.id === stored.planId);
     check('currency', payment.currency === stored.currency);
     check('amount', typeof payment.total === 'number' && Number.isFinite(payment.total)
-      && /^\\d{1,7}(?:\\.\\d{1,2})?$/.test(String(payment.total)) && Math.round(payment.total * 100) === stored.amountMinor);
+      && /^\d{1,7}(?:\.\d{1,2})?$/.test(String(payment.total)) && Math.round(payment.total * 100) === stored.amountMinor);
     check('status', payment.status === 'paid');
     check('substatus', payment.substatus === 'succeeded');
     check('paid_at', typeof payment.paid_at === 'string' && Number.isFinite(Date.parse(payment.paid_at)));
