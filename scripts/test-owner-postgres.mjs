@@ -15,7 +15,7 @@ await sql(`create role anon;create role authenticated;create role service_role b
  create table auth.users(id uuid primary key,created_at timestamptz default now());create table auth.identities(user_id uuid,provider text,identity_data jsonb);
  insert into auth.users(id) values('${owner}'),('${user}'),('${other}');
  insert into auth.identities values('${owner}','discord','{"sub":"${discord}"}'),('${user}','discord','{"sub":"223456789012345678"}'),('${other}','discord','{"sub":"323456789012345678"}');`);
-for(const name of ['20261022215208_host_persistence_foundation.sql','20261023173930_production_commerce_foundation.sql','20261023193330_live_payment_queue_and_event_consumption.sql','20261023202259_live_payment_operations_and_receipts.sql','20261026042029_owner_panel_and_bonus_ledger.sql'])await sql(await readFile(new URL('../supabase/migrations/'+name,import.meta.url),'utf8'));
+for(const name of ['20261022215208_host_persistence_foundation.sql','20261023173930_production_commerce_foundation.sql','20261023193330_live_payment_queue_and_event_consumption.sql','20261023202259_live_payment_operations_and_receipts.sql','20261026042029_owner_panel_and_bonus_ledger.sql','20261027123500_owner_payment_states.sql'])await sql(await readFile(new URL('../supabase/migrations/'+name,import.meta.url),'utf8'));
 await sql(`insert into bud_platform.platform_owners values('${owner}','${discord}')`);
 const command=(n,kind,body)=>sql(`set role service_role;select public.bud_owner_command('${owner}','${discord}','${op(n)}','${kind}','${JSON.stringify(body).replaceAll("'","''")}')`);
 await command(1,'createCode',{digest:'a'.repeat(64),qty:1,maxUses:1,expiresAt:'2099-01-01T00:00:00Z',reason:'fixture concurrent redeem'});
