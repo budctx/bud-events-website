@@ -26,7 +26,7 @@ for (const ar of [true]) for (const width of [1440, 390, 360]) {
     await start(page, ar);
     await prizes(page, ar);
     await expect(page.locator('.mg-winners-sidebar')).toContainText(ar ? 'لا يوجد فائزون بعد' : 'No winners yet');
-    await expect(page.locator('.mg-prize-card').first()).toBeDisabled();
+    await expect(page.locator('.mg-prize-card').first()).toBeEnabled();
     await page.screenshot({ path: info.outputPath('empty.png'), fullPage: true });
     await page.getByRole('button', { name: ar ? 'العودة للفعالية' : 'Back to event', exact: true }).click();
     const name = ar ? 'سارة' : 'Sara';
@@ -138,7 +138,7 @@ test('deleting an awarded record explains and restores only its prize', async ({
   await page.locator('.mg-prize-card').first().click(); await confirm(page, true);
   await page.keyboard.press('Escape');
   await page.getByRole('button', { name: /^الفائزون/ }).click();
-  await page.getByRole('button', { name: 'حذف سارة #1', exact: true }).click();
+  await page.locator('.mg-management').getByRole('button', { name: 'حذف سارة #1', exact: true }).click();
   await expect(page.locator('.mg-management')).toContainText('ستُعاد جائزته إلى البطاقات المتاحة للسحب');
   await page.getByRole('button', { name: 'تأكيد الحذف', exact: true }).click();
   await expect(page.getByRole('button', { name: 'إغلاق', exact: true })).toBeFocused();
