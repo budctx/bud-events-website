@@ -1,3 +1,5 @@
+import {readOwnerReturn,clearOwnerReturn} from './owner-return';
+import type {OwnerReturn} from './owner-return';
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import './platform.css';
 import { HeroArtwork } from './HeroArtwork';
@@ -52,6 +54,8 @@ export default function Platform({ onPlay }: PlatformProps) {
   const [panel, setPanel] = useState<'history' | 'setup' | 'profile' | 'owner' | null>(panelFromURL);
   const account = useAccount();
   const toast = useBudToast();
+  const [ownerReturn,setOwnerReturn]=useState<OwnerReturn|null>(null);
+  useEffect(()=>{if(!account.session)return;const saved=readOwnerReturn();if(!saved)return;clearOwnerReturn();if(saved.ownerId===account.session.id){setOwnerReturn(saved);setPanel('owner');}},[account.session?.id]);
   const [partners,setPartners] = useState<PartnerLogo[]>([]);
   const [redeemOpen,setRedeemOpen]=useState(false);
   const [paymentHold, setPaymentHold] = useState(false);
@@ -167,7 +171,7 @@ export default function Platform({ onPlay }: PlatformProps) {
   const canSetup = !!account.session && !!account.dashboard && account.dashboard.credits > 0 && !paymentHold && !account.dashboard.paymentReview;
   const canResume = !!ongoing && !ongoing.localMissing && !!account.session;
 
-  if(panel==='owner'&&account.session)return <Suspense fallback={<p role="status">جارٍ تحميل لوحة المالك…</p>}><OwnerPanel key={account.session.id} ownerId={account.session.id} ownerName={account.session.displayName} onClose={()=>setPanel('profile')}/></Suspense>;
+  if(panel==='owner'&&account.session)return <Suspense fallback={<p role="status">جارٍ تحميل لوحة المالك…</p>}><OwnerPanel key={account.session.id} ownerId={account.session.id} ownerName={account.session.displayName} initialReturn={ownerReturn} onClose={()=>{setOwnerReturn(null);setPanel('profile');}}/></Suspense>;
 
   return <div className={`platform platform-${page}`} dir={locale === 'ar' ? 'rtl' : 'ltr'} data-testid="platform-root">
     <Seo locale={locale} screen={page} /><a className="skip-link" href="#platform-content">{locale === 'ar' ? 'تجاوز إلى المحتوى' : 'Skip to content'}</a>

@@ -1,3 +1,5 @@
+import {saveOwnerReturn,clearOwnerReturn} from './owner-return';
+import type {OwnerReturn} from './owner-return';
 import {useEffect,useRef,useState} from 'react';
 import {HostClientError,signInHost} from './host-client';
 import {ownerError,ownerRequest} from './owner-client';
@@ -24,9 +26,9 @@ const sections=[
 ] as const;
 function tabKeys(event:React.KeyboardEvent<HTMLDivElement>){if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;const tabs=Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role=tab]'));const index=tabs.indexOf(document.activeElement as HTMLButtonElement);if(index<0)return;event.preventDefault();const next=event.key==='Home'?0:event.key==='End'?tabs.length-1:event.key==='ArrowLeft'?(index+1)%tabs.length:(index-1+tabs.length)%tabs.length;tabs[next]?.click();tabs[next]?.focus();}
 type Action={kind:string;payload:Record<string,unknown>;title:string};
-export default function OwnerPanel({onClose,ownerId,ownerName="المالك"}:{onClose:()=>void;ownerId:string;ownerName?:string}){
+export default function OwnerPanel({onClose,ownerId,ownerName="المالك",initialReturn}:{onClose:()=>void;ownerId:string;ownerName?:string;initialReturn?:OwnerReturn|null}){
  const toast=useBudToast();
- const [section,setSection]=useState<string>('overview'),[query,setQuery]=useState(''),[search,setSearch]=useState(''),[offset,setOffset]=useState(0),[revision,setRevision]=useState(0);
+ const [section,setSection]=useState<string>(initialReturn?.section??'overview'),[query,setQuery]=useState(initialReturn?.search??''),[search,setSearch]=useState(initialReturn?.search??''),[offset,setOffset]=useState(initialReturn?.offset??0),[revision,setRevision]=useState(0);
  const [data,setData]=useState<OwnerData|null>(null),[error,setError]=useState(''),[loading,setLoading]=useState(false),[busy,setBusy]=useState(false),[reauth,setReauth]=useState(false);
  const [action,setAction]=useState<Action|null>(null),[reason,setReason]=useState(''),[checked,setChecked]=useState(false),[notice,setNotice]=useState(''),[secret,setSecret]=useState('');
  const [qty,setQty]=useState('1'),[maxUses,setMaxUses]=useState('1'),[expires,setExpires]=useState(''),[target,setTarget]=useState(''),[note,setNote]=useState('');
@@ -68,8 +70,8 @@ export default function OwnerPanel({onClose,ownerId,ownerName="المالك"}:{o
    else{setNotice(saved.kind==='createCode'&&result.replayed===true?`تم تأكيد إنشاء المفتاح السابق دون تكراره. لا يمكن إعادة عرض نصه؛ يمكنك إيقافه من سجل المفاتيح. المرجع: ${String(result.id??'')}`:result.verified===true?'تم التحقق من الدفعة لدى Whop دون إضافة رصيد.':result.replayed===true?'تم تأكيد إيصال العملية السابقة دون تكرارها.':'تمت العملية وسُجلت في سجل العمليات.');}
    toast('تم اعتماد العملية وحفظها بنجاح.','success');setAction(null);setRevision(v=>v+1);
   }catch(e){
-   if(!previous&&e instanceof HostClientError&&[400,401,403,429].includes(e.status)){clearOwnerPending(ownerId);pendingRef.current=null;if(alive.current)setPending(null);}
-   if(alive.current){setNotice(ownerError(e));setReauth(e instanceof HostClientError&&e.code==='OWNER_REAUTH_REQUIRED');}
+   if(!previous&&e instanceof HostClientError&&!['OWNER_REAUTH_REQUIRED','DISCORD_AUTH_REQUIRED'].includes(e.code)&&[400,401,403,429].includes(e.status)){clearOwnerPending(ownerId);pendingRef.current=null;if(alive.current)setPending(null);}
+   if(alive.current){setNotice(ownerError(e));setReauth(e instanceof HostClientError&&['OWNER_REAUTH_REQUIRED','DISCORD_AUTH_REQUIRED'].includes(e.code));}
   }
   finally{locked.current=false;if(alive.current)setBusy(false);}
  };
@@ -115,7 +117,7 @@ export default function OwnerPanel({onClose,ownerId,ownerName="المالك"}:{o
   <dialog ref={dialog} className="owner-modal" onClose={() => setSecret('')} aria-labelledby="owner-confirm-title" onCancel={e=>{if(busy)e.preventDefault();}}><form onSubmit={e=>{e.preventDefault();void submit();}}><h2 id="owner-confirm-title">{action?.title??'إيصال العملية'}</h2>
    {action&&<><label>سبب الإجراء<textarea required minLength={3} maxLength={300} value={reason} disabled={busy||!!pending} onChange={e=>setReason(e.target.value)}/></label><p>لا تُدخل كلمات مرور أو مفاتيح سرية في السبب.</p><label className="owner-check"><input type="checkbox" checked={checked} disabled={busy||!!pending} onChange={e=>setChecked(e.target.checked)}/>راجعت الإجراء والحساب المستهدف وأؤكد تنفيذه.</label></>}
    {notice&&<p role="status">{notice}</p>}{secret&&<><output className="owner-secret" dir="ltr">{secret}</output><button className="owner-button" type="button" onClick={()=>{void navigator.clipboard.writeText(secret).then(()=>setNotice('نُسخ المفتاح. احفظه في مكان آمن.')).catch(()=>setNotice('تعذر النسخ. انسخ المفتاح الظاهر يدويًا.'));}}>نسخ المفتاح</button></>}
-   {reauth&&<button className="owner-button" type="button" onClick={()=>void signInHost({page:'home',locale:'ar'})}>تأكيد الهوية عبر Discord</button>}
+   {reauth&&<button className="owner-button" type="button" disabled={busy} onClick={()=>{if(!saveOwnerReturn({ownerId,section,search,offset})){setNotice('تعذر حفظ مسار العودة في هذا التبويب. لم يبدأ التحقق.');return;}setBusy(true);void signInHost({page:'home',locale:'ar'}).catch(e=>{clearOwnerReturn();setBusy(false);setNotice(ownerError(e));});}}>تأكيد الهوية عبر Discord</button>}
    <div className="owner-actions">{action&&<button className="owner-button primary" disabled={busy||!checked||reason.trim().length<3}>{busy?'جارٍ التحقق…':'تأكيد التنفيذ'}</button>}<button className="owner-button" type="button" disabled={busy} onClick={()=>{dialog.current?.close();setSecret('');}}>إغلاق</button></div>
   </form></dialog>
  </section>;
