@@ -390,7 +390,8 @@
 @media(max-width:600px) {
  .platform-account-trigger { max-width:168px; font-size:11px; padding:4px 7px; gap:6px; }
  .platform-avatar { width:28px; height:28px; }
- .platform-event-actions { flex-direction:column; align-items:stretch; }
+ .platform-event-ownership { width:100%; }
+ .platform-event-actions { width:100%; flex-direction:column; align-items:stretch; }
  .platform-event-actions .platform-action { width:100%; }
 }
 
