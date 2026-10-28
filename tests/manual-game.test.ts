@@ -148,17 +148,19 @@ test('Fisher-Yates assigns prize names to card IDs without preserving entered or
   assert.deepEqual(input,['البطاقة الذهبية','البطاقة الفضية','البطاقة البرونزية','كوبون']);
   assert.deepEqual([...shuffled].sort(),[...input].sort());
   assert.equal(new Set(shuffled).size,input.length);
-  const duplicates=shufflePrizeNames(['A','A','B'],size=>size-1);
+  const duplicates=shufflePrizeNames(['A','A','B'],()=>0);
   assert.deepEqual([...duplicates].sort(),['A','A','B']);
   assert.notDeepEqual(duplicates,['A','A','B']);
 });
 
-test('the visible prize order is changed even if the random generator selects original positions', () => {
+test('a random shuffle may legitimately match input order, without a forced two-prize swap', () => {
   const original=['A','B','C'];
   const sameIndex=(size:number)=>size-1;
   const shuffled=shufflePrizeNames(original,sameIndex);
   assert.deepEqual([...shuffled].sort(),[...original].sort());
-  assert.notDeepEqual(shuffled,original);
+  assert.deepEqual(shuffled,original);
+  assert.deepEqual(shufflePrizeNames(['A','B'],sameIndex),['A','B']);
+  assert.deepEqual(shufflePrizeNames(['A','B'],()=>0),['B','A']);
   assert.deepEqual(shufflePrizeNames(['A','A','A'],sameIndex),['A','A','A']);
   assert.deepEqual(shufflePrizeNames(['A'],sameIndex),['A']);
   assert.throws(()=>shufflePrizeNames(['A','B'],()=>-1),/INVALID_PRIZE_RANDOM/);
@@ -170,7 +172,6 @@ test('starting a game randomizes once; rounds, prize phase, award and state snap
   let state=start('Gold\nSilver\nBronze\nCoupon');
   const assigned=state.prizes.map(prize=>({id:prize.id,name:prize.name}));
   assert.deepEqual([...assigned.map(p=>p.name)].sort(),['Bronze','Coupon','Gold','Silver']);
-  assert.notDeepEqual(assigned.map(p=>p.name),['Gold','Silver','Bronze','Coupon']);
   assert.deepEqual(assigned.map(p=>p.id),['prize-1','prize-2','prize-3','prize-4']);
   state=save(state,'سارة');
   state=manualGameReducer(state,{type:'phase',phase:'prizes'});
