@@ -10,5 +10,5 @@ export function ButtonUtility({label,icon:Icon,className='',tone='neutral',color
  const trigger=useRef<HTMLButtonElement>(null),[open,setOpen]=useState(false);
  return <Tooltip.Provider delayDuration={180}><Tooltip.Root open={open} onOpenChange={setOpen}><Tooltip.Trigger asChild>
   <Button {...props} ref={trigger} aria-label={label} className={'bud-utility '+className} data-tone={tone} data-color={color}><Icon size={20} aria-hidden={true}/></Button>
- </Tooltip.Trigger><Tooltip.Portal container={trigger.current?.closest('dialog')??undefined}><Tooltip.Content className="bud-ui-tooltip" sideOffset={7} collisionPadding={12}>{label}<Tooltip.Arrow className="bud-ui-tooltip-arrow"/></Tooltip.Content></Tooltip.Portal></Tooltip.Root></Tooltip.Provider>;
+ </Tooltip.Trigger><Tooltip.Portal container={trigger.current?.closest('dialog')??undefined}><Tooltip.Content className="bud-ui-tooltip" onEscapeKeyDown={()=>{setOpen(false);trigger.current?.closest('dialog')?.dispatchEvent(new Event('cancel',{cancelable:true}));}} sideOffset={7} collisionPadding={12}>{label}<Tooltip.Arrow className="bud-ui-tooltip-arrow"/></Tooltip.Content></Tooltip.Portal></Tooltip.Root></Tooltip.Provider>;
 }
