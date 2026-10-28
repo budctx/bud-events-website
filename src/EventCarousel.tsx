@@ -39,6 +39,6 @@ export default function EventCarousel({children}:{children:ReactNode}){
    <div className="bud-carousel-dots" aria-label="اختيار الفعالية">{names.map((name,index)=><button key={name} type="button" aria-label={'عرض فعالية '+name} aria-current={index===selected?'true':undefined} onClick={()=>api?.scrollTo(index,!!reduced)}><span/></button>)}</div>
    <ButtonUtility label="الفعالية التالية" icon={ArrowLeft} isDisabled={!api||selected===2} onPress={()=>api?.scrollNext(!!reduced)}/>
   </div>
-  <p className="bud-carousel-status" role="status" aria-live="polite" aria-atomic="true">{names[selected]} · {new Intl.NumberFormat('ar').format(selected+1)} من ٣</p>
+  <p className="bud-carousel-status" role="status" aria-live="polite" aria-atomic="true">{names[selected]} · {new Intl.NumberFormat('ar-u-nu-arab').format(selected+1)} من ٣</p>
  </div>;
 }

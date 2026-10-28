@@ -13,15 +13,15 @@
 
 .bud-bot-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}
 .bud-bot-card{border:0;box-shadow:0 3px 12px #3331;border-radius:16px}
-.bud-bot-card .bud-bot-copy{padding:20px;gap:12px}
+.bud-bot-card .bud-bot-copy{padding:20px;gap:12px;flex:1;grid-template-rows:auto auto 1fr auto}
 .bud-bot-card .bud-bot-copy h2{font-size:21px;line-height:1.6}
 .bud-bot-card .bud-bot-copy p{font-size:13px}
 .bud-bot-card .bud-bot-copy button{font-size:13px;padding-inline:12px;width:100%;gap:8px}
-.bud-bot-card .bud-bot-art{min-height:170px;background:linear-gradient(135deg,#fff4dcbb,#f4ecdf88)}
+.bud-bot-card .bud-bot-art{min-height:170px;flex:none;background:linear-gradient(135deg,#fff4dcbb,#f4ecdf88)}
 .bud-magic-card{position:relative;isolation:isolate;overflow:hidden;border-radius:inherit;padding:1.5px;height:100%}
 .bud-magic-surface{position:absolute;inset:1.5px;border-radius:inherit;background:#fdfdff;z-index:0}
 .bud-magic-glow{position:absolute;inset:1.5px;border-radius:inherit;z-index:1;pointer-events:none;opacity:0;transition:opacity .25s}
-.bud-magic-content{position:relative;z-index:2;height:100%}
+.bud-magic-content{position:relative;z-index:2;height:100%;display:flex;flex-direction:column}
 @media(hover:hover) and (pointer:fine){.bud-magic-card:hover .bud-magic-glow{opacity:1}}
 .platform-event-catalog{display:block;min-width:0;--mantine-scale:1}
 .bud-events-carousel{min-width:0}
