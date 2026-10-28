@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { initialManualState, manualGameReducer, validDuration } from '../src/manual-game.ts';
+import { initialManualState, manualGameReducer, shufflePrizeNames, validDuration } from '../src/manual-game.ts';
 import type { ManualState } from '../src/manual-game.ts';
 const start = (prizeText = 'First\nSecond', duration = 5, timerEnabled = true): ManualState => manualGameReducer(initialManualState(), { type: 'start', prizeText, config: { duration, attempts: 2, timerEnabled } });
 function reveal(state: ManualState) { return manualGameReducer(manualGameReducer(state, { type: 'reveal', card: 'question', now: 100 }), { type: 'reveal', card: 'condition', now: 200 }); }
@@ -138,4 +138,49 @@ test('manual opening reveals a prize without creating a winner or allowing repla
   assert.equal(s.prizes[0].revealed,true); assert.equal(s.prizes[1].revealed,false);
   s = manualGameReducer(s,{type:'phase',phase:'closing'});
   assert.equal(manualGameReducer(s,{type:'open-prize',prizeId:'prize-2'}),s);
+});
+
+
+test('Fisher-Yates assigns prize names to card IDs without preserving entered order', () => {
+  const input=['البطاقة الذهبية','البطاقة الفضية','البطاقة البرونزية','كوبون'];
+  const shuffled=shufflePrizeNames(input,()=>0);
+  assert.deepEqual(shuffled,['البطاقة الفضية','البطاقة البرونزية','كوبون','البطاقة الذهبية']);
+  assert.deepEqual(input,['البطاقة الذهبية','البطاقة الفضية','البطاقة البرونزية','كوبون']);
+  assert.deepEqual([...shuffled].sort(),[...input].sort());
+  assert.equal(new Set(shuffled).size,input.length);
+  const duplicates=shufflePrizeNames(['A','A','B'],()=>0);
+  assert.deepEqual([...duplicates].sort(),['A','A','B']);
+  assert.notDeepEqual(duplicates,['A','A','B']);
+});
+
+test('a random shuffle may legitimately match input order, without a forced two-prize swap', () => {
+  const original=['A','B','C'];
+  const sameIndex=(size:number)=>size-1;
+  const shuffled=shufflePrizeNames(original,sameIndex);
+  assert.deepEqual([...shuffled].sort(),[...original].sort());
+  assert.deepEqual(shuffled,original);
+  assert.deepEqual(shufflePrizeNames(['A','B'],sameIndex),['A','B']);
+  assert.deepEqual(shufflePrizeNames(['A','B'],()=>0),['B','A']);
+  assert.deepEqual(shufflePrizeNames(['A','A','A'],sameIndex),['A','A','A']);
+  assert.deepEqual(shufflePrizeNames(['A'],sameIndex),['A']);
+  assert.throws(()=>shufflePrizeNames(['A','B'],()=>-1),/INVALID_PRIZE_RANDOM/);
+  assert.throws(()=>shufflePrizeNames(['A','B'],()=>1.5),/INVALID_PRIZE_RANDOM/);
+  assert.throws(()=>shufflePrizeNames(['A','B'],()=>2),/INVALID_PRIZE_RANDOM/);
+});
+
+test('starting a game randomizes once; rounds, prize phase, award and state snapshot keep each mapping', () => {
+  let state=start('Gold\nSilver\nBronze\nCoupon');
+  const assigned=state.prizes.map(prize=>({id:prize.id,name:prize.name}));
+  assert.deepEqual([...assigned.map(p=>p.name)].sort(),['Bronze','Coupon','Gold','Silver']);
+  assert.deepEqual(assigned.map(p=>p.id),['prize-1','prize-2','prize-3','prize-4']);
+  state=save(state,'سارة');
+  state=manualGameReducer(state,{type:'phase',phase:'prizes'});
+  assert.deepEqual(state.prizes.map(({id,name})=>({id,name})),assigned);
+  state=manualGameReducer(state,{type:'award',prizeId:'prize-1',winnerId:'winner-1'});
+  assert.equal(state.prizes[0].name,assigned[0].name);
+  const resumed=JSON.parse(JSON.stringify(state)) as ManualState;
+  assert.deepEqual(resumed.prizes.map(({id,name})=>({id,name})),assigned);
+  assert.equal(resumed.prizes[0].winnerId,'winner-1');
+  const deleted=manualGameReducer(resumed,{type:'delete-winner',winnerId:'winner-1'});
+  assert.deepEqual(deleted.prizes.map(({id,name})=>({id,name})),assigned);
 });

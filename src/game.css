@@ -156,3 +156,18 @@
 
 .mg-header{position:relative}.mg-sync-indicator{position:absolute;top:calc(100% + 5px);left:50%;transform:translateX(-50%);display:inline-flex;align-items:center;gap:6px;color:#8a7350;font-size:11px;white-space:nowrap;pointer-events:none}.mg-sync-indicator svg{width:15px;height:15px;stroke-width:1.6}
 .mg-sync-error{display:flex;flex-wrap:wrap;align-items:center;gap:10px}.mg-sync-error p{flex-basis:100%;font-size:12px;line-height:1.8;margin:0}.mg-dialog .mg-sync-error{margin-top:16px;padding:14px;border:1px solid #e7c9b6;border-radius:8px;background:#fff9ee}
+
+/* Winners: compact + action at the top of the sidebar and management list. */
+.mg-winners-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:14px; }
+.mg-winners-sidebar .mg-winners-heading h2 { margin:0; min-width:0; }
+.mg-add-winner { width:40px; height:40px; padding:7px; flex:0 0 40px; }
+.mg-add-winner svg { width:22px; height:22px; }
+.mg-add-winner:disabled { opacity:.45; cursor:not-allowed; }
+.mg-management>.mg-management-heading { position:absolute; z-index:1; top:8px; inset-inline-start:58px; margin:0; display:flex; align-items:center; gap:8px; }
+.mg-management-heading .mg-management-mark { position:static; color:#b16c00; }
+
+/* Sidebar award selection and deletion are separate targets: avoid nested buttons. */
+.mg-winner-select-row { display:flex; align-items:center; gap:8px; min-width:0; }
+.mg-winner-select-row .mg-winner-option { flex:1 1 auto; width:auto; min-width:0; }
+.mg-winner-quick-delete { flex:0 0 40px; width:40px; height:44px; padding:8px; }
+.mg-winner-quick-delete svg { width:18px; height:18px; }
