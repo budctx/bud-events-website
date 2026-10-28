@@ -17,7 +17,7 @@ const text = {
 
 };
 const completed = (event: HostEvent) => event.phase === 'completed' || event.phase === 'closing' || event.state.phase === 'closing';
-export default function HostPortal({ onPlay, onExit, locale, view, onAuthLost }: { onPlay: (event: HostEvent) => void; onExit: () => void; locale: Locale; view?: 'setup' | 'history'; onAuthLost?: () => void }) {
+export default function HostPortal({ onPlay, onExit, locale, view, onAuthLost,onBlockingChange }: { onPlay: (event: HostEvent) => void; onExit: () => void; locale: Locale; view?: 'setup' | 'history'; onAuthLost?: () => void;onBlockingChange?:(blocked:boolean)=>void }) {
   const t = text.ar;
   const toast=useBudToast();
   const [startStep,setStartStep]=useState<number|null>(null);
@@ -39,6 +39,7 @@ export default function HostPortal({ onPlay, onExit, locale, view, onAuthLost }:
   const pendingStart = useRef<StartHostEvent | null>(null);
   const locked = useRef(false);
   const [uncertain, setUncertain] = useState(false);
+  useEffect(()=>{onBlockingChange?.(busy||uncertain);},[busy,uncertain,onBlockingChange]);
   useEffect(() => { if (view) heading.current?.focus(); }, [view]);
   useEffect(() => {
     if (view === 'history' || !session?.id) return;
@@ -83,7 +84,7 @@ export default function HostPortal({ onPlay, onExit, locale, view, onAuthLost }:
   const summaryText = summary ? formatEventResults(summary.state,locale) : '';
   return <div className={`host-portal${view ? ' host-embedded' : ''}`} dir={locale === 'ar' ? 'rtl' : 'ltr'} lang={locale}>
     <EventStartLoader step={startStep}/>
-    <header className="host-header"><button className="host-back" onClick={onExit}><img src="/assets/bud-emblem.svg" width="32" height="24" alt="" />{view ? (locale === 'ar' ? 'العودة' : 'Back') : t.back}</button>{!view && status === 'ready' && <button disabled={busy} onClick={() => void perform(async () => { try { await signOutHost(); } finally { pendingStart.current = null; setUncertain(false); setTitle(t.defaultTitle); setPrizeText(''); setConfig({ duration: 5, timerEnabled: false, attempts: 1 }); setSession(null); setDashboard(null); setStatus('signed-out'); } })}>{t.logout}</button>}</header>
+    <header className="host-header"><button className="host-back" disabled={view==='setup'&&(busy||uncertain)} onClick={onExit}><img src="/assets/bud-emblem.svg" width="32" height="24" alt="" />{view ? (locale === 'ar' ? 'العودة' : 'Back') : t.back}</button>{!view && status === 'ready' && <button disabled={busy} onClick={() => void perform(async () => { try { await signOutHost(); } finally { pendingStart.current = null; setUncertain(false); setTitle(t.defaultTitle); setPrizeText(''); setConfig({ duration: 5, timerEnabled: false, attempts: 1 }); setSession(null); setDashboard(null); setStatus('signed-out'); } })}>{t.logout}</button>}</header>
     <div className="host-content"><div className="host-heading"><div><p className="host-eyebrow">BU’D</p><h1 ref={heading} tabIndex={-1}>{view === 'history' ? (locale === 'ar' ? 'السجل' : 'History') : view === 'setup' ? t.setup : t.title}</h1>{!view && session && status === 'ready' && <p>{session.displayName}</p>}</div>{status === 'ready' && <ButtonUtility label={t.reload} icon={RefreshCw} isDisabled={busy} onPress={() => setReload(value => value + 1)}/>}</div>
       {error && <p className="host-message host-error" role="alert">{error}</p>}
       {status === 'loading' ? <p className="host-message" role="status">{t.loading}</p> : status !== 'ready' ? <section className="host-panel host-access"><h2>{status === 'signed-out' ? t.signin : t.unavailable}</h2><p>{status === 'signed-out' ? t.intro : t.failure}</p>{status === 'signed-out' && <button className="host-discord" disabled={busy} onClick={() => void perform(() => signInHost({page:'events',locale}))}><img src="/assets/discord-symbol-white.svg" width="24" height="18" alt="Discord" />{t.signin}</button>}<button disabled={busy} onClick={() => setReload(value => value + 1)}>{t.retry}</button></section> : dashboard && <>

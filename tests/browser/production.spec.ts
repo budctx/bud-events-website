@@ -399,11 +399,11 @@ test('Arabic signed-in header anchors Nav User and its dropdown inside the right
 
 test('bot category expands with keyboard access, Escape and focus restoration without selling unavailable bots',async({page})=>{
  await page.goto('/?screen=bots');
- const trigger=page.getByRole('button',{name:'تفاصيل المنتج',exact:true});
+ const trigger=page.getByRole('button',{name:'تفاصيل الرومات المؤقتة',exact:true});
  await trigger.press('Enter');
- const dialog=page.getByRole('dialog',{name:'بوتات بُعد',exact:true});
+ const dialog=page.getByRole('dialog',{name:'الرومات المؤقتة',exact:true});
  await expect(dialog).toBeVisible();
- await expect(dialog).toContainText('لم تُطرح بوتات للشراء أو الإضافة بعد');
+ await expect(dialog).toContainText('لم يُطرح هذا البوت للشراء أو الإضافة بعد');
  await expect(dialog.getByRole('button',{name:/شراء|إضافة البوت/})).toHaveCount(0);
  await dialog.getByRole('button',{name:'إغلاق تفاصيل البوتات'}).press('Escape');
  await expect(dialog).not.toBeVisible();await expect(trigger).toBeFocused();
@@ -428,8 +428,8 @@ test.describe('touch button presentation',()=>{
  test.use({hasTouch:true,isMobile:true,viewport:{width:390,height:844}});
  test('touch and automatic modal focus show no button ring or tooltip; keyboard keeps a visible focus indicator',async({page})=>{
   await page.goto('/?screen=bots');
-  const details=page.getByRole('button',{name:'تفاصيل المنتج',exact:true});await details.tap();
-  const dialog=page.getByRole('dialog',{name:'بوتات بُعد',exact:true});await expect(dialog).toBeVisible();
+  const details=page.getByRole('button',{name:'تفاصيل الرومات المؤقتة',exact:true});await details.tap();
+  const dialog=page.getByRole('dialog',{name:'الرومات المؤقتة',exact:true});await expect(dialog).toBeVisible();
   const close=dialog.getByRole('button',{name:'إغلاق تفاصيل البوتات'});
   await expect(close).toBeFocused();
   expect(await close.evaluate(el=>getComputedStyle(el).outlineStyle)).toBe('none');
@@ -442,4 +442,22 @@ test.describe('touch button presentation',()=>{
   await expect(page.getByTestId('nav-events')).toBeFocused();
   expect(await page.getByTestId('nav-events').evaluate(el=>getComputedStyle(el).outlineStyle)).toBe('solid');
  });
+});
+
+for(const width of [390,1440])test(`events catalogue contains two disabled upcoming events and eight named bots at ${width}`,async({page})=>{
+ await page.setViewportSize({width,height:850});await page.goto('/?screen=events');
+ await expect(page.locator('.platform-event-catalog>.platform-product-card')).toHaveCount(3);
+ for(const [id,title] of [['mini-games','ميني قيمز'],['lucky-cards','كروت الحظ']]){
+  const card=page.getByTestId('event-coming-'+id);await expect(card.getByRole('heading',{name:title,exact:true})).toBeVisible();
+  await expect(card.getByRole('button',{name:'قريبًا',exact:true})).toBeDisabled();await expect(card.getByRole('button',{name:/اشتر|إعداد/})).toHaveCount(0);
+ }
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+ await page.getByTestId('nav-bots').click();await expect(page.locator('.bud-bot-card')).toHaveCount(8);
+ for(const name of ['الرومات المؤقتة','التيكت','قيف اواي','الالعاب','اللفلات','تجمعات','الحماية','اشتراكات']){
+  const trigger=page.getByRole('button',{name:'تفاصيل '+name,exact:true});await trigger.click();
+  const dialog=page.getByRole('dialog',{name,exact:true});await expect(dialog).toBeVisible();await expect(dialog).toContainText('قريبًا');
+  await expect(dialog.getByRole('button',{name:/شراء|إضافة البوت/})).toHaveCount(0);
+  await dialog.getByRole('button',{name:'إغلاق تفاصيل البوتات'}).press('Escape');await expect(dialog).not.toBeVisible();await expect(trigger).toBeFocused();
+ }
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });
