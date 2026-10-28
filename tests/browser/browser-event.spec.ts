@@ -62,7 +62,7 @@ test('the live browser event randomizes prize-to-card mapping once and preserves
  const entered=['الجائزة الذهبية','الجائزة الفضية','الجائزة البرونزية','القسيمة الخاصة'];
  await setup(page);
  await page.getByTestId('event-setup').click();
- await page.locator('#host-prizes').fill(entered.join('\\n'));
+ await page.locator('#host-prizes').fill(entered.join('\n'));
  await page.getByRole('button',{name:'بدء الفعالية',exact:true}).click();
  await expect(page.getByRole('button',{name:'اكشف سؤال',exact:true})).toBeVisible();
  const readPrizes=()=>page.evaluate(({owner,id})=>{
