@@ -79,7 +79,7 @@
 .platform-home-main,.platform-gallery-main { animation:platform-section-enter var(--bud-motion-section,240ms) var(--bud-motion-ease,ease); outline:none; }
 @keyframes platform-dialog-enter { from {opacity:0;transform:translateY(12px) scale(.98)} to {opacity:1;transform:none} }
 @keyframes platform-section-enter { from {opacity:0;transform:translateY(8px)} to {opacity:1;transform:none} }
-@media(min-width:1600px) { .platform:not(.platform-home) { padding-inline:max(64px,calc((100vw - 1312px)/2)); } .platform-home { padding-inline:64px; } }
+@media(min-width:1600px) { .platform { padding-inline:64px; } }
 @media(max-width:1000px) and (min-width:701px) { .platform { padding-inline:32px; } .platform-header { gap:16px; } .platform-brand-navigation { gap:16px; } .platform-navigation { gap:12px; } .platform-navigation button {font-size:13px;} .platform-login {width:170px;} .platform-hero { width:48%; } .platform-hero h1 {font-size:40px;} .platform-proof {width:48%;} .platform-product-preview {width:42%;} .platform-mini-card {width:140px;height:149px;} }
 @media(max-width:700px) {
   .platform { padding-inline:24px; min-height:100dvh; }
@@ -247,10 +247,11 @@
 }
 @media(min-width:701px) and (max-width:1000px) and (hover:hover) and (pointer:fine) { .platform-navigation button { width:64px; } .platform-nav-label { font-size:11px; } }
 @media(max-width:700px) {
- .platform-home { height:100dvh; min-height:100dvh; display:grid; grid-template-rows:auto minmax(0,1fr) auto; padding-block:max(10px,env(safe-area-inset-top)) max(6px,env(safe-area-inset-bottom)); }
- .platform-home .platform-header { margin:0; gap:6px 12px; }
- .platform-home .platform-brand { height:54px; }
- .platform-home .platform-navigation button { min-height:44px; }
+ .platform { padding-block:max(10px,env(safe-area-inset-top)) max(6px,env(safe-area-inset-bottom)); }
+ .platform-home { height:100dvh; min-height:100dvh; display:grid; grid-template-rows:auto minmax(0,1fr) auto; }
+ .platform .platform-header { margin:0; gap:6px 12px; }
+ .platform .platform-brand { height:54px; }
+ .platform .platform-navigation button { min-height:44px; }
  .platform-home-main { position:static; min-height:0; display:block; }
  .platform-home .platform-hero { padding-top:clamp(12px,2.2dvh,24px); width:100%; }
  .platform-home .platform-hero h1 { font-size:clamp(30px,8.5vw,38px); line-height:1.3; margin-block:10px 12px; }
@@ -262,10 +263,10 @@
  .platform-home .platform-art { position:absolute; z-index:-1; inset:0; width:100%; height:100%; margin:0; aspect-ratio:auto; }
  .platform-home .platform-scene,.platform-home[dir=ltr] .platform-scene { top:auto; bottom:0; transform:none; width:100%; }
  .platform-home .platform-art::after { content:''; position:absolute; inset:0; background:linear-gradient(to bottom,#f6f0e2 0%,#f6f0e2f5 31%,#f6f0e2a0 42%,transparent 61%); }
- .platform-home .platform-footer { min-height:38px; padding:0; margin:0; justify-content:center; }
- .platform-home .platform-footer small { display:none; }
- .platform-home .platform-footer-links { gap:24px; }
- .platform-home .platform-footer-links button { font-size:11px; min-height:38px; padding-inline:6px; color:#333; background:transparent; border-radius:0; }
+ .platform .platform-footer { min-height:38px; padding:0; margin:0; justify-content:center; }
+ .platform .platform-footer small { display:none; }
+ .platform .platform-footer-links { gap:24px; }
+ .platform .platform-footer-links button { font-size:11px; min-height:38px; padding-inline:6px; color:#333; background:transparent; border-radius:0; }
  .platform-home[dir=ltr] .platform-hero h1 { font-size:clamp(27px,7.5vw,34px); }
  .platform-nav-label small { display:block; font-size:10px; }
 }
@@ -279,9 +280,10 @@
  .platform-home .platform-art::after { background:linear-gradient(to bottom,#f6f0e2 0%,#f6f0e2f8 46%,#f6f0e2e8 54%,transparent 73%); }
 }
 @media(max-height:500px) and (min-width:701px) and (max-width:1000px) {
- .platform-home { height:100dvh; min-height:100dvh; padding-inline:24px; padding-block:6px; }
- .platform-home .platform-header { margin:0; height:54px; }
- .platform-home .platform-brand { height:48px; }
+ .platform { padding-inline:24px; padding-block:6px; }
+ .platform-home { height:100dvh; min-height:100dvh; }
+ .platform .platform-header { margin:0; height:54px; }
+ .platform .platform-brand { height:48px; }
  .platform-home-main { min-height:0; }
  .platform-home .platform-hero { padding-top:8px; }
  .platform-home .platform-hero h1,.platform-home[dir=ltr] .platform-hero h1 { font-size:26px; line-height:1.2; margin-block:5px; }
@@ -290,21 +292,21 @@
  .platform-home .platform-hero-actions { margin-top:10px; }
  .platform-home .platform-hero-actions .platform-action-primary { min-height:44px; padding:8px; }
  .platform-home .platform-proof,.platform-home .platform-hero-hint { display:none; }
- .platform-home .platform-footer { height:32px; margin:0; }
+ .platform .platform-footer { height:32px; margin:0; }
 }
 @media(prefers-reduced-motion:reduce) { .platform-nav-icon,.platform-nav-label { transition:none; } }
 @media(min-width:701px) {
  .platform-home .platform-scene { top:auto; bottom:-6dvh; left:0; width:100%; max-width:140dvh; mask-image:linear-gradient(to bottom,transparent,#000 12%),linear-gradient(to right,transparent,#000 4%,#000 90%,transparent); mask-composite:intersect; }
 }
 @media(min-width:500px) and (max-width:700px) and (max-height:500px) {
- .platform-home { padding-inline:16px; padding-block:6px; }
- .platform-home .platform-header { grid-template-columns:auto minmax(0,1fr) auto; grid-template-rows:auto; gap:10px; }
- .platform-home .platform-header-tools { gap:6px; }
- .platform-home .platform-login { width:130px; gap:8px; }
- .platform-home .platform-language { width:38px; }
- .platform-home .platform-brand { grid-column:3; height:48px; width:44px; }
- .platform-home .platform-navigation { grid-column:2; grid-row:1; gap:2px; }
- .platform-home .platform-navigation button .platform-nav-label { font-size:11px; }
+ .platform { padding-inline:16px; padding-block:6px; }
+ .platform .platform-header { grid-template-columns:auto minmax(0,1fr) auto; grid-template-rows:auto; gap:10px; }
+ .platform .platform-header-tools { gap:6px; }
+ .platform .platform-login { width:130px; gap:8px; }
+ .platform .platform-language { width:38px; }
+ .platform .platform-brand { grid-column:3; height:48px; width:44px; }
+ .platform .platform-navigation { grid-column:2; grid-row:1; gap:2px; }
+ .platform .platform-navigation button .platform-nav-label { font-size:11px; }
  .platform-home .platform-hero { width:70%; padding-top:8px; }
  .platform-home .platform-hero h1,.platform-home[dir=ltr] .platform-hero h1 { font-size:24px; line-height:1.2; margin-block:5px; }
  .platform-home .platform-hero-description { font-size:11px; line-height:1.6; }
@@ -319,7 +321,7 @@
  .platform-home[dir=ltr] .platform-art-logo-dark { transform:translate(-50%,-50%) rotate(-21deg) scaleX(-1); }
  .platform-home[dir=ltr] .platform-art-logo-light { transform:translate(-50%,-50%) rotate(20deg) scaleX(-1); }
  .platform-home[dir=ltr] .platform-art::after { background:linear-gradient(to bottom,#f6f0e2 0%,#f6f0e290 15%,transparent 40%),linear-gradient(to right,#f6f0e2 0%,#f6f0e2ef 44%,transparent 80%); }
- .platform-home .platform-footer { min-height:38px; }
+ .platform .platform-footer { min-height:38px; }
 }
 
 /* Nav User: compact account identity, with accessible click/tap dropdown. */
@@ -413,7 +415,7 @@
    keeping the approved hero, partner/review panel and footer in the layout. */
 @media (min-width:701px) {
  .platform-home { height:100dvh; min-height:100dvh; }
- .platform-home .platform-header { height:clamp(76px,10dvh,94px); margin-top:0; }
+ .platform .platform-header { height:clamp(76px,10dvh,94px); margin-top:0; }
  .platform-home .platform-home-main {
   flex:1 1 auto; min-height:0;
   grid-template-rows:minmax(0,1fr) auto;
@@ -427,7 +429,7 @@
  .platform-home .platform-proof {
   margin-block:clamp(12px,2dvh,20px) clamp(8px,1.5dvh,14px);
  }
- .platform-home .platform-footer { height:auto; min-height:44px; margin-bottom:0; }
+ .platform .platform-footer { height:auto; min-height:44px; margin-bottom:0; }
  .platform-home .platform-scene {
   top:auto; bottom:0; left:0;
   width:min(100%,132dvh); max-width:none;
@@ -451,25 +453,25 @@
 /* Preserve the previously approved one-screen tablet-landscape layout. */
 @media (min-width:701px) and (max-width:1000px) and (max-height:500px) {
  .platform-home { height:100dvh; min-height:100dvh; }
- .platform-home .platform-header { height:54px; }
+ .platform .platform-header { height:54px; }
  .platform-home .platform-home-main { min-height:0; }
  .platform-home .platform-hero { align-self:start; padding-top:8px; }
  .platform-home .platform-hero h1 { font-size:26px; line-height:1.2; margin-block:5px; }
  .platform-home .platform-hero-actions { margin-top:10px; }
- .platform-home .platform-footer { height:32px; min-height:32px; }
+ .platform .platform-footer { height:32px; min-height:32px; }
 }
 
 /* The logo, page navigation and account occupy the left, center and right
-   thirds of the HOME header independently: no fixed-width center wrapper. */
+   thirds of the shared header independently: no fixed-width center wrapper. */
 @media(min-width:701px) {
- .platform-home .platform-header {
+ .platform .platform-header {
   display:grid;
   grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
   align-items:center;
   column-gap:16px;
  }
- .platform-home .platform-brand-navigation { display:contents; }
- .platform-home .platform-header-tools { grid-column:1; grid-row:1; justify-self:start; }
- .platform-home .platform-navigation { grid-column:2; grid-row:1; justify-self:center; }
- .platform-home .platform-brand { grid-column:3; grid-row:1; justify-self:end; }
+ .platform .platform-brand-navigation { display:contents; }
+ .platform .platform-header-tools { grid-column:1; grid-row:1; justify-self:start; }
+ .platform .platform-navigation { grid-column:2; grid-row:1; justify-self:center; }
+ .platform .platform-brand { grid-column:3; grid-row:1; justify-self:end; }
 }

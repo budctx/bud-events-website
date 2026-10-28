@@ -98,3 +98,39 @@ for(const viewport of [
   expect(metrics.verticalOverflow).toBeLessThanOrEqual(2);
  });
 }
+
+// Header/footer are the same shared chrome in every public section. Measure
+// signed-in and anonymous layouts, including both responsive breakpoints.
+for(const viewport of [
+ {width:320,height:568},{width:390,height:844},
+ {width:700,height:440},{width:768,height:440},
+ {width:920,height:600},{width:1440,height:900},{width:1920,height:1080}
+])for(const signedIn of [false,true]){
+ test(`shared header and footer stay aligned across sections ${viewport.width} signedIn=${signedIn}`,async({page})=>{
+  await page.setViewportSize(viewport);
+  await home(page,false,signedIn);
+  const measure=()=>page.evaluate(()=>{
+   const box=(selector:string)=>{const r=document.querySelector(selector)!.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};};
+   const footer=document.querySelector('.platform-footer')!,style=getComputedStyle(footer);
+   return {header:box('.platform-header'),brand:box('.platform-brand'),nav:box('.platform-navigation'),identity:box('.platform-header-tools'),
+    footer:{width:footer.getBoundingClientRect().width,height:footer.getBoundingClientRect().height,padding:style.padding,margin:style.margin,justify:style.justifyContent,
+     copyright:getComputedStyle(footer.querySelector('small')!).display,gap:getComputedStyle(footer.querySelector('.platform-footer-links')!).gap,
+     buttonFont:getComputedStyle(footer.querySelector('button')!).fontSize},overflow:document.documentElement.scrollWidth-innerWidth};
+  });
+  const expected=await measure();
+  for(const section of ['events','bots','designs','home']){
+   await page.getByTestId('nav-'+section).click();
+   await expect(page.getByTestId('nav-'+section)).toHaveAttribute('aria-current','page');
+   const actual=await measure();
+   expect(actual.header).toEqual(expected.header);expect(actual.brand).toEqual(expected.brand);
+   expect(actual.nav).toEqual(expected.nav);expect(actual.identity).toEqual(expected.identity);
+   expect(actual.footer).toEqual(expected.footer);expect(actual.overflow).toBeLessThanOrEqual(1);
+   const nav=actual.nav,identity=actual.identity,brand=actual.brand;
+   if(viewport.width>700){
+    expect(nav.x).toBeGreaterThanOrEqual(brand.x+brand.width);
+    expect(nav.x+nav.width).toBeLessThanOrEqual(identity.x);
+    expect(Math.abs(nav.x+nav.width/2-viewport.width/2)).toBeLessThanOrEqual(1);
+   }
+  }
+ });
+}
