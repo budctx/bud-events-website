@@ -10,3 +10,34 @@
 .platform-event-catalog{display:grid;gap:28px}.platform-upcoming-preview{border-radius:12px;background:linear-gradient(135deg,#f2ead8,#fff6df);min-height:300px}.platform-upcoming-face{width:176px;min-height:188px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#333;color:#fbb03b;border:2px solid #62533b;border-radius:9px;box-shadow:5px 5px 0 #d2c6af}.platform-upcoming-face span{font-size:20px;font-weight:700}.platform-upcoming-event button:disabled{opacity:.65}
 .bud-event-setup-modal{position:fixed;width:min(820px,calc(100% - 32px));max-height:calc(100dvh - 32px);padding:24px;border:2px solid #333;border-radius:16px;background:#fdfdff;color:#333;overflow:auto;overscroll-behavior:contain;box-shadow:5px 6px 0 #333}.bud-event-setup-modal::backdrop{background:#29251f88;backdrop-filter:blur(5px)}.bud-setup-close{position:absolute;top:12px;inset-inline-end:12px;z-index:2}.bud-event-setup-modal .host-embedded{margin:0}.bud-event-setup-modal .host-header{padding-inline-end:50px}.bud-event-setup-modal .host-single>.host-panel{max-width:none}.bud-event-setup-modal .host-heading h1{font-size:26px}
 @media(max-width:700px){.platform-upcoming-preview{width:100%;min-height:210px;height:auto}.platform-upcoming-event{gap:24px}.bud-event-setup-modal{padding:16px;width:calc(100% - 20px);max-height:calc(100dvh - 20px)}.bud-event-setup-modal .host-heading h1{font-size:23px}}
+
+.bud-bot-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}
+.bud-bot-card{border:0;box-shadow:0 3px 12px #3331;border-radius:16px}
+.bud-bot-card .bud-bot-copy{padding:20px;gap:12px;flex:1;grid-template-rows:auto auto 1fr auto}
+.bud-bot-card .bud-bot-copy h2{font-size:21px;line-height:1.6}
+.bud-bot-card .bud-bot-copy p{font-size:13px}
+.bud-bot-card .bud-bot-copy button{font-size:13px;padding-inline:12px;width:100%;gap:8px}
+.bud-bot-card .bud-bot-art{min-height:170px;flex:none;background:linear-gradient(135deg,#fff4dcbb,#f4ecdf88)}
+.bud-magic-card{position:relative;isolation:isolate;overflow:hidden;border-radius:inherit;padding:1.5px;height:100%}
+.bud-magic-surface{position:absolute;inset:1.5px;border-radius:inherit;background:#fdfdff;z-index:0}
+.bud-magic-glow{position:absolute;inset:1.5px;border-radius:inherit;z-index:1;pointer-events:none;opacity:0;transition:opacity .25s}
+.bud-magic-content{position:relative;z-index:2;height:100%;display:flex;flex-direction:column}
+@media(hover:hover) and (pointer:fine){.bud-magic-card:hover .bud-magic-glow{opacity:1}}
+.platform-event-catalog{display:block;min-width:0;--mantine-scale:1}
+.bud-events-carousel{min-width:0}
+.bud-events-carousel>.mantine-VisuallyHidden-root{display:none}
+.bud-events-viewport{padding:3px 8px 10px;touch-action:pan-y pinch-zoom}
+.bud-events-track{align-items:stretch}
+.bud-events-slide{min-width:0;display:flex}
+.bud-events-slide>.platform-product-card{width:100%;height:100%;box-sizing:border-box}
+.bud-carousel-navigation{display:flex;justify-content:center;align-items:center;gap:16px;margin-top:20px;direction:rtl}
+.bud-carousel-dots{display:flex;align-items:center;direction:rtl}
+.bud-carousel-dots button{width:44px;height:44px;border:0;background:transparent;display:grid;place-items:center;cursor:pointer;border-radius:8px}
+.bud-carousel-dots span{display:block;width:9px;height:9px;border-radius:12px;background:#cfc6b8;transition:width .2s,background .2s}
+.bud-carousel-dots button[aria-current=true] span{width:25px;background:#a96500}
+.bud-carousel-dots button:focus-visible{outline:3px solid #333;outline-offset:2px}
+.bud-carousel-status{text-align:center;color:#6d6458;font-size:12px;margin:6px 0 0}
+@media(max-width:1100px){.bud-bot-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.bud-bot-grid{grid-template-columns:minmax(0,1fr)}.bud-events-viewport{padding:3px 6px 8px}.bud-carousel-navigation{gap:8px;margin-top:14px}.bud-bot-card .bud-bot-art{min-height:180px}}
+@media(max-width:350px){.bud-events-carousel .qc-demo .mg-card-content{font-size:14px;line-height:1.45}}
+@media(prefers-reduced-motion:reduce){.bud-magic-glow{display:none}.bud-carousel-dots span{transition:none}}

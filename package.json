@@ -25,8 +25,13 @@
   "homepage": "https://github.com/budctx/bud-events-website#readme",
   "dependencies": {
     "@fontsource-variable/readex-pro": "5.3.0",
+    "@mantine/carousel": "^9.7.4",
+    "@mantine/core": "^9.7.4",
+    "@mantine/hooks": "^9.7.4",
     "@radix-ui/react-switch": "^1.4.1",
     "@radix-ui/react-tooltip": "^1.4.1",
+    "embla-carousel": "^8.6.0",
+    "embla-carousel-react": "^8.6.0",
     "lucide-react": "1.61.0",
     "motion": "^14.7.1",
     "react": "19.3.0",

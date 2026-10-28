@@ -1,4 +1,3 @@
-import {UpcomingEvents} from './UpcomingEvents';
 import {readOwnerReturn,clearOwnerReturn} from './owner-return';
 import type {OwnerReturn} from './owner-return';
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -13,6 +12,7 @@ import { useAccount } from './use-account';
 import { HostClientError, newHostRequestKey, purchaseEvent, resumeHostEvent, signInHost } from './host-client';
 import type { PaymentState } from './payment-state';
 import type { HostEvent } from './host-client';
+const EventCarousel = lazy(() => import('./EventCarousel'));
 const BotCatalog = lazy(() => import('./BotCatalog'));
 const EventSetupModal=lazy(()=>import('./EventSetupModal'));
 const HostPortal = lazy(() => import('./HostPortal'));
@@ -139,7 +139,9 @@ export default function Platform({ onPlay }: PlatformProps) {
     if (page === next && !panel) return;
     history.pushState(null,'',routeUrl(next));
     setPanel(null); setPage(next);
-    requestAnimationFrame(() => main.current?.focus({ preventScroll: true }));
+    // The main node persists across sections. Focus now so a later frame cannot
+    // steal focus after the user has already pressed Tab on the new section.
+    main.current?.focus({ preventScroll: true });
   };
   const openPanel = (next: 'history' | 'setup' | 'profile' | 'owner') => {
     if (panel === next) return;
@@ -201,7 +203,7 @@ export default function Platform({ onPlay }: PlatformProps) {
         <aside className="platform-proof" aria-label={locale === 'ar' ? 'المجتمع والشركاء' : 'Community and partners'} data-node-id="359:2272"><div className="platform-review-empty"><strong>{t.review}</strong><p>{t.reviewNote}</p></div><div className="platform-partners-empty">{partners.length>0?<><strong>شركاؤنا</strong><BudLogoCarousel logos={partners}/></>:t.partners}</div></aside>
       </> : <>
         <div className="platform-gallery-intro"><h1>{page === 'events' ? t.galleryTitle : t[page]}</h1><p>{page === 'events' ? t.galleryDescription : t.soonDescription}</p>{page === 'events' && <button className="platform-action platform-action-secondary platform-event-how" data-testid="event-how" onClick={() => setModal('how')}>{t.how}</button>}</div>
-        {page === 'events' ? <div className="platform-event-catalog"><article className="platform-product-card" data-node-id="383:11116"><Suspense fallback={<div className="event-preview" role="status" aria-label="جارٍ تحميل معاينة الفعالية…" />}><EventPreview key={locale} locale={locale} /></Suspense><div className="platform-product-information"><p className="platform-product-eyebrow">{t.productEyebrow}</p><h2>{t.product}</h2><p className="platform-product-description">{t.productDescription}</p><p className="platform-features">{t.features}</p><div className="platform-event-ownership">
+        {page === 'events' ? <Suspense fallback={<p role="status">جارٍ تحميل الفعاليات…</p>}><EventCarousel><article className="platform-product-card" data-node-id="383:11116"><Suspense fallback={<div className="event-preview" role="status" aria-label="جارٍ تحميل معاينة الفعالية…" />}><EventPreview key={locale} locale={locale} /></Suspense><div className="platform-product-information"><p className="platform-product-eyebrow">{t.productEyebrow}</p><h2>{t.product}</h2><p className="platform-product-description">{t.productDescription}</p><p className="platform-features">{t.features}</p><div className="platform-event-ownership">
           {account.session && (account.keysLoading ? <p role="status">{locale === 'ar' ? 'جارٍ تحميل مفاتيحك…' : 'Loading your keys…'}</p> : account.keysError ? <p>{locale === 'ar' ? 'تعذر تحميل مفاتيحك.' : 'Unable to load your keys.'} <button className="platform-inline-retry" onClick={() => void account.refresh()}>{locale === 'ar' ? 'إعادة المحاولة' : 'Retry'}</button></p> : account.dashboard && <p className="platform-event-keys" data-testid="event-keys">{locale === 'ar' ? <>لديك <bdi>{account.dashboard.credits}</bdi> مفاتيح</> : <>You have <bdi>{account.dashboard.credits}</bdi> keys</>}</p>)}
           <div className="platform-event-actions">
           {canResume && <button className="platform-action platform-action-primary" data-testid="event-resume" disabled={busy} onClick={() => void perform(async () => onPlay(await resumeHostEvent(ongoing!.eventId,account.session?.id,account.dashboard?.runtime==='browser-v1'), locale))}>استكمال الفعالية</button>}
@@ -209,7 +211,7 @@ export default function Platform({ onPlay }: PlatformProps) {
           <button className={`platform-action ${canSetup||canResume?'platform-action-secondary':'platform-action-primary'}`} data-testid="product-card-qc" disabled={busy || paymentHold || account.dashboard?.paymentReview} aria-busy={activeAction==='purchase'} onClick={() => void buy()}>{activeAction==='purchase'?'جارٍ تجهيز الشراء…':t.buy}</button>
           </div>
           {ongoing?.localMissing&&<p className="host-local-policy">تقدم هذه الفعالية غير موجود في هذا المتصفح. <button className="platform-inline-retry" onClick={()=>setPanel('history')}>عرض سجل التشغيل</button></p>}
-          </div></div></article><UpcomingEvents/></div> : page==='bots'?<Suspense fallback={<p role="status">جارٍ تحميل البوتات…</p>}><BotCatalog/></Suspense>:<article className="platform-product-card platform-coming-soon"><div><p className="platform-status"><BudBadge tone="warning" variant="outline">{t.soon}</BudBadge></p><h2>{t[page]}</h2><p>{t.soonDescription}</p><button className="platform-action platform-action-secondary" onClick={() => setModal('soon')}>{locale === 'ar' ? 'تفاصيل المنتج' : 'Product details'}</button></div></article>}
+          </div></div></article></EventCarousel></Suspense> : page==='bots'?<Suspense fallback={<p role="status">جارٍ تحميل البوتات…</p>}><BotCatalog/></Suspense>:<article className="platform-product-card platform-coming-soon"><div><p className="platform-status"><BudBadge tone="warning" variant="outline">{t.soon}</BudBadge></p><h2>{t[page]}</h2><p>{t.soonDescription}</p><button className="platform-action platform-action-secondary" onClick={() => setModal('soon')}>{locale === 'ar' ? 'تفاصيل المنتج' : 'Product details'}</button></div></article>}
       </>}
     </main>
     {page==='events'&&panel==='setup'&&account.session&&<Suspense fallback={<p role="status">جارٍ فتح إعداد الفعالية…</p>}><EventSetupModal key={account.session.id} locale={locale} onAuthLost={account.expire} onClose={closePanel} onPlay={event=>onPlay(event,locale)}/></Suspense>}
