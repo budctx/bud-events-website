@@ -206,7 +206,7 @@ export default function Game({ onExit, locale = 'ar', initialState, cards, serve
     {state.phase === 'prizes' && <section className="mg-prizes-screen" aria-label={t.prizePage}>
       <aside className="mg-panel mg-winners-sidebar" aria-labelledby="mg-sidebar-title">
         <div className="mg-winners-heading"><h2 id="mg-sidebar-title"><WinnerIcon kind="people" />{ar ? 'قائمة الفائزين' : 'Winner list'}</h2><button className="mg-icon-button mg-add-winner" type="button" aria-label={ar ? 'إضافة فائز' : 'Add a winner'} title={ar ? 'إضافة فائز' : 'Add a winner'} disabled={syncBlocked || full} onClick={startAdding}><Plus aria-hidden="true" /></button></div>
-        <WinnerList winners={state.winners} prizes={state.prizes} locale={locale} selectedId={winnerId} onSelect={setWinnerId} />
+        <WinnerList winners={state.winners} prizes={state.prizes} locale={locale} selectedId={winnerId} onSelect={setWinnerId} readOnly={syncBlocked} onDelete={winner => { setManagementReturnId(winner.id); setDeletingWinner(winner); setViewWinners(true); }} />
         {!state.winners.length && <p className="mg-help">{ar ? 'يمكنك إضافة فائز من زر +، أو فتح بطاقات الجوائز مباشرة.' : 'Add a winner using +, or reveal the remaining prize cards directly.'}</p>}
         {full && <p className="mg-help">{ar ? 'اكتمل العدد؛ احذف سجلًا من الفائزين لإضافة بديل.' : 'Capacity reached; delete a winner record to add a replacement.'}</p>}
       </aside>
