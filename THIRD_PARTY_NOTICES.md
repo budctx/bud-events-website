@@ -48,3 +48,7 @@ The requested paid block https://ui.aceternity.com/blocks/cards/expandable-card-
 
 - React Aria Components: Apache-2.0, Adobe. See `licenses/react-aria-components-Apache-2.0.txt`.
 - Motion and Framer Motion: MIT. See `licenses/motion-MIT.txt` and `licenses/framer-motion-MIT.txt`.
+
+- Magic UI Magic Card (MIT, Copyright (c) Magic UI): adapted gradient mode for BU’D light palette, mouse input and reduced motion. Source: https://magicui.design/r/magic-card.json. See `licenses/magicui-MIT.txt`.
+- Mantine Core, Hooks and Carousel: MIT, Vitaly Rtishchev. See `licenses/mantine-MIT.txt`. Carousel is scoped and loaded only in Events.
+- Embla Carousel and React adapter: MIT, David Jerleke. See `licenses/embla-carousel-MIT.txt`.
