@@ -72,7 +72,8 @@ test('the live browser event randomizes prize-to-card mapping once and preserves
  const before=await readPrizes();
  expect(before.map(p=>p.id)).toEqual(['prize-1','prize-2','prize-3','prize-4']);
  expect(before.map(p=>p.name).sort()).toEqual([...entered].sort());
- expect(before.map(p=>p.name)).not.toEqual(entered);
+ // An unbiased random shuffle can reproduce input order by chance.
+ // The persisted mapping, not visual nonidentity, is what must remain fixed.
  expect(before.every(p=>p.revealed===false&&p.winnerId===null)).toBe(true);
  await page.getByRole('button',{name:'صفحة الجوائز',exact:true}).click();
  await expect(page.locator('.mg-prize-card')).toHaveCount(entered.length);
