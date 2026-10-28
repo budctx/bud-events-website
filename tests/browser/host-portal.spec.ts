@@ -78,7 +78,7 @@ test('logout clears cached host data when upstream revocation is unavailable',as
   await expect(page.getByTestId('event-keys')).toHaveCount(0);
   await expect(page.locator('.host-embedded')).toHaveCount(0);
   await expect(page.getByText('مقدم المجتمع',{exact:true})).toHaveCount(0);
-  await expect(page.getByRole('button',{name:'استكمال الفعالية',exact:true})).toHaveCount(0);
+  await expect(page.getByRole('button',{name:'عودة للفعالية',exact:true})).toHaveCount(0);
 });
 
 test('persisted host game recovers an acknowledged reveal after a lost response', async ({ page }, info) => {
@@ -100,14 +100,14 @@ test('persisted host game recovers an acknowledged reveal after a lost response'
     return route.fulfill(ok(current));
   });
   await page.goto('/?screen=host&lang=ar');
-  await expect(page.getByRole('button',{name:'استكمال الفعالية',exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'عودة للفعالية',exact:true})).toBeVisible();
   await page.getByTestId('event-setup').click();
   await expect(page.getByRole('button',{name:'بدء الفعالية',exact:true})).toHaveCSS('background-color','rgb(255, 182, 56)');
   await expect(page.getByRole('button',{name:'توضيح الجوائز',exact:true})).toHaveCSS('border-top-width','0px');
   await page.evaluate(()=>document.fonts.ready);
   for (const width of [1440,390]) { await page.setViewportSize({width,height:844}); await page.screenshot({path:info.outputPath(`host-dashboard-${width}.png`),fullPage:true,animations:'disabled'}); expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true); }
   await page.getByRole('button',{name:'إغلاق إعداد الفعالية',exact:true}).click();
-  await page.getByRole('button',{name:'استكمال الفعالية',exact:true}).click();
+  await page.getByRole('button',{name:'عودة للفعالية',exact:true}).click();
   await page.getByRole('button',{name:'اكشف سؤال',exact:true}).click();
   await expect(page.getByRole('alert')).toContainText('تعذر تأكيد');
   await expect(page.getByRole('button',{name:'اكشف شرط',exact:true})).toBeDisabled();
@@ -235,7 +235,7 @@ test('pending logout suppresses focus refresh and clears private state even afte
   expect({ sessionReads, dashboardReads }).toEqual(before);
   releaseLogout();
   await expect(page.getByRole('button', { name: 'سجّل دخولك عبر Discord', exact: true })).toBeVisible();
-  await expect(page.getByTestId('event-keys')).toHaveCount(0); await expect(page.getByTestId('event-setup')).toHaveCount(0); await expect(page.getByRole('button', { name: 'استكمال الفعالية', exact: true })).toHaveCount(0);
+  await expect(page.getByTestId('event-keys')).toHaveCount(0); await expect(page.getByTestId('event-setup')).toHaveCount(0); await expect(page.getByRole('button', { name: 'عودة للفعالية', exact: true })).toHaveCount(0);
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
   await expect.poll(() => sessionReads).toBe(before.sessionReads + 1);
   await expect(page.locator('.platform-account-trigger')).toHaveCount(0); expect(dashboardReads).toBe(before.dashboardReads);
@@ -316,7 +316,7 @@ test('host alone can approve a new draw cycle after persisted activity exhaustio
     return route.fulfill({ status: 400, json: { code: 'UNEXPECTED_ACTION' } });
   });
   await page.goto('/?screen=host&lang=ar');
-  await page.getByRole('button', { name: 'استكمال الفعالية', exact: true }).click();
+  await page.getByRole('button', { name: 'عودة للفعالية', exact: true }).click();
   await expect(page.getByText('استُخدمت جميع التركيبات', { exact: false })).toBeVisible();
   await expect(page.getByRole('button', { name: 'اكشف سؤال', exact: true })).toBeDisabled();
   await page.getByRole('button', { name: 'بدء دورة جديدة', exact: true }).click();
@@ -330,7 +330,7 @@ test('card faces respond before acknowledgement and rapid reveals serialize with
  let current={...active,state:structuredClone(initialState) as ManualState,cards:{question:'دولة',condition:'تبدأ بحرف س'},serverNow:Date.now()};
  const requests:any[]=[];const releases:Array<()=>void>=[];
  await page.route('**/api/host',async route=>{const payload=route.request().postDataJSON();if(payload.action==='dashboard')return route.fulfill(ok({...dashboard,events:[current]}));if(payload.action==='resume')return route.fulfill(ok(current));requests.push(payload);await new Promise<void>(resolve=>releases.push(resolve));expect(payload.version).toBe(current.version);current={...current,version:current.version+1,state:manualGameReducer(current.state,payload.command),serverNow:Date.now()};return route.fulfill(ok(current));});
- await page.goto('/?screen=events');await page.getByRole('button',{name:'استكمال الفعالية',exact:true}).click();
+ await page.goto('/?screen=events');await page.getByRole('button',{name:'عودة للفعالية',exact:true}).click();
  await page.getByRole('button',{name:'اكشف سؤال',exact:true}).click();await expect(page.getByRole('button',{name:'اكشف سؤال',exact:true})).toHaveAttribute('aria-pressed','true');
  await page.getByRole('button',{name:'اكشف شرط',exact:true}).click();await expect(page.getByRole('button',{name:'اكشف شرط',exact:true})).toHaveAttribute('aria-pressed','true');
  await expect.poll(()=>requests.length).toBe(1);await expect(page.getByRole('button',{name:'صحيحة',exact:true})).toHaveCount(0);await expect(page.locator('.mg-remote-status')).toHaveCount(0);
@@ -342,21 +342,21 @@ test('card faces respond before acknowledgement and rapid reveals serialize with
 test('a lost reveal acknowledgement pauses queued intents and retries its exact receipt before draining',async({page})=>{
  await session(page);let current={...active,state:structuredClone(initialState) as ManualState,cards:{question:'دولة',condition:'تبدأ بحرف س'},serverNow:Date.now()};const requests:any[]=[];const receipts=new Map<string,typeof current>();let release!:()=>void;
  await page.route('**/api/host',async route=>{const payload=route.request().postDataJSON();if(payload.action==='dashboard')return route.fulfill(ok({...dashboard,events:[current]}));if(payload.action==='resume')return route.fulfill(ok(current));requests.push(payload);if(receipts.has(payload.idempotencyKey))return route.fulfill(ok(receipts.get(payload.idempotencyKey)));if(requests.length===1)await new Promise<void>(resolve=>{release=resolve;});expect(payload.version).toBe(current.version);current={...current,version:current.version+1,state:manualGameReducer(current.state,payload.command),serverNow:Date.now()};receipts.set(payload.idempotencyKey,current);return requests.length===1?route.abort('connectionfailed'):route.fulfill(ok(current));});
- await page.goto('/?screen=events');await page.getByRole('button',{name:'استكمال الفعالية',exact:true}).click();await page.getByRole('button',{name:'اكشف سؤال',exact:true}).click();await page.getByRole('button',{name:'اكشف شرط',exact:true}).click();await expect.poll(()=>typeof release).toBe('function');release();
+ await page.goto('/?screen=events');await page.getByRole('button',{name:'عودة للفعالية',exact:true}).click();await page.getByRole('button',{name:'اكشف سؤال',exact:true}).click();await page.getByRole('button',{name:'اكشف شرط',exact:true}).click();await expect.poll(()=>typeof release).toBe('function');release();
  await expect(page.getByRole('alert')).toContainText('تعذر تأكيد');expect(requests).toHaveLength(1);await page.getByRole('button',{name:'إعادة المحاولة',exact:true}).click();await expect(page.getByRole('button',{name:'صحيحة',exact:true})).toBeEnabled();expect(requests).toHaveLength(3);expect(requests[0]).toEqual(requests[1]);expect(requests[2].version).toBe(2);expect(current.version).toBe(3);
 });
 
 test('a conflict discards queued reveals and returns both faces to the refreshed round',async({page})=>{
  await session(page);let current={...active,state:structuredClone(initialState) as ManualState,cards:{question:'دولة',condition:'تبدأ بحرف س'},serverNow:Date.now()};const requests:any[]=[];let release!:()=>void;
  await page.route('**/api/host',async route=>{const payload=route.request().postDataJSON();if(payload.action==='dashboard')return route.fulfill(ok({...dashboard,events:[current]}));if(payload.action==='resume')return route.fulfill(ok(current));requests.push(payload);await new Promise<void>(resolve=>{release=resolve;});current={...current,version:5,state:{...current.state,round:1,question:false,condition:false},cards:{question:'مدينة',condition:'من كلمتين'}};return route.fulfill({status:409,json:{code:'VERSION_CONFLICT'}});});
- await page.goto('/?screen=events');await page.getByRole('button',{name:'استكمال الفعالية',exact:true}).click();await page.getByRole('button',{name:'اكشف سؤال',exact:true}).click();await page.getByRole('button',{name:'اكشف شرط',exact:true}).click();await expect.poll(()=>typeof release).toBe('function');release();
+ await page.goto('/?screen=events');await page.getByRole('button',{name:'عودة للفعالية',exact:true}).click();await page.getByRole('button',{name:'اكشف سؤال',exact:true}).click();await page.getByRole('button',{name:'اكشف شرط',exact:true}).click();await expect.poll(()=>typeof release).toBe('function');release();
  await expect(page.getByRole('alert')).toContainText('تغيرت الفعالية');await expect(page.getByRole('button',{name:'اكشف سؤال',exact:true})).toHaveAttribute('aria-pressed','false');await expect(page.getByRole('button',{name:'اكشف شرط',exact:true})).toHaveAttribute('aria-pressed','false');expect(requests).toHaveLength(1);
 });
 
 test('a failed winner save can recover from inside its open dialog without duplicating the winner',async({page})=>{
  await session(page);let current={...active,state:{...structuredClone(initialState),question:true,condition:true} as ManualState,cards:{question:'دولة',condition:'تبدأ بحرف س'},serverNow:Date.now()};const receipts=new Map<string,typeof current>();const saves:any[]=[];
  await page.route('**/api/host',async route=>{const payload=route.request().postDataJSON();if(payload.action==='dashboard')return route.fulfill(ok({...dashboard,events:[current]}));if(payload.action==='resume')return route.fulfill(ok(current));if(payload.command.type==='save-winner')saves.push(payload);if(receipts.has(payload.idempotencyKey))return route.fulfill(ok(receipts.get(payload.idempotencyKey)));current={...current,version:current.version+1,state:manualGameReducer(current.state,payload.command),serverNow:Date.now()};receipts.set(payload.idempotencyKey,current);return payload.command.type==='save-winner'?route.abort('connectionfailed'):route.fulfill(ok(current));});
- await page.goto('/?screen=events');await page.getByRole('button',{name:'استكمال الفعالية',exact:true}).click();await page.getByRole('button',{name:'صحيحة',exact:true}).click();const dialog=page.getByRole('dialog',{name:'تسجيل الفائز',exact:true});await dialog.getByLabel('اسم الفائز',{exact:true}).fill('سارة');await dialog.getByRole('button',{name:'إضافة الفائز',exact:true}).click();await expect(dialog.getByRole('alert')).toContainText('تعذر تأكيد');await dialog.getByRole('button',{name:'إعادة المحاولة',exact:true}).click();await expect(dialog).not.toBeVisible();expect(saves).toHaveLength(2);expect(saves[0]).toEqual(saves[1]);expect(current.state.winners).toHaveLength(1);
+ await page.goto('/?screen=events');await page.getByRole('button',{name:'عودة للفعالية',exact:true}).click();await page.getByRole('button',{name:'صحيحة',exact:true}).click();const dialog=page.getByRole('dialog',{name:'تسجيل الفائز',exact:true});await dialog.getByLabel('اسم الفائز',{exact:true}).fill('سارة');await dialog.getByRole('button',{name:'إضافة الفائز',exact:true}).click();await expect(dialog.getByRole('alert')).toContainText('تعذر تأكيد');await dialog.getByRole('button',{name:'إعادة المحاولة',exact:true}).click();await expect(dialog).not.toBeVisible();expect(saves).toHaveLength(2);expect(saves[0]).toEqual(saves[1]);expect(current.state.winners).toHaveLength(1);
 });
 
 for(const width of [390,1440])test(`event setup opens in a viewport-safe modal and restores its draft at ${width}`,async({page})=>{
