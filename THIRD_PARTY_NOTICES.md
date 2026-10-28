@@ -52,3 +52,6 @@ The requested paid block https://ui.aceternity.com/blocks/cards/expandable-card-
 - Magic UI Magic Card (MIT, Copyright (c) Magic UI): adapted gradient mode for BU’D light palette, mouse input and reduced motion. Source: https://magicui.design/r/magic-card.json. See `licenses/magicui-MIT.txt`.
 - Mantine Core, Hooks and Carousel: MIT, Vitaly Rtishchev. See `licenses/mantine-MIT.txt`. Carousel is scoped and loaded only in Events.
 - Embla Carousel and React adapter: MIT, David Jerleke. See `licenses/embla-carousel-MIT.txt`.
+
+- Magic UI Ripple Button (MIT): adapted for BU’D native purchase button, keyboard-centered waves, touch, bounded ripple state, and reduced motion. Source: https://magicui.design/r/ripple-button.json. See `licenses/magicui-MIT.txt`.
+- Saudi riyal symbol: official SAMA design, local SVG asset. Primary source and usage guide: https://www.sama.gov.sa/ar-sa/Currency/SRS/Pages/Guideline.aspx. Download mirror used when SAMA returned HTTP 503: https://github.com/abdulrysrr/new-saudi-riyal-symbol/blob/main/svg/Saudi_Riyal_Symbol.svg (MIT; see `licenses/saudi-riyal-mirror-MIT.txt`). The symbol is not drawn or substituted with a generic currency icon.

@@ -13,7 +13,7 @@ test('Hick: a signed-in host with slots sees setup as the main action, not purch
   await page.goto('/?screen=events');
   await expect(page.getByTestId('event-setup')).toHaveClass(/platform-action-primary/);
   await expect(page.getByTestId('product-card-qc')).toHaveClass(/platform-action-secondary/);
-  await expect(page.getByTestId('product-card-qc')).toHaveText('اشترِ الآن — ٣ ر.س');
+  await expect(page.getByTestId('product-card-qc')).toHaveText('شراء ٣');
 });
 
 test('Hick: when an event is active, resume is the primary action; without slots buying stays primary',async({page})=>{
@@ -81,6 +81,30 @@ test('Doherty: buy shows its pending state immediately without pretending succes
   await expect(page.getByTestId('product-card-qc')).toHaveText('جارٍ تجهيز الشراء…');
   await expect(page.getByRole('status').filter({hasText:'جارٍ التحقق من طلب الشراء…'})).toBeVisible();
   release();
-  await expect(page.getByTestId('product-card-qc')).toHaveText('اشترِ الآن — ٣ ر.س');
+  await expect(page.getByTestId('product-card-qc')).toHaveText('شراء ٣');
   await expect(page.locator('.bud-toast[data-tone=danger]').last()).toContainText('الشراء غير متاح');
+});
+
+for(const mode of ['mouse','keyboard','touch','reduced'] as const)test.describe(`purchase ripple ${mode}`,()=>{
+ test.use({hasTouch:mode==='touch'});
+ test('shows price and riyal, preserves pending protection and respects input/motion',async({page})=>{
+  await page.setViewportSize({width:mode==='touch'?390:1440,height:900});
+  if(mode==='reduced')await page.emulateMedia({reducedMotion:'reduce'});
+  await setup(page,{...dashboard,credits:0});
+  let calls=0,release!:()=>void;const gate=new Promise<void>(resolve=>{release=resolve;});
+  await page.route('**/api/checkout',async route=>{calls++;await gate;await route.fulfill({status:503,json:{code:'LIVE_COMMERCE_DISABLED'}});});
+  await page.goto('/?screen=events');const buy=page.getByTestId('product-card-qc');
+  await expect(buy).toBeEnabled();await expect(buy).toHaveText('شراء ٣');await expect(buy).toHaveAccessibleName('شراء فعالية سؤال وشرط مقابل ٣ ريال سعودي');
+  const currency=buy.locator('img');await expect.poll(()=>currency.evaluate((img:HTMLImageElement)=>img.complete&&img.naturalWidth>0)).toBe(true);
+  const symbol=await currency.boundingBox(),number=await buy.locator('bdi').boundingBox();expect(symbol!.x+symbol!.width).toBeLessThanOrEqual(number!.x+1);
+  const before=await buy.boundingBox();await page.clock.install();await page.clock.pauseAt((await page.evaluate(()=>Date.now()))+1000);
+  if(mode==='keyboard'){await buy.focus();await buy.press('Enter');}else if(mode==='touch')await buy.tap();else await buy.click();
+  await expect(buy).toBeDisabled();await expect(buy).toHaveAttribute('aria-busy','true');await expect(buy).toHaveText('جارٍ تجهيز الشراء…');
+  await expect(buy.locator('.bud-button-wave')).toHaveCount(mode==='reduced'?0:1);
+  expect((await buy.boundingBox())!.width).toBeCloseTo(before!.width,0);
+  if(mode==='touch')expect(await buy.evaluate(el=>getComputedStyle(el).outlineStyle)).toBe('none');
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+  await page.clock.runFor(650);await expect(buy.locator('.bud-button-wave')).toHaveCount(0);await expect.poll(()=>calls).toBe(1);
+  release();await expect(buy).toBeEnabled();await expect(buy).toHaveText('شراء ٣');
+ });
 });

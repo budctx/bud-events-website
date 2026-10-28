@@ -1,0 +1,10 @@
+.bud-ripple-button{position:relative;isolation:isolate;overflow:hidden}
+.bud-ripple-content{position:relative;z-index:1;display:inline-flex;align-items:center;justify-content:center;gap:12px;pointer-events:none}
+.bud-button-waves{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;border-radius:inherit}
+.bud-button-wave{position:absolute;border-radius:50%;background:#fff8df;opacity:.6;transform:scale(0);animation:bud-purchase-ripple 600ms ease-out forwards}
+.bud-purchase-button .bud-purchase-price{display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
+.bud-purchase-price img{display:block;width:18px;height:20px;object-fit:contain;flex:none}
+.bud-purchase-price bdi{font-variant-numeric:tabular-nums}
+.bud-purchase-divider{display:block;width:1px;height:22px;background:currentColor;opacity:.25}
+@keyframes bud-purchase-ripple{to{transform:scale(1);opacity:0}}
+@media(prefers-reduced-motion:reduce){.bud-button-wave{display:none;animation:none}}
