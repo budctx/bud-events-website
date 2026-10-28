@@ -1,0 +1,7 @@
+/* Touch and automatic dialog focus must not paint a keyboard focus ring.
+   Keyboard navigation on a phone/tablet restores the existing focus styles. */
+html[data-bud-input=touch] button:focus,
+html[data-bud-input=touch] button:focus-visible,
+html[data-bud-input=touch] button[data-focus-visible]{outline:none!important}
+html[data-bud-input=touch] button{-webkit-tap-highlight-color:transparent}
+html[data-bud-input=touch] .platform-account-menu button:focus-visible{background:transparent}

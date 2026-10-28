@@ -423,3 +423,23 @@ test('login error toast survives section navigation and repeats on a new attempt
  await expect(page.locator('.bud-toast[data-tone=danger]')).toHaveCount(2);expect(calls).toBe(2);
  await expect(page.locator('.platform-account-notice')).toHaveCount(0);
 });
+
+test.describe('touch button presentation',()=>{
+ test.use({hasTouch:true,isMobile:true,viewport:{width:390,height:844}});
+ test('touch and automatic modal focus show no button ring or tooltip; keyboard keeps a visible focus indicator',async({page})=>{
+  await page.goto('/?screen=bots');
+  const details=page.getByRole('button',{name:'تفاصيل المنتج',exact:true});await details.tap();
+  const dialog=page.getByRole('dialog',{name:'بوتات بُعد',exact:true});await expect(dialog).toBeVisible();
+  const close=dialog.getByRole('button',{name:'إغلاق تفاصيل البوتات'});
+  await expect(close).toBeFocused();
+  expect(await close.evaluate(el=>getComputedStyle(el).outlineStyle)).toBe('none');
+  await expect(page.getByRole('tooltip')).toHaveCount(0);
+  await close.tap();await expect(dialog).not.toBeVisible();
+  expect(await details.evaluate(el=>getComputedStyle(el).outlineStyle)).toBe('none');
+  await page.getByTestId('nav-events').tap();
+  expect(await page.getByTestId('nav-events').evaluate(el=>getComputedStyle(el).outlineStyle)).toBe('none');
+  await page.getByTestId('nav-home').press('Tab');
+  await expect(page.getByTestId('nav-events')).toBeFocused();
+  expect(await page.getByTestId('nav-events').evaluate(el=>getComputedStyle(el).outlineStyle)).toBe('solid');
+ });
+});
