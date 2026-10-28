@@ -1,3 +1,4 @@
+import {trackInputModality} from './input-modality';
 import {createContext,useCallback,useContext,useEffect,useId,useLayoutEffect,useRef,useState} from 'react';
 import type {CSSProperties,PointerEvent,ReactNode} from 'react';
 import {createPortal} from 'react-dom';
@@ -22,6 +23,7 @@ function ToastItem({item,dismiss}:{item:Toast;dismiss:(id:string)=>void}){
  <span>{item.text}</span><button type="button" aria-label="إغلاق التنبيه" onClick={()=>dismiss(item.id)}><X aria-hidden="true"/></button></div>;
 }
 export function BudToastProvider({children}:{children:ReactNode}){
+ useEffect(trackInputModality,[]);
  const [items,setItems]=useState<Toast[]>([]),[target,setTarget]=useState<Element|null>(null);
  const dismiss=useCallback((id:string)=>setItems(previous=>previous.filter(v=>v.id!==id)),[]);
  const notify=useCallback(Object.assign((text:string,tone:Tone='info',options?:{id?:string;persistent?:boolean})=>{
