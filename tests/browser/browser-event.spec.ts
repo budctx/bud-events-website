@@ -56,3 +56,36 @@ for(const width of [390,1440])test(`circle timer follows the saved deadline acro
 test('circle timer honors reduced motion without hiding the remaining time or progress',async({page})=>{
  await page.emulateMedia({reducedMotion:'reduce'});await page.clock.install();await setup(page);await start(page);await page.getByRole('button',{name:'اكشف سؤال',exact:true}).click();await page.getByRole('button',{name:'اكشف شرط',exact:true}).click();await page.clock.runFor(4100);const timer=page.getByRole('timer');await expect(timer).toHaveText('1');await expect(timer).toHaveAttribute('data-urgent','true');expect(await timer.locator('.event-countdown-progress').evaluate(el=>getComputedStyle(el).transitionDuration)).toBe('0s');await expect(timer.locator('svg')).toBeVisible();
 });
+
+
+test('the live browser event randomizes prize-to-card mapping once and preserves it on reload',async({page})=>{
+ const entered=['الجائزة الذهبية','الجائزة الفضية','الجائزة البرونزية','القسيمة الخاصة'];
+ await setup(page);
+ await page.getByTestId('event-setup').click();
+ await page.locator('#host-prizes').fill(entered.join('\\n'));
+ await page.getByRole('button',{name:'بدء الفعالية',exact:true}).click();
+ await expect(page.getByRole('button',{name:'اكشف سؤال',exact:true})).toBeVisible();
+ const readPrizes=()=>page.evaluate(({owner,id})=>{
+  const stored=localStorage.getItem('bud-browser-event:v1:'+owner+':'+id);
+  return JSON.parse(stored!).state.prizes as {id:string;name:string;revealed:boolean;winnerId:string|null}[];
+ },{owner,id});
+ const before=await readPrizes();
+ expect(before.map(p=>p.id)).toEqual(['prize-1','prize-2','prize-3','prize-4']);
+ expect(before.map(p=>p.name).sort()).toEqual([...entered].sort());
+ expect(before.map(p=>p.name)).not.toEqual(entered);
+ expect(before.every(p=>p.revealed===false&&p.winnerId===null)).toBe(true);
+ await page.getByRole('button',{name:'صفحة الجوائز',exact:true}).click();
+ await expect(page.locator('.mg-prize-card')).toHaveCount(entered.length);
+ for(const name of entered)await expect(page.locator('.mg-prize-grid')).not.toContainText(name);
+ await page.reload();
+ await expect(page.locator('.mg-prize-card')).toHaveCount(entered.length);
+ expect(await readPrizes()).toEqual(before);
+ await page.getByRole('button',{name:'فتح دون اسم',exact:true}).click();
+ await page.locator('.mg-prize-card').first().click();
+ await page.getByRole('button',{name:'افتح دون اسم!',exact:true}).click();
+ await expect(page.locator('.mg-result-prize')).toHaveText(before[0].name);
+ const after=await readPrizes();
+ expect(after.map(p=>p.name)).toEqual(before.map(p=>p.name));
+ expect(after[0].revealed).toBe(true);
+ expect(after.slice(1).every(p=>!p.revealed)).toBe(true);
+});
