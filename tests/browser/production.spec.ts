@@ -254,6 +254,8 @@ test('Question and Condition has no attempt limit control or counter', async ({p
     for(const name of ['اكشف سؤال','اكشف شرط','خاطئة'])await page.getByRole('button',{name,exact:true}).click();
     await expect(page.getByRole('button',{name:'اكشف سؤال',exact:true})).toBeEnabled();
   }
+  for(const name of ['اكشف سؤال','اكشف شرط'])await page.getByRole('button',{name,exact:true}).click();
+  await expect(page.locator('.mg-judgment')).toBeVisible();
   await expect(page.locator('.mg-judgment')).not.toContainText('المحاولة');
 });
 
