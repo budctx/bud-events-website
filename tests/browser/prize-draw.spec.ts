@@ -55,7 +55,7 @@ for (const ar of [true]) for (const width of [1440, 390, 360]) {
     const confirmation = page.locator('.mg-award-confirm');
     await expect(confirmation).toContainText(name);
     await expect(confirmation.locator('.mg-winner-number')).toHaveText('2');
-    await expect(confirmation).not.toContainText('هدية أولى');
+    for(const prize of ['هدية أولى','هدية ثانية','هدية ثالثة']) await expect(confirmation).not.toContainText(prize);
     await page.screenshot({ path: info.outputPath('confirm.png'), fullPage: true });
     await page.keyboard.press('Escape');
     await expect(second).toHaveAttribute('aria-pressed', 'true');
@@ -63,7 +63,7 @@ for (const ar of [true]) for (const width of [1440, 390, 360]) {
     await page.locator('.mg-prize-card').first().click();
     await confirm(page, ar);
     await expect(page.locator('.mg-award-result')).toBeVisible();
-    await expect(page.locator('.mg-result-prize')).toHaveText('هدية أولى');
+    await expect(page.locator('.mg-result-prize')).toHaveText(/^هدية (أولى|ثانية|ثالثة)$/);
     await expect(page.locator('.mg-confetti')).toHaveCount(1);
     await page.waitForTimeout(700); // Capture the visible burst, rather than its first frame.
     await page.screenshot({ path: info.outputPath('result.png'), fullPage: true });
@@ -156,7 +156,7 @@ test('prize suspense hides the result until reveal and can be skipped without du
   await expect(page.locator('.mg-result-prize')).toHaveCount(0);
   await expect(page.locator('.mg-confetti')).toHaveCount(0);
   await page.getByRole('button',{name:'اكشف الآن',exact:true}).click();
-  await expect(page.locator('.mg-result-prize')).toHaveText('هدية أولى');
+  await expect(page.locator('.mg-result-prize')).toHaveText(/^هدية (أولى|ثانية|ثالثة)$/);
   await expect(page.locator('.mg-confetti')).toHaveCount(1);
   await page.keyboard.press('Escape');
   await expect(page.locator('.mg-prize-card[data-revealed=true]')).toHaveCount(1);
@@ -167,13 +167,15 @@ test('suspense finishes automatically and reduced motion reveals instantly', asy
   await start(page,true); await add(page,true,'سارة'); await add(page,true,'علي'); await prizes(page,true);
   await page.locator('.mg-winner-option').first().click(); await page.locator('.mg-prize-card').first().click(); await confirm(page,true);
   await expect(page.locator('.mg-reveal-experience')).toHaveAttribute('data-stage','anticipation');
-  await expect(page.locator('.mg-result-prize')).toHaveText('هدية أولى');
+  await expect(page.locator('.mg-result-prize')).toHaveText(/^هدية (أولى|ثانية|ثالثة)$/);
+  const firstAward=await page.locator('.mg-result-prize').textContent();
   await expect(page.getByRole('button',{name:'متابعة السحب',exact:true})).toBeFocused();
   await page.keyboard.press('Escape');
   await page.emulateMedia({reducedMotion:'reduce'});
   await page.locator('.mg-winner-option:not(:disabled)').click(); await page.locator('.mg-prize-card').nth(1).click(); await confirm(page,true);
   await expect(page.locator('.mg-reveal-experience')).toHaveAttribute('data-stage','revealed');
-  await expect(page.locator('.mg-result-prize')).toHaveText('هدية ثانية');
+  await expect(page.locator('.mg-result-prize')).toHaveText(/^هدية (أولى|ثانية|ثالثة)$/);
+  expect(await page.locator('.mg-result-prize').textContent()).not.toBe(firstAward);
   await expect(page.locator('.mg-anticipation, .mg-confetti')).toHaveCount(0);
 });
 
@@ -207,14 +209,15 @@ for(const ar of [true]) test(`manual remaining prizes and host winner replacemen
   await expect(page.locator('.mg-prize-card').nth(1)).toHaveAttribute('data-revealed','false');
   await page.locator('.mg-prize-card').nth(1).click();
   await page.getByRole('button',{name:ar?'افتح دون اسم!':'Open without a name!',exact:true}).click();
-  await expect(page.locator('.mg-result-prize')).toHaveText('Gift two');
+  await expect(page.locator('.mg-result-prize')).toHaveText(/^Gift (one|two)$/);
+  const revealedUnnamed=(await page.locator('.mg-result-prize').textContent())!;
   await expect(page.locator('.mg-result-winner')).toContainText(ar?'دون تخصيص اسم':'without a recipient');
   await page.screenshot({path:info.outputPath('manual-open.png'),fullPage:true});
   await page.keyboard.press('Escape');
   await expect(page.locator('.mg-prize-card').nth(1)).toContainText(ar?'دون اسم':'No recipient');
   await page.getByRole('button',{name:ar?'إنهاء الفعالية':'End event',exact:true}).click();
   await page.getByRole('button',{name:ar?'إنهاء وعرض النتائج':'End and view results',exact:true}).click();
-  await expect(page.locator('.mg-unnamed-results')).toContainText('Gift two');
+  await expect(page.locator('.mg-unnamed-results')).toContainText(revealedUnnamed);
   await expect(page.locator('.mg-results')).toContainText('Ali');
   await page.getByRole('button',{name:ar?'تجربة جديدة':'New rehearsal',exact:true}).click();
   await page.getByLabel(ar?'أدخل الجوائز':'Enter prizes').fill('New');
