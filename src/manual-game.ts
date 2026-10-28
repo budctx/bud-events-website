@@ -29,6 +29,47 @@ export function initialManualState(): ManualState {
     question: false, condition: false, attempt: 1, round: 0, deadline: null, remaining: 5, pendingWinner: false };
 }
 export const validDuration = (value: number) => Number.isSafeInteger(value) && value >= 3 && value <= 30;
+
+/** Choose an unbiased index from the browser's secure randomness when available.
+ * A Math.random fallback preserves local rehearsal in older environments.
+ * Prize allocation runs once on start and is stored with the run snapshot.
+ */
+function securePrizeIndex(size: number): number {
+  if (globalThis.crypto?.getRandomValues) {
+    const possibilities = 0x100000000;
+    const limit = possibilities - (possibilities % size);
+    const sample = new Uint32Array(1);
+    do { globalThis.crypto.getRandomValues(sample); } while (sample[0] >= limit);
+    return sample[0] % size;
+  }
+  return Math.floor(Math.random() * size);
+}
+
+/** Assign prize contents to numbered cards, not to the input line positions.
+ * Never call this again on reveal, award, resume or page reload.
+ * Retry an unchanged visible order so a new draw cannot appear unshuffled.
+ */
+export function shufflePrizeNames(
+  names: readonly string[], pickIndex: (size: number) => number = securePrizeIndex,
+): string[] {
+  const original = [...names];
+  if (original.length < 2 || new Set(original).size < 2) return original;
+  let shuffled = original.slice();
+  for (let attempt = 0; attempt < 12; attempt++) {
+    shuffled = original.slice();
+    for (let index = shuffled.length - 1; index > 0; index--) {
+      const picked = pickIndex(index + 1);
+      if (!Number.isSafeInteger(picked) || picked < 0 || picked > index) throw new Error('INVALID_PRIZE_RANDOM');
+      [shuffled[index], shuffled[picked]] = [shuffled[picked], shuffled[index]];
+    }
+    if (shuffled.some((name, index) => name !== original[index])) return shuffled;
+  }
+  // Safe fallback for an RNG that repeatedly produced the original ordering.
+  const different = original.findIndex(name => name !== original[0]);
+  [shuffled[0], shuffled[different]] = [shuffled[different], shuffled[0]];
+  return shuffled;
+}
+
 export function winnerNameError(_state: ManualState, value: string): 'empty' | 'long' | null {
   const name = value.trim();
   if (!name) return 'empty';
@@ -48,7 +89,7 @@ export function manualGameReducer(state: ManualState, action: ManualAction): Man
     if (state.phase !== 'setup' || !validDuration(action.config.duration) || ![1, 2, 3].includes(action.config.attempts)
       || typeof action.config.timerEnabled !== 'boolean' || !parsed.valid) return state;
     return { ...initialManualState(), phase: 'live', config: { ...action.config }, remaining: action.config.duration,
-      prizes: parsed.lines.map((name, index) => ({ id: `prize-${index + 1}`, name, revealed: false, winnerId: null })) };
+      prizes: shufflePrizeNames(parsed.lines).map((name, index) => ({ id: `prize-${index + 1}`, name, revealed: false, winnerId: null })) };
   }
   if (action.type === 'phase') {
     if (state.pendingWinner || state.phase === 'setup' || state.phase === 'closing') return state;
