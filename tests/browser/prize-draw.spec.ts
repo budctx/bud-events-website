@@ -258,7 +258,7 @@ test('winner utility controls retain Arabic names and toast feedback inside the 
  await start(page,true);await prizes(page,true);
  const addWinner=page.getByRole('button',{name:'إضافة فائز',exact:true});
  await expect(addWinner).toHaveClass(/bud-utility/);
- await addWinner.click();await page.getByLabel('اسم الفائز',{exact:true}).fill('سارة');
+ await addWinner.click();await page.locator('#mg-add-name').fill('سارة');
  await page.getByRole('button',{name:'إضافة الفائز',exact:true}).click();
  const dialog=page.locator('.mg-management');
  await expect(dialog.locator('.bud-toast')).toContainText('أُضيف الفائز.');

@@ -37,7 +37,7 @@ test('partner carousel is published-only and owner can manage entries through co
  await page.getByRole('dialog').getByLabel('سبب الإجراء').fill('شريك تم اعتماده');
  await page.getByRole('dialog').getByRole('checkbox').check();
  await page.getByRole('dialog').getByRole('button',{name:'تأكيد التنفيذ'}).click();
- await page.getByRole('dialog').getByRole('button',{name:'إغلاق'}).click();
+ await page.getByRole('dialog').getByRole('button',{name:'إغلاق',exact:true}).click();
  await expect(page.getByText('شريك بُعد')).toBeVisible();
  await page.getByRole('button',{name:/شريك بُعد/}).click();
  await page.getByRole('checkbox',{name:'إظهار الشريك على الموقع بعد الحفظ'}).check();
@@ -45,7 +45,7 @@ test('partner carousel is published-only and owner can manage entries through co
  await page.getByRole('dialog').getByLabel('سبب الإجراء').fill('تفعيل الشريك');
  await page.getByRole('dialog').getByRole('checkbox').check();
  await page.getByRole('dialog').getByRole('button',{name:'تأكيد التنفيذ'}).click();
- await page.getByRole('dialog').getByRole('button',{name:'إغلاق'}).click();
+ await page.getByRole('dialog').getByRole('button',{name:'إغلاق',exact:true}).click();
  await expect(page.getByText('1 منشور')).toBeVisible();
  await page.reload();
  await expect.poll(()=>publicCalls).toBe(2);
@@ -94,6 +94,6 @@ test('owner reauthentication returns to partners and retries the same operation 
  await expect(page.getByRole('dialog').getByText('تمت العملية وسُجلت في سجل العمليات.')).toBeVisible();
  expect(operationIds).toHaveLength(2);expect(operationIds[0]).toBe(operationIds[1]);
  expect(seen.indexOf('receipt')).toBeGreaterThan(seen.indexOf('partnerSave'));
- await page.getByRole('dialog').getByRole('button',{name:'إغلاق'}).click();
+ await page.getByRole('dialog').getByRole('button',{name:'إغلاق',exact:true}).click();
  await expect(page.getByRole('heading',{name:'الشركاء',exact:true})).toBeVisible();
 });

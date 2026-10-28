@@ -28,7 +28,7 @@ export function BudToastProvider({children}:{children:ReactNode}){
   const id=options?.id??'toast-'+(++sequence);setItems(previous=>[...previous.filter(v=>v.id!==id).slice(-2),{id,text,tone,persistent:options?.persistent}]);return id;
  },{dismiss}),[dismiss]);
  useEffect(()=>{const update=()=>setTarget(Array.from(document.querySelectorAll('dialog[open]')).at(-1)??null);const observer=new MutationObserver(update);observer.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['open']});update();return()=>observer.disconnect();},[]);
- const viewport=<div className="bud-toast-viewport" dir="rtl" aria-label="تنبيهات بُعد">{items.map(item=><ToastItem key={item.id} item={item} dismiss={dismiss}/>)}</div>;
+ const viewport=<div className="bud-toast-viewport" dir="rtl" aria-label="تنبيهات بُعد" onKeyDown={event=>{if(event.key!=='Tab')return;const dialog=event.currentTarget.closest('dialog');if(!dialog)return;const controls=Array.from(dialog.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href],[tabindex="0"]'));const first=controls[0],last=controls.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}}}>{items.map(item=><ToastItem key={item.id} item={item} dismiss={dismiss}/>)}</div>;
  return <context.Provider value={notify}>{children}{target?createPortal(viewport,target):viewport}</context.Provider>;
 }
 export function useBudToast(){const notify=useContext(context);if(!notify)throw Error('Missing BudToastProvider');return notify;}
