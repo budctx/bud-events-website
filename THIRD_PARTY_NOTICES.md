@@ -45,3 +45,6 @@ The step-loader and expandable bot card are independently implemented, styled fo
 - https://ui.aceternity.com/components/expandable-card
 
 The requested paid block https://ui.aceternity.com/blocks/cards/expandable-card-on-click was not copied. The free expandable-card example is the interaction reference. No demo images, artist profiles, fabricated bot products, or automatic time-based success states were imported. Progress is driven by actual API milestones.
+
+- React Aria Components: Apache-2.0, Adobe. See `licenses/react-aria-components-Apache-2.0.txt`.
+- Motion and Framer Motion: MIT. See `licenses/motion-MIT.txt` and `licenses/framer-motion-MIT.txt`.

@@ -61,6 +61,7 @@ test('partner carousel is published-only and owner can manage entries through co
 });
 
 test('owner reauthentication returns to partners and retries the same operation after checking its receipt',async({page})=>{
+ await page.route('https://cdn.example.com/logo.png',route=>route.fulfill({status:200,contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l4sAAAAASUVORK5CYII=','base64')}));
  let authenticated=false;const operationIds:string[]=[];const seen:string[]=[];
  await page.route('**/api/auth?action=session',route=>route.fulfill(ok({id,displayName:'مالك بُعد'})));
  await page.route('**/api/host',route=>route.fulfill(ok({credits:0,events:[],products:[],contentVersions:[]})));
