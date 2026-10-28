@@ -59,3 +59,41 @@ test('partner carousel is published-only and owner can manage entries through co
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  expect(seen.filter(x=>x==='partnerSave')).toHaveLength(2);
 });
+
+test('owner reauthentication returns to partners and retries the same operation after checking its receipt',async({page})=>{
+ let authenticated=false;const operationIds:string[]=[];const seen:string[]=[];
+ await page.route('**/api/auth?action=session',route=>route.fulfill(ok({id,displayName:'مالك بُعد'})));
+ await page.route('**/api/host',route=>route.fulfill(ok({credits:0,events:[],products:[],contentVersions:[]})));
+ await page.route('**/api/owner?public=partners',route=>route.fulfill(ok([])));
+ await page.route('**/api/auth?action=signin',route=>{authenticated=true;return route.fulfill(ok({url:'/?lang=ar'}));});
+ await page.route('**/api/owner',route=>{
+  const body=route.request().postDataJSON();seen.push(body.action);
+  if(body.action==='profile')return route.fulfill(ok({owner:true}));
+  if(body.action==='partners')return route.fulfill(ok([]));
+  if(body.action==='view')return route.fulfill(ok({}));
+  if(body.action==='receipt')return route.fulfill(ok({found:false}));
+  if(body.action==='partnerSave'){operationIds.push(body.operationId);return route.fulfill(authenticated?ok({saved:true}):{status:403,json:{code:'OWNER_REAUTH_REQUIRED'}});}
+  return route.fulfill(ok({}));
+ });
+ await page.goto('/?lang=ar');
+ await page.locator('.platform-account-trigger').click();
+ await page.getByRole('menuitem',{name:'الملف الشخصي'}).click();
+ await page.getByRole('button',{name:'لوحة المالك'}).click();
+ await page.getByRole('navigation',{name:'أقسام لوحة المالك'}).getByRole('button',{name:/الشركاء/}).click();
+ await page.getByLabel('اسم الشريك').fill('شريك محفوظ');
+ await page.getByLabel(/رابط الشعار/).fill('https://cdn.example.com/logo.png');
+ await page.getByRole('button',{name:'مراجعة الحفظ'}).click();
+ await page.getByRole('dialog').getByLabel('سبب الإجراء').fill('اعتماد الشريك');
+ await page.getByRole('dialog').getByRole('checkbox').check();
+ await page.getByRole('dialog').getByRole('button',{name:'تأكيد التنفيذ'}).click();
+ await page.getByRole('button',{name:'تأكيد الهوية عبر Discord'}).click();
+ await expect(page.getByRole('heading',{name:'الشركاء',exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'التحقق من العملية السابقة'}).click();
+ await expect(page.getByRole('dialog').getByLabel('سبب الإجراء')).toHaveValue('اعتماد الشريك');
+ await page.getByRole('dialog').getByRole('button',{name:'تأكيد التنفيذ'}).click();
+ await expect(page.getByRole('dialog').getByText('تمت العملية وسُجلت في سجل العمليات.')).toBeVisible();
+ expect(operationIds).toHaveLength(2);expect(operationIds[0]).toBe(operationIds[1]);
+ expect(seen.indexOf('receipt')).toBeGreaterThan(seen.indexOf('partnerSave'));
+ await page.getByRole('dialog').getByRole('button',{name:'إغلاق'}).click();
+ await expect(page.getByRole('heading',{name:'الشركاء',exact:true})).toBeVisible();
+});
