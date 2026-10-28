@@ -45,28 +45,21 @@ function securePrizeIndex(size: number): number {
   return Math.floor(Math.random() * size);
 }
 
-/** Assign prize contents to numbered cards, not to the input line positions.
- * Never call this again on reveal, award, resume or page reload.
- * Retry an unchanged visible order so a new draw cannot appear unshuffled.
+/** Uniform Fisher–Yates shuffle, once per started event. The original order
+ * can occur by chance, including with two prizes; deliberately forcing a
+ * different order would make the two-prize result predictable.
+ * The shuffled array is persisted with stable prize IDs. Do not reshuffle
+ * on reveal, award, resume, or browser reload.
  */
 export function shufflePrizeNames(
   names: readonly string[], pickIndex: (size: number) => number = securePrizeIndex,
 ): string[] {
-  const original = [...names];
-  if (original.length < 2 || new Set(original).size < 2) return original;
-  let shuffled = original.slice();
-  for (let attempt = 0; attempt < 12; attempt++) {
-    shuffled = original.slice();
-    for (let index = shuffled.length - 1; index > 0; index--) {
-      const picked = pickIndex(index + 1);
-      if (!Number.isSafeInteger(picked) || picked < 0 || picked > index) throw new Error('INVALID_PRIZE_RANDOM');
-      [shuffled[index], shuffled[picked]] = [shuffled[picked], shuffled[index]];
-    }
-    if (shuffled.some((name, index) => name !== original[index])) return shuffled;
+  const shuffled = [...names];
+  for (let index = shuffled.length - 1; index > 0; index--) {
+    const picked = pickIndex(index + 1);
+    if (!Number.isSafeInteger(picked) || picked < 0 || picked > index) throw new Error('INVALID_PRIZE_RANDOM');
+    [shuffled[index], shuffled[picked]] = [shuffled[picked], shuffled[index]];
   }
-  // Safe fallback for an RNG that repeatedly produced the original ordering.
-  const different = original.findIndex(name => name !== original[0]);
-  [shuffled[0], shuffled[different]] = [shuffled[different], shuffled[0]];
   return shuffled;
 }
 
