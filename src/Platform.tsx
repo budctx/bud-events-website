@@ -1,7 +1,7 @@
 import {UpcomingEvents} from './UpcomingEvents';
 import {readOwnerReturn,clearOwnerReturn} from './owner-return';
 import type {OwnerReturn} from './owner-return';
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import './platform.css';
 import { HeroArtwork } from './HeroArtwork';
 import { InterfaceIcon } from './InterfaceControls';
@@ -49,6 +49,12 @@ function panelFromURL(): 'history' | 'setup' | 'profile' | 'owner' | null {
 }
 export default function Platform({ onPlay }: PlatformProps) {
   const locale: Locale = 'ar';
+  useLayoutEffect(()=>{
+    const root=document.documentElement;
+    const update=()=>{const value=Math.max(0,(innerWidth-document.body.clientWidth)/2)+'px';if(root.style.getPropertyValue('--platform-scrollbar-edge')!==value)root.style.setProperty('--platform-scrollbar-edge',value);};
+    update();const observer=new ResizeObserver(update);observer.observe(document.body);window.addEventListener('resize',update);
+    return()=>{observer.disconnect();window.removeEventListener('resize',update);root.style.removeProperty('--platform-scrollbar-edge');};
+  },[]);
   const [page, setPage] = useState<Page>(pageFromURL);
   const [modal, setModal] = useState<Modal>(null);
   const [busy, setBusy] = useState(false);

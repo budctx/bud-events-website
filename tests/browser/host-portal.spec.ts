@@ -106,6 +106,7 @@ test('persisted host game recovers an acknowledged reveal after a lost response'
   await expect(page.getByRole('button',{name:'توضيح الجوائز',exact:true})).toHaveCSS('border-top-width','0px');
   await page.evaluate(()=>document.fonts.ready);
   for (const width of [1440,390]) { await page.setViewportSize({width,height:844}); await page.screenshot({path:info.outputPath(`host-dashboard-${width}.png`),fullPage:true,animations:'disabled'}); expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true); }
+  await page.getByRole('button',{name:'إغلاق إعداد الفعالية',exact:true}).click();
   await page.getByRole('button',{name:'استكمال الفعالية',exact:true}).click();
   await page.getByRole('button',{name:'اكشف سؤال',exact:true}).click();
   await expect(page.getByRole('alert')).toContainText('تعذر تأكيد');
@@ -361,7 +362,7 @@ test('a failed winner save can recover from inside its open dialog without dupli
 for(const width of [390,1440])test(`event setup opens in a viewport-safe modal and restores its draft at ${width}`,async({page})=>{
  await page.setViewportSize({width,height:800});await session(page);
  const actions:string[]=[];await page.route('**/api/host',r=>{const body=r.request().postDataJSON();actions.push(body.action);return r.fulfill(ok({...dashboard,events:[]}));});
- await page.goto('/?screen=events');const setup=page.getByTestId('event-setup');await setup.scrollIntoViewIfNeeded();
+ await page.goto('/?screen=events');await expect(page.getByTestId('event-preview')).toBeVisible();await page.locator('.platform-gallery-main').evaluate(async el=>{await Promise.all(el.getAnimations().map(animation=>animation.finished));});const setup=page.getByTestId('event-setup');await setup.scrollIntoViewIfNeeded();
  const scroll=await page.evaluate(()=>scrollY);await setup.click();
  const modal=page.getByRole('dialog',{name:'إعداد الفعالية',exact:true});await expect(modal).toBeVisible();
  await expect(page.locator('#platform-content .host-embedded')).toHaveCount(0);await expect(modal.getByLabel('اسم الفعالية')).toBeVisible();

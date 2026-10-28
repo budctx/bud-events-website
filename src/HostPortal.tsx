@@ -40,7 +40,7 @@ export default function HostPortal({ onPlay, onExit, locale, view, onAuthLost,on
   const locked = useRef(false);
   const [uncertain, setUncertain] = useState(false);
   useEffect(()=>{onBlockingChange?.(busy||uncertain);},[busy,uncertain,onBlockingChange]);
-  useEffect(() => { if (view) heading.current?.focus(); }, [view]);
+  useEffect(() => { if (view) heading.current?.focus({preventScroll:view==='setup'}); }, [view]);
   useEffect(() => {
     if (view === 'history' || !session?.id) return;
     const saved = readHostSetupDraft(session.id);
