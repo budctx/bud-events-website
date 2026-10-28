@@ -80,9 +80,10 @@ test('the live browser event randomizes prize-to-card mapping once and preserves
  await page.reload();
  await expect(page.locator('.mg-prize-card')).toHaveCount(entered.length);
  expect(await readPrizes()).toEqual(before);
- await page.getByRole('button',{name:'فتح دون اسم',exact:true}).click();
+ await expect(page.getByRole('button',{name:'فتح دون اسم',exact:true})).toHaveCount(0);
+ await expect(page.locator('.mg-prize-card').first()).toBeEnabled();
  await page.locator('.mg-prize-card').first().click();
- await page.getByRole('button',{name:'افتح دون اسم!',exact:true}).click();
+ await page.getByRole('button',{name:'كشف الجائزة',exact:true}).click();
  await expect(page.locator('.mg-result-prize')).toHaveText(before[0].name);
  const after=await readPrizes();
  expect(after.map(p=>p.name)).toEqual(before.map(p=>p.name));
