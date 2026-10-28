@@ -122,7 +122,7 @@ test('persisted host game recovers an acknowledged reveal after a lost response'
   await expect(page.locator('#mg-winner-name')).not.toBeVisible();
   expect(current.state.winners).toEqual([{id:'winner-1',name:'سارة'}]);
   expect(requests.at(-1)?.version).toBe(4);
-  await expect(page.locator('.mg-disclosure')).toContainText('فعالية محفوظة');
+  await expect(page.locator('.mg-disclosure')).toHaveCount(0);
   await page.screenshot({path:info.outputPath('host-game-saved-390.png'),fullPage:true,animations:'disabled'});
 });
 

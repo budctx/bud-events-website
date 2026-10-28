@@ -1,5 +1,7 @@
 // In-memory rehearsal only. No participant identities, attendance or commerce authority.
 import { parsePrizeLines } from './prize-lines.ts';
+// Legacy attempts fields remain readable for saved events and the server contract.
+// New setup fixes attempts at 1; wrong answers always begin a fresh round.
 export type ManualConfig = { duration: number; timerEnabled: boolean; attempts: 1 | 2 | 3 };
 export type ManualWinner = { id: string; name: string };
 export type ManualPrize = { id: string; name: string; revealed: boolean; winnerId: string | null };
@@ -140,6 +142,6 @@ export function manualGameReducer(state: ManualState, action: ManualAction): Man
     if (state.prizes.length > 0 && state.winners.length >= state.prizes.length) return state;
     return { ...state, pendingWinner: true };
   }
-  if (action.type === 'wrong') return nextRound(state, state.attempt < state.config.attempts ? state.attempt + 1 : 1);
+  if (action.type === 'wrong') return nextRound(state);
   return state;
 }

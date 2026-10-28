@@ -245,20 +245,16 @@ test('timer is optional and setup tooltips work with keyboard and touch', async 
   await context.close();
 });
 
-test('attempt stepper respects limits, supports keyboard and configures the round', async ({page}) => {
+test('Question and Condition has no attempt limit control or counter', async ({page}) => {
   await page.goto('/?screen=game&lang=ar');
-  const attempts=page.getByRole('spinbutton',{name:'المحاولات',exact:true});
-  await expect(attempts).toHaveAttribute('aria-valuenow','1');
-  await expect(page.getByRole('button',{name:'تقليل المحاولات'})).toBeDisabled();
-  await page.getByRole('button',{name:'زيادة المحاولات'}).click();
-  await page.getByRole('button',{name:'زيادة المحاولات'}).click();
-  await expect(attempts).toHaveAttribute('aria-valuenow','3');
-  await expect(page.getByRole('button',{name:'زيادة المحاولات'})).toBeDisabled();
-  await attempts.focus(); await page.keyboard.press('ArrowDown');
-  await expect(attempts).toHaveAttribute('aria-valuenow','2');
+  await expect(page.getByRole('spinbutton',{name:'المحاولات',exact:true})).toHaveCount(0);
+  await expect(page.getByRole('button',{name:/زيادة المحاولات|تقليل المحاولات/})).toHaveCount(0);
   await page.getByRole('button',{name:'بدء الفعالية',exact:true}).click();
-  for(const name of ['اكشف سؤال','اكشف شرط','خاطئة']) await page.getByRole('button',{name,exact:true}).click();
-  await expect(page.getByRole('button',{name:'اكشف سؤال',exact:true})).toBeEnabled();
+  for(let round=0;round<4;round++){
+    for(const name of ['اكشف سؤال','اكشف شرط','خاطئة'])await page.getByRole('button',{name,exact:true}).click();
+    await expect(page.getByRole('button',{name:'اكشف سؤال',exact:true})).toBeEnabled();
+  }
+  await expect(page.locator('.mg-judgment')).not.toContainText('المحاولة');
 });
 
 test('artwork spans Home through the footer without opaque footer link boxes', async ({page}) => {
