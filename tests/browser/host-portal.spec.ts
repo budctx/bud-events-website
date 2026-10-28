@@ -39,6 +39,7 @@ test('host start retries preserve the same idempotency key and payload', async (
   await page.getByRole('button', { name: 'بدء الفعالية', exact: true }).click();
   await expect(page.getByRole('alert')).toBeVisible();
   await expect(page.getByLabel('اسم الفعالية')).toBeDisabled();
+  await expect(page.getByRole('button',{name:'إغلاق إعداد الفعالية'})).toBeDisabled();await page.keyboard.press('Escape');await expect(page.getByRole('dialog',{name:'إعداد الفعالية',exact:true})).toBeVisible();
   await page.locator('.host-embedded').getByRole('button', { name: 'إعادة المحاولة', exact: true }).click();
   await expect.poll(() => starts.length).toBe(2);
   expect(starts[0]).toEqual(starts[1]);
@@ -105,6 +106,7 @@ test('persisted host game recovers an acknowledged reveal after a lost response'
   await expect(page.getByRole('button',{name:'توضيح الجوائز',exact:true})).toHaveCSS('border-top-width','0px');
   await page.evaluate(()=>document.fonts.ready);
   for (const width of [1440,390]) { await page.setViewportSize({width,height:844}); await page.screenshot({path:info.outputPath(`host-dashboard-${width}.png`),fullPage:true,animations:'disabled'}); expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true); }
+  await page.getByRole('button',{name:'إغلاق إعداد الفعالية',exact:true}).click();
   await page.getByRole('button',{name:'استكمال الفعالية',exact:true}).click();
   await page.getByRole('button',{name:'اكشف سؤال',exact:true}).click();
   await expect(page.getByRole('alert')).toContainText('تعذر تأكيد');
@@ -355,4 +357,20 @@ test('a failed winner save can recover from inside its open dialog without dupli
  await session(page);let current={...active,state:{...structuredClone(initialState),question:true,condition:true} as ManualState,cards:{question:'دولة',condition:'تبدأ بحرف س'},serverNow:Date.now()};const receipts=new Map<string,typeof current>();const saves:any[]=[];
  await page.route('**/api/host',async route=>{const payload=route.request().postDataJSON();if(payload.action==='dashboard')return route.fulfill(ok({...dashboard,events:[current]}));if(payload.action==='resume')return route.fulfill(ok(current));if(payload.command.type==='save-winner')saves.push(payload);if(receipts.has(payload.idempotencyKey))return route.fulfill(ok(receipts.get(payload.idempotencyKey)));current={...current,version:current.version+1,state:manualGameReducer(current.state,payload.command),serverNow:Date.now()};receipts.set(payload.idempotencyKey,current);return payload.command.type==='save-winner'?route.abort('connectionfailed'):route.fulfill(ok(current));});
  await page.goto('/?screen=events');await page.getByRole('button',{name:'استكمال الفعالية',exact:true}).click();await page.getByRole('button',{name:'صحيحة',exact:true}).click();const dialog=page.getByRole('dialog',{name:'تسجيل الفائز',exact:true});await dialog.getByLabel('اسم الفائز',{exact:true}).fill('سارة');await dialog.getByRole('button',{name:'إضافة الفائز',exact:true}).click();await expect(dialog.getByRole('alert')).toContainText('تعذر تأكيد');await dialog.getByRole('button',{name:'إعادة المحاولة',exact:true}).click();await expect(dialog).not.toBeVisible();expect(saves).toHaveLength(2);expect(saves[0]).toEqual(saves[1]);expect(current.state.winners).toHaveLength(1);
+});
+
+for(const width of [390,1440])test(`event setup opens in a viewport-safe modal and restores its draft at ${width}`,async({page})=>{
+ await page.setViewportSize({width,height:800});await session(page);
+ const actions:string[]=[];await page.route('**/api/host',r=>{const body=r.request().postDataJSON();actions.push(body.action);return r.fulfill(ok({...dashboard,events:[]}));});
+ await page.goto('/?screen=events');await expect(page.getByTestId('event-preview')).toBeVisible();await page.locator('.platform-gallery-main').evaluate(async el=>{await Promise.all(el.getAnimations().map(animation=>animation.finished));});const setup=page.getByTestId('event-setup');await setup.scrollIntoViewIfNeeded();
+ const scroll=await page.evaluate(()=>scrollY);await setup.click();
+ const modal=page.getByRole('dialog',{name:'إعداد الفعالية',exact:true});await expect(modal).toBeVisible();
+ await expect(page.locator('#platform-content .host-embedded')).toHaveCount(0);await expect(modal.getByLabel('اسم الفعالية')).toBeVisible();
+ expect(await page.evaluate(()=>scrollY)).toBe(scroll);
+ const box=await modal.boundingBox();expect(box).not.toBeNull();expect(box!.width).toBeLessThanOrEqual(width);expect(box!.height).toBeLessThanOrEqual(800);
+ await modal.getByLabel('اسم الفعالية').fill('جلسة محفوظة');await modal.getByLabel('الجوائز',{exact:true}).fill('جائزة أولى');
+ await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem('bud-host-setup-draft:v1:host-1')??'null')?.title)).toBe('جلسة محفوظة');
+ await modal.getByRole('button',{name:'إغلاق إعداد الفعالية'}).click();await expect(modal).not.toBeVisible();await expect(setup).toBeFocused();
+ await setup.click();await expect(modal.getByLabel('اسم الفعالية')).toHaveValue('جلسة محفوظة');await expect(modal.getByLabel('الجوائز',{exact:true})).toHaveValue('جائزة أولى');
+ await page.keyboard.press('Escape');await expect(modal).not.toBeVisible();expect(actions.every(x=>x==='dashboard')).toBe(true);
 });
