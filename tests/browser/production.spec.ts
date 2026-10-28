@@ -39,7 +39,7 @@ test('built application renders and navigates under the configured production CS
   await expect(page.getByTestId('event-preview')).toBeVisible();
   await page.getByTestId('event-preview').getByRole('button').first().click();
   await page.getByRole('button',{name:'سجّل دخولك عبر Discord'}).click();
-  await expect(page.locator('.platform-account-notice')).toContainText('تعذر إتمام الطلب');
+  await expect(page.locator('.bud-toast[data-tone=danger]').last()).toContainText('تعذر إتمام الطلب');
   await expect(page.getByTestId('event-preview')).toBeVisible();
   expect(violations).toEqual([]);
 });
@@ -132,7 +132,7 @@ test('direct buy CTA reports unavailable checkout without product modal or credi
  await page.goto('/?screen=events&lang=en');
  await expect(page.getByTestId('event-keys')).toContainText('0');
  await page.getByTestId('product-card-qc').click();
- await expect(page.locator('.platform-account-notice')).toContainText('الشراء غير متاح');
+ await expect(page.locator('.bud-toast[data-tone=danger]').last()).toContainText('الشراء غير متاح');
  expect(checkoutCalls).toBe(1);
  await expect(page.getByRole('dialog')).not.toBeVisible();
  await expect(page.getByTestId('event-keys')).toContainText('0');
@@ -217,7 +217,7 @@ test('desktop navigation flips on hover and keyboard focus, Discord uses officia
   await expect(login.locator('img')).toHaveAttribute('src','/assets/discord-symbol-white.svg');
   await login.click();
   await expect(page).not.toHaveURL(/screen=host/);
-  await expect(page.locator('.platform-account-notice')).toContainText('تعذر إتمام الطلب');
+  await expect(page.locator('.bud-toast[data-tone=danger]').last()).toContainText('تعذر إتمام الطلب');
 });
 
 test('timer is optional and setup tooltips work with keyboard and touch', async ({page,browser}) => {
@@ -395,4 +395,31 @@ test('Arabic signed-in header anchors Nav User and its dropdown inside the right
       }
     }
   }
+});
+
+test('bot category expands with keyboard access, Escape and focus restoration without selling unavailable bots',async({page})=>{
+ await page.goto('/?screen=bots');
+ const trigger=page.getByRole('button',{name:'تفاصيل المنتج',exact:true});
+ await trigger.press('Enter');
+ const dialog=page.getByRole('dialog',{name:'بوتات بُعد',exact:true});
+ await expect(dialog).toBeVisible();
+ await expect(dialog).toContainText('لم تُطرح بوتات للشراء أو الإضافة بعد');
+ await expect(dialog.getByRole('button',{name:/شراء|إضافة البوت/})).toHaveCount(0);
+ await dialog.getByRole('button',{name:'إغلاق تفاصيل البوتات'}).press('Escape');
+ await expect(dialog).not.toBeVisible();await expect(trigger).toBeFocused();
+ await page.setViewportSize({width:320,height:700});await trigger.click();
+ await expect(dialog).toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+});
+
+test('login error toast survives section navigation and repeats on a new attempt',async({page})=>{
+ await page.route('**/api/auth?action=session',r=>r.fulfill({status:401,json:{code:'DISCORD_AUTH_REQUIRED'}}));
+ let calls=0;await page.route('**/api/auth?action=signin',r=>{calls++;return r.fulfill({status:503,json:{code:'AUTH_NOT_CONFIGURED'}});});
+ await page.goto('/');await page.getByRole('button',{name:'سجّل دخولك عبر Discord'}).click();
+ await expect(page.locator('.bud-toast[data-tone=danger]')).toContainText('تعذر إتمام الطلب');
+ await page.getByTestId('nav-events').click();
+ await expect(page.locator('.bud-toast[data-tone=danger]')).toBeVisible();
+ await page.getByRole('button',{name:'سجّل دخولك عبر Discord'}).click();
+ await expect(page.locator('.bud-toast[data-tone=danger]')).toHaveCount(2);expect(calls).toBe(2);
+ await expect(page.locator('.platform-account-notice')).toHaveCount(0);
 });

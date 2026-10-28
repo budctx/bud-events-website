@@ -10,7 +10,9 @@ import type { Locale } from './i18n';
 import { approveNewCycle, drawNext, initialDrawState } from './draw-engine';
 import type { PairId } from './draw-engine';
 import {EventCountdown} from './EventCountdown';
-import {CloudUpload, Plus} from 'lucide-react';
+import {ButtonUtility} from './ButtonUtility';
+import {useBudToast} from './BudUI';
+import {CloudUpload, Plus,LogOut,X,Copy} from 'lucide-react';
 import './game.css';
 import { WinnerList, WinnerNumber, WinnerIcon } from './WinnerList';
 import type { ManualWinner } from './manual-game';
@@ -61,6 +63,12 @@ function GameDialog({ open, title, onClose, children, className = '', initialFoc
 }
 
 export default function Game({ onExit, locale = 'ar', initialState, cards, serverNow, onAction, onConflict, onBrowserAction, localSaveError }: Props) {
+  const toast=useBudToast();
+  const announce=(action:ManualAction,before:ManualState,next:ManualState)=>{
+   if(['add-winner','save-winner'].includes(action.type)&&next.winners.length>before.winners.length)toast('أُضيف الفائز.','success');
+   if(action.type==='delete-winner'&&next.winners.length<before.winners.length)toast('حُذف الفائز.','success');
+   if(action.type==='rename-winner'&&next.winners.some(w=>w.id===action.winnerId&&w.name!==before.winners.find(v=>v.id===w.id)?.name))toast('عُدّل اسم الفائز.','success');
+  };
   const [state, setState] = useState(initialState ?? initialManualState);
   const stateRef = useRef(state);
   const [saving, setSaving] = useState(false);
@@ -77,8 +85,8 @@ export default function Game({ onExit, locale = 'ar', initialState, cards, serve
   const syncReveals=()=>setOptimisticReveals([pendingAction.current,...queuedReveals.current].flatMap(item=>item?.action.type==='reveal'?[item.action.card]:[]));
   const persisted=!!onAction||!!onBrowserAction;
   const dispatch = async (action: ManualAction, after?: (next: ManualState) => void): Promise<ManualState | null> => {
-    if(onBrowserAction){const next=onBrowserAction(action);setWallNow(Date.now());stateRef.current=next.state;setState(next.state);after?.(next.state);return next.state;}
-    if (!onAction) { const next = manualGameReducer(stateRef.current, action); stateRef.current = next; setState(next); after?.(next); return next; }
+    if(onBrowserAction){const next=onBrowserAction(action);setWallNow(Date.now());announce(action,stateRef.current,next.state);stateRef.current=next.state;setState(next.state);after?.(next.state);return next.state;}
+    if (!onAction) { const next = manualGameReducer(stateRef.current, action); announce(action,stateRef.current,next);stateRef.current = next; setState(next); after?.(next); return next; }
     // Only the two already-loaded card faces may be previewed. Canonical state, judgments,
     // timers, round draws and prize/winner callbacks remain server-confirmed.
     if(action.type==='reveal'&&stateRef.current[action.card])return null;
@@ -99,7 +107,7 @@ export default function Game({ onExit, locale = 'ar', initialState, cards, serve
         try{
           const next=await onAction(pending.action,pending.key);
           if(!mounted.current)return null;
-          stateRef.current=next.state;setState(next.state);result=next.state;
+          announce(pending.action,stateRef.current,next.state);stateRef.current=next.state;setState(next.state);result=next.state;
           pendingAction.current=queuedReveals.current.shift()??null;
           setRetryPending(false);syncReveals();pending.after?.(next.state);
         }catch(reason){
@@ -175,7 +183,7 @@ export default function Game({ onExit, locale = 'ar', initialState, cards, serve
   }, [state.deadline, state.pendingWinner, state.phase, persisted]);
   const syncBlocked=saving||retryPending;
   const closeWinner = () => { void dispatch({ type: 'cancel-winner' }, () => setName('')); };
-  const copyResults = async () => { try { await navigator.clipboard.writeText(summary || t.empty); setNotice(t.copied); } catch { setNotice(t.copyError); } };
+  const copyResults = async () => { try { await navigator.clipboard.writeText(summary || t.empty); setNotice('');toast(t.copied,'success'); } catch { setNotice(t.copyError);toast(t.copyError,'danger'); } };
   const prizeDialogClose = () => setPrizeId(null);
   const practiceExhausted = !persisted && draw.kind === 'exhausted';
   const remoteExhausted = persisted && !!state.activityDraw?.exhausted;
@@ -184,7 +192,7 @@ export default function Game({ onExit, locale = 'ar', initialState, cards, serve
   const remoteFeedback=onAction&&remoteError?<div className="mg-sync-error" role="alert"><p>{remoteError}</p>{retryPending&&<button className="mg-button mg-primary" disabled={saving} onClick={()=>{const pending=pendingAction.current;if(pending)void dispatch(pending.action);}}>{saving?'تتم المزامنة…':'إعادة المحاولة'}</button>}{!saving&&<button className="mg-button" onClick={onExit}>العودة إلى مساحتي</button>}</div>:null;
   const hasOpenDialog=state.pendingWinner||viewWinners||!!selectedPrize&&(!!selectedWinner||manualOpen)||!!result||confirmEnd;
   return <main className={`manual-game manual-phase-${state.phase}`} dir={locale === 'ar' ? 'rtl' : 'ltr'} lang={locale}>
-    <fieldset className="mg-remote-controls"><header className="mg-header"><button className="mg-icon-button mg-exit" aria-label={t.exit} title={t.exit} disabled={saving} onClick={onExit}><InterfaceIcon kind="exit" /></button><h1 ref={heading} tabIndex={-1}>{t.title}</h1>{showSync&&saving&&<span className="mg-sync-indicator" role="status"><CloudUpload aria-hidden="true"/>{ar?'تتم المزامنة…':'Syncing…'}</span>}{state.phase !== 'setup' && <div className="mg-toolbar"><button className="mg-button" onClick={() => setViewWinners(true)}>{t.winners} <bdi>({state.winners.length}{state.prizes.length > 0 ? `/${state.prizes.length}` : ''})</bdi></button>{state.phase === 'live' && <button className="mg-button mg-primary" disabled={syncBlocked} onClick={() => dispatch({ type: 'phase', phase: 'prizes' })}>{t.prizePage}</button>}</div>}</header>
+    <fieldset className="mg-remote-controls"><header className="mg-header"><ButtonUtility className="mg-exit" label={t.exit} icon={LogOut} isDisabled={saving} onPress={onExit}/><h1 ref={heading} tabIndex={-1}>{t.title}</h1>{showSync&&saving&&<span className="mg-sync-indicator" role="status"><CloudUpload aria-hidden="true"/>{ar?'تتم المزامنة…':'Syncing…'}</span>}{state.phase !== 'setup' && <div className="mg-toolbar"><button className="mg-button" onClick={() => setViewWinners(true)}>{t.winners} <bdi>({state.winners.length}{state.prizes.length > 0 ? `/${state.prizes.length}` : ''})</bdi></button>{state.phase === 'live' && <button className="mg-button mg-primary" disabled={syncBlocked} onClick={() => dispatch({ type: 'phase', phase: 'prizes' })}>{t.prizePage}</button>}</div>}</header>
     {!persisted && state.phase === 'setup' && <section className="mg-setup">
       <div className="mg-intro"><h2>{t.setup}</h2></div>
       <form onSubmit={event => { event.preventDefault(); if (validDuration(config.duration) && parsed.valid) dispatch({ type: 'start', config, prizeText }); }}>
@@ -205,7 +213,7 @@ export default function Game({ onExit, locale = 'ar', initialState, cards, serve
     </section>}
     {state.phase === 'prizes' && <section className="mg-prizes-screen" aria-label={t.prizePage}>
       <aside className="mg-panel mg-winners-sidebar" aria-labelledby="mg-sidebar-title">
-        <div className="mg-winners-heading"><h2 id="mg-sidebar-title"><WinnerIcon kind="people" />{ar ? 'قائمة الفائزين' : 'Winner list'}</h2><button className="mg-icon-button mg-add-winner" type="button" aria-label={ar ? 'إضافة فائز' : 'Add a winner'} title={ar ? 'إضافة فائز' : 'Add a winner'} disabled={syncBlocked || full} onClick={startAdding}><Plus aria-hidden="true" /></button></div>
+        <div className="mg-winners-heading"><h2 id="mg-sidebar-title"><WinnerIcon kind="people" />{ar ? 'قائمة الفائزين' : 'Winner list'}</h2><ButtonUtility className="mg-add-winner" label={ar ? 'إضافة فائز' : 'Add a winner'} icon={Plus} isDisabled={syncBlocked || full} onPress={startAdding}/></div>
         <WinnerList winners={state.winners} prizes={state.prizes} locale={locale} selectedId={winnerId} onSelect={setWinnerId} readOnly={syncBlocked} onDelete={winner => { setManagementReturnId(winner.id); setDeletingWinner(winner); setViewWinners(true); }} />
         {!state.winners.length && <p className="mg-help">{ar ? 'يمكنك إضافة فائز من زر +، أو فتح بطاقات الجوائز مباشرة.' : 'Add a winner using +, or reveal the remaining prize cards directly.'}</p>}
         {full && <p className="mg-help">{ar ? 'اكتمل العدد؛ احذف سجلًا من الفائزين لإضافة بديل.' : 'Capacity reached; delete a winner record to add a replacement.'}</p>}
@@ -221,12 +229,12 @@ export default function Game({ onExit, locale = 'ar', initialState, cards, serve
         <div className="mg-draw-footer"><div className="mg-actions"><button className="mg-button" disabled={syncBlocked || state.prizes.some(prize => prize.revealed)} onClick={() => dispatch({ type: 'phase', phase: 'live' })}>{t.back}</button><button className="mg-button mg-primary" disabled={syncBlocked} onClick={() => setConfirmEnd(true)}>{t.finish}</button></div></div>
       </div>
     </section>}
-    {state.phase === 'closing' && <section className="mg-closing"><h2>{t.thanks}</h2><div className="mg-panel"><h3>{t.results}</h3>{state.winners.length === 0 ? <p>{t.empty}</p> : <ul className="mg-results">{state.winners.map(winner => <li key={winner.id}><strong dir="auto">{winner.name}</strong><span dir="auto">{state.prizes.find(prize => prize.winnerId === winner.id)?.name ?? t.unawarded}</span></li>)}</ul>}{unnamedPrizes.length > 0 && <div className="mg-unnamed-results"><h4>{ar ? 'جوائز فُتحت دون اسم' : 'Prizes opened without a recipient'}</h4><ul>{unnamedPrizes.map(prize => <li key={prize.id} dir="auto">{prize.name}</li>)}</ul></div>}<button className="mg-button" onClick={copyResults}>{t.copy}</button>{notice && <p role="status">{notice}</p>}{notice === t.copyError && <textarea readOnly value={summary} aria-label={t.results} />}</div>{!persisted && <button className="mg-button mg-primary" onClick={() => { dispatch({ type: 'reset' }); setPrizeText(''); setName(''); setWinnerId(''); setManagementReturnId(''); }}>{t.new}</button>}{persisted && <button className="mg-button mg-primary" onClick={onExit}>{ar ? 'العودة إلى مساحتي' : 'Back to my space'}</button>}</section>}
+    {state.phase === 'closing' && <section className="mg-closing"><h2>{t.thanks}</h2><div className="mg-panel"><h3>{t.results}</h3>{state.winners.length === 0 ? <p>{t.empty}</p> : <ul className="mg-results">{state.winners.map(winner => <li key={winner.id}><strong dir="auto">{winner.name}</strong><span dir="auto">{state.prizes.find(prize => prize.winnerId === winner.id)?.name ?? t.unawarded}</span></li>)}</ul>}{unnamedPrizes.length > 0 && <div className="mg-unnamed-results"><h4>{ar ? 'جوائز فُتحت دون اسم' : 'Prizes opened without a recipient'}</h4><ul>{unnamedPrizes.map(prize => <li key={prize.id} dir="auto">{prize.name}</li>)}</ul></div>}<ButtonUtility label={t.copy} icon={Copy} onPress={()=>{void copyResults();}}/>{notice === t.copyError && <textarea readOnly value={summary} aria-label={t.results} />}</div>{!persisted && <button className="mg-button mg-primary" onClick={() => { dispatch({ type: 'reset' }); setPrizeText(''); setName(''); setWinnerId(''); setManagementReturnId(''); }}>{t.new}</button>}{persisted && <button className="mg-button mg-primary" onClick={onExit}>{ar ? 'العودة إلى مساحتي' : 'Back to my space'}</button>}</section>}
     <footer className="mg-disclosure">{onBrowserAction?'محفوظ في هذا المتصفح فقط · حذف بيانات الموقع أو تغيير الجهاز يعني فقدان التقدم والنتائج؛ لا توجد نسخة على الخادم.':onAction ? (ar ? 'فعالية محفوظة · تُحفظ التغييرات بعد تأكيد الخادم، والاستكمال لا يخصم مرة تشغيل إضافية' : 'Saved event · changes are saved after server confirmation; resuming uses no extra run') : t.practice}</footer>
     <GameDialog feedback={remoteFeedback} open={state.pendingWinner} title={t.winnerTitle} onClose={closeWinner}><form onSubmit={event => { event.preventDefault(); if (!nameError) { void dispatch({ type: 'save-winner', name }, () => setName('')); } }}><label htmlFor="mg-winner-name">{t.winnerName}</label><input id="mg-winner-name" disabled={syncBlocked} autoFocus data-autofocus required autoComplete="off" maxLength={80} value={name} onChange={event => setName(event.target.value)} /><p className="mg-help">{t.nameHint}</p>{nameError === 'long' && <p role="alert">{t.nameLong}</p>}<div className="mg-actions"><button className="mg-button mg-primary" type="submit" disabled={syncBlocked || !!nameError}>{t.save}</button><button className="mg-button" type="button" disabled={syncBlocked} onClick={closeWinner}>{t.cancel}</button></div></form></GameDialog>
     <GameDialog feedback={remoteFeedback} open={viewWinners} title={t.winners} onClose={manageClose} className="mg-management" initialFocus={addingWinner ? '#mg-add-name' : editingWinner ? '#mg-edit-name' : deletingWinner ? '[data-autofocus]' : managementReturnId ? `[data-winner-id="${managementReturnId}"] button` : '.mg-dialog-close'}>
-      <button className="mg-icon-button mg-dialog-close" aria-label={t.close} onClick={manageClose}>×</button>
-      <div className="mg-management-heading"><div className="mg-management-mark" aria-hidden="true"><WinnerIcon kind="trophy" /></div>{!addingWinner && !editingWinner && !deletingWinner && state.phase !== 'closing' && <button className="mg-icon-button mg-add-winner" type="button" aria-label={ar ? 'إضافة فائز' : 'Add a winner'} title={ar ? 'إضافة فائز' : 'Add a winner'} disabled={syncBlocked || full} onClick={startAdding}><Plus aria-hidden="true" /></button>}</div>
+      <ButtonUtility className="mg-dialog-close" label={t.close} icon={X} onPress={manageClose}/>
+      <div className="mg-management-heading"><div className="mg-management-mark" aria-hidden="true"><WinnerIcon kind="trophy" /></div>{!addingWinner && !editingWinner && !deletingWinner && state.phase !== 'closing' && <ButtonUtility className="mg-add-winner" label={ar ? 'إضافة فائز' : 'Add a winner'} icon={Plus} isDisabled={syncBlocked || full} onPress={startAdding}/>}</div>
       {addingWinner ? <form onSubmit={event => { event.preventDefault(); if (full || winnerNameError(state, addedName)) return; const id = `winner-${state.nextWinnerNumber}`; void dispatch({ type: 'add-winner', name: addedName }, () => { setManagementReturnId(id); setAddingWinner(false); setAddedName(''); }); }}>
         <label htmlFor="mg-add-name">{t.winnerName}</label><input id="mg-add-name" disabled={syncBlocked} data-autofocus autoFocus required maxLength={80} value={addedName} onChange={event => setAddedName(event.target.value)} /><div className="mg-actions"><button type="submit" className="mg-button mg-primary" disabled={syncBlocked || full || !!winnerNameError(state, addedName)}>{t.save}</button><button type="button" className="mg-button" onClick={() => setAddingWinner(false)}>{t.cancel}</button></div>
       </form> : editingWinner ? <form onSubmit={e => { e.preventDefault(); if (!winnerNameError(state, editName)) { void dispatch({ type: 'rename-winner', winnerId: editingWinner.id, name: editName }, () => setEditingWinner(null)); } }}>

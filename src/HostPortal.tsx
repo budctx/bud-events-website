@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatedSwitch, HelpTip, NumberStepper } from './InterfaceControls';
-import { BudSteps } from './BudUI';
+import {ButtonUtility} from './ButtonUtility';
+import {EventStartLoader} from './EventStartLoader';
+import {RefreshCw,Copy,X} from 'lucide-react';
+import { BudSteps,useBudToast } from './BudUI';
 import { parsePrizeLines } from './prize-lines';
 import {clearHostSetupDraft,readHostSetupDraft,saveHostSetupDraft} from './host-setup-draft';
 import { formatEventResults } from './event-summary';
@@ -16,6 +19,8 @@ const text = {
 const completed = (event: HostEvent) => event.phase === 'completed' || event.phase === 'closing' || event.state.phase === 'closing';
 export default function HostPortal({ onPlay, onExit, locale, view, onAuthLost }: { onPlay: (event: HostEvent) => void; onExit: () => void; locale: Locale; view?: 'setup' | 'history'; onAuthLost?: () => void }) {
   const t = text.ar;
+  const toast=useBudToast();
+  const [startStep,setStartStep]=useState<number|null>(null);
   const [status, setStatus] = useState<'loading' | 'signed-out' | 'ready' | 'unavailable' | 'error'>('loading');
   const [session, setSession] = useState<HostSession | null>(null);
   const [dashboard, setDashboard] = useState<HostDashboard | null>(null);
@@ -71,13 +76,15 @@ export default function HostPortal({ onPlay, onExit, locale, view, onAuthLost }:
     if (!title.trim() || title.trim().length > 100) { setError(t.titleError); return; }
     if (!parsed.valid) { setError(t.prizeError); return; }
     if (!pendingStart.current) pendingStart.current = { action: 'start', idempotencyKey: newHostRequestKey(), title: title.trim(), config: { ...config }, prizeText };
-    try { const event = dashboard?.runtime==='browser-v1'&&session?await startBrowserHostEvent(session.id,pendingStart.current):await startHostEvent(pendingStart.current); pendingStart.current = null; setUncertain(false); if(session)clearHostSetupDraft(session.id); onPlay(event); }
-    catch (reason) { setUncertain(true); throw reason; }
+    setStartStep(0);
+    try { const event = dashboard?.runtime==='browser-v1'&&session?await startBrowserHostEvent(session.id,pendingStart.current,setStartStep):await startHostEvent(pendingStart.current); pendingStart.current = null; setUncertain(false); if(session)clearHostSetupDraft(session.id); onPlay(event); }
+    catch (reason) { setUncertain(true); throw reason; }finally{setStartStep(null);}
   });
   const summaryText = summary ? formatEventResults(summary.state,locale) : '';
   return <div className={`host-portal${view ? ' host-embedded' : ''}`} dir={locale === 'ar' ? 'rtl' : 'ltr'} lang={locale}>
+    <EventStartLoader step={startStep}/>
     <header className="host-header"><button className="host-back" onClick={onExit}><img src="/assets/bud-emblem.svg" width="32" height="24" alt="" />{view ? (locale === 'ar' ? 'العودة' : 'Back') : t.back}</button>{!view && status === 'ready' && <button disabled={busy} onClick={() => void perform(async () => { try { await signOutHost(); } finally { pendingStart.current = null; setUncertain(false); setTitle(t.defaultTitle); setPrizeText(''); setConfig({ duration: 5, timerEnabled: false, attempts: 1 }); setSession(null); setDashboard(null); setStatus('signed-out'); } })}>{t.logout}</button>}</header>
-    <div className="host-content"><div className="host-heading"><div><p className="host-eyebrow">BU’D</p><h1 ref={heading} tabIndex={-1}>{view === 'history' ? (locale === 'ar' ? 'السجل' : 'History') : view === 'setup' ? t.setup : t.title}</h1>{!view && session && status === 'ready' && <p>{session.displayName}</p>}</div>{status === 'ready' && <button disabled={busy} onClick={() => setReload(value => value + 1)}>{t.reload}</button>}</div>
+    <div className="host-content"><div className="host-heading"><div><p className="host-eyebrow">BU’D</p><h1 ref={heading} tabIndex={-1}>{view === 'history' ? (locale === 'ar' ? 'السجل' : 'History') : view === 'setup' ? t.setup : t.title}</h1>{!view && session && status === 'ready' && <p>{session.displayName}</p>}</div>{status === 'ready' && <ButtonUtility label={t.reload} icon={RefreshCw} isDisabled={busy} onPress={() => setReload(value => value + 1)}/>}</div>
       {error && <p className="host-message host-error" role="alert">{error}</p>}
       {status === 'loading' ? <p className="host-message" role="status">{t.loading}</p> : status !== 'ready' ? <section className="host-panel host-access"><h2>{status === 'signed-out' ? t.signin : t.unavailable}</h2><p>{status === 'signed-out' ? t.intro : t.failure}</p>{status === 'signed-out' && <button className="host-discord" disabled={busy} onClick={() => void perform(() => signInHost({page:'events',locale}))}><img src="/assets/discord-symbol-white.svg" width="24" height="18" alt="Discord" />{t.signin}</button>}<button disabled={busy} onClick={() => setReload(value => value + 1)}>{t.retry}</button></section> : dashboard && <>
         {!view && <section className="host-balance host-panel" aria-label={t.slots}><div><h2>{t.slots}</h2><p>{t.slotHint}</p></div><strong>{dashboard.credits}</strong></section>}
@@ -95,6 +102,6 @@ export default function HostPortal({ onPlay, onExit, locale, view, onAuthLost }:
         {view !== 'setup' && <div className="host-session-lists">{[false, true].map(history => <section className="host-panel" key={String(history)}><h2>{history ? t.history : t.running}</h2>{dashboard.events.filter(event => completed(event) === history).length === 0 ? <p className="host-empty">{history ? t.emptyHistory : t.emptyActive}</p> : <ul>{dashboard.events.filter(event => completed(event) === history).map(event => <li key={event.eventId}><div><h3>{event.title}</h3><small>{history ? t.completed : event.phase === 'setup' ? t.preparing : t.live}{event.updatedAt && !Number.isNaN(Date.parse(event.updatedAt)) && <> · <time dateTime={event.updatedAt}>{new Date(event.updatedAt).toLocaleDateString(locale)}</time></>}</small></div><button disabled={busy||!!event.localMissing} onClick={() => { if (history) { setCopyStatus(''); setSummary(event); } else void perform(async () => onPlay(await resumeHostEvent(event.eventId,session?.id,dashboard.runtime==='browser-v1'))); }}>{event.localMissing?'السجل غير موجود في هذا المتصفح':history?t.summary:t.resume}</button>{event.localMissing&&!history&&<button disabled={busy} onClick={()=>{if(window.confirm('التقدم المحلي غير موجود. إغلاق سجل التشغيل لا يعيد الرصيد ولا يستعيد النتائج. هل تريد المتابعة؟'))void perform(async()=>{await closeBrowserHostRun(event.eventId);setReload(v=>v+1);});}}>إغلاق سجل التشغيل</button>}</li>)}</ul>}</section>)}</div>}</div>
       </>}
     </div>
-    <dialog className="host-summary" ref={summaryDialog} onCancel={() => setSummary(null)} onClose={() => setSummary(null)} aria-labelledby="host-summary-title"><h2 id="host-summary-title">{summary?.title}</h2>{summary && <><p>{t.winners}: {summary.state.winners.length} · {t.opened}: {summary.state.prizes.filter(prize => prize.revealed).length}</p><pre tabIndex={0}>{summaryText || t.noPrizes}</pre><div className="host-summary-actions"><button onClick={() => { void navigator.clipboard?.writeText(summaryText).then(() => setCopyStatus(t.copied)).catch(() => setCopyStatus(t.copyFailed)); if (!navigator.clipboard) setCopyStatus(t.copyFailed); }}>{t.copy}</button><button className="host-primary" autoFocus onClick={() => setSummary(null)}>{t.close}</button></div>{copyStatus && <p role="status">{copyStatus}</p>}</>}</dialog>
+    <dialog className="host-summary" ref={summaryDialog} onCancel={() => setSummary(null)} onClose={() => setSummary(null)} aria-labelledby="host-summary-title"><h2 id="host-summary-title">{summary?.title}</h2>{summary && <><p>{t.winners}: {summary.state.winners.length} · {t.opened}: {summary.state.prizes.filter(prize => prize.revealed).length}</p><pre tabIndex={0}>{summaryText || t.noPrizes}</pre><div className="host-summary-actions"><ButtonUtility label={t.copy} icon={Copy} onPress={() => {void navigator.clipboard?.writeText(summaryText).then(()=>{setCopyStatus('');toast(t.copied,'success');}).catch(()=>setCopyStatus(t.copyFailed));if(!navigator.clipboard)setCopyStatus(t.copyFailed);}}/><ButtonUtility label={t.close} icon={X} autoFocus onPress={() => setSummary(null)}/></div>{copyStatus && <p role="status">{copyStatus}</p>}</>}</dialog>
   </div>;
 }

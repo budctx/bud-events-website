@@ -1,3 +1,5 @@
+import {ButtonUtility} from './ButtonUtility';
+import {RefreshCw} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { getPaymentReceipt, HostClientError } from './host-client';
 import type { Locale } from './host-client';
@@ -55,6 +57,6 @@ export default function PaymentStatus({ orderId, locale, onAuthLost, onState }: 
     <div><h2 id="payment-status-heading">{t.title}</h2><p role="status" aria-live="polite"><strong>{message}</strong></p>{detail && <p>{detail}</p>}
       {receipt && <p>{new Intl.NumberFormat(locale, { style: 'currency', currency: receipt.currency }).format(receipt.amountMinor / 100)}</p>}
       <p className="platform-payment-reference">{t.reference}: <bdi dir="ltr">{orderId}</bdi></p></div>
-    <button type="button" className="platform-action platform-action-secondary" disabled={loading} onClick={() => setRevision(value => value + 1)}>{t.retry}</button>
+    <ButtonUtility label={t.retry} icon={RefreshCw} isDisabled={loading} onPress={() => setRevision(value => value + 1)}/>
   </section>;
 }

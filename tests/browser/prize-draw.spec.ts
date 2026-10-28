@@ -253,3 +253,20 @@ test('all prizes can be manually opened with an empty winner list', async ({page
   await page.keyboard.press('Escape');await expect(page.locator('.mg-winner-option')).toHaveCount(0);
   await expect(page.locator('.mg-prize-card')).toBeDisabled();
 });
+
+test('winner utility controls retain Arabic names and toast feedback inside the active dialog',async({page})=>{
+ await start(page,true);await prizes(page,true);
+ const addWinner=page.getByRole('button',{name:'إضافة فائز',exact:true});
+ await expect(addWinner).toHaveClass(/bud-utility/);
+ await addWinner.click();await page.getByLabel('اسم الفائز',{exact:true}).fill('سارة');
+ await page.getByRole('button',{name:'إضافة الفائز',exact:true}).click();
+ const dialog=page.locator('.mg-management');
+ await expect(dialog.locator('.bud-toast')).toContainText('أُضيف الفائز.');
+ const edit=dialog.getByRole('button',{name:'تعديل سارة #1',exact:true});await expect(edit).toHaveClass(/bud-utility/);
+ await edit.click();await page.getByLabel(/تعديل اسم الفائز/).fill('نورة');await page.getByRole('button',{name:'حفظ التعديل',exact:true}).click();
+ await expect(dialog.locator('.bud-toast').last()).toContainText('عُدّل اسم الفائز.');
+ await dialog.getByRole('button',{name:'حذف نورة #1',exact:true}).click();await page.getByRole('button',{name:'تأكيد الحذف',exact:true}).click();
+ await expect(dialog.locator('.bud-toast').last()).toContainText('حُذف الفائز.');
+ await dialog.getByRole('button',{name:'إغلاق',exact:true}).click();
+ await expect(page.locator('.bud-toast').last()).toContainText('حُذف الفائز.');
+});
