@@ -12,6 +12,7 @@ import { useAccount } from './use-account';
 import { HostClientError, newHostRequestKey, purchaseEvent, resumeHostEvent, signInHost } from './host-client';
 import type { PaymentState } from './payment-state';
 import type { HostEvent } from './host-client';
+const BotCatalog = lazy(() => import('./BotCatalog'));
 const HostPortal = lazy(() => import('./HostPortal'));
 const WhopPreflight = lazy(() => import('./WhopPreflight'));
 const RedeemDialog = lazy(() => import('./RedeemDialog'));
@@ -48,12 +49,12 @@ export default function Platform({ onPlay }: PlatformProps) {
   const locale: Locale = 'ar';
   const [page, setPage] = useState<Page>(pageFromURL);
   const [modal, setModal] = useState<Modal>(null);
-  const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
   const [activeAction,setActiveAction] = useState<'login' | 'purchase' | null>(null);
   const [panel, setPanel] = useState<'history' | 'setup' | 'profile' | 'owner' | null>(panelFromURL);
   const account = useAccount();
   const toast = useBudToast();
+  const notifyError=(text:string)=>toast(text,'danger');
   const [ownerReturn,setOwnerReturn]=useState<OwnerReturn|null>(null);
   useEffect(()=>{if(!account.session)return;const saved=readOwnerReturn();if(!saved)return;clearOwnerReturn();if(saved.ownerId===account.session.id){setOwnerReturn(saved);setPanel('owner');}},[account.session?.id]);
   const [partners,setPartners] = useState<PartnerLogo[]>([]);
@@ -83,7 +84,6 @@ export default function Platform({ onPlay }: PlatformProps) {
     else timeout = setTimeout(load, 300);
     return () => { mounted = false; controller.abort(); if (idle !== undefined) window.cancelIdleCallback(idle); if (timeout !== undefined) clearTimeout(timeout); };
   },[page]);
-  useEffect(() => { if(notice)toast(notice,notice.includes('تعذر')||notice.includes('غير متاح')?'danger':'info'); },[notice,toast]);
   useEffect(() => { document.documentElement.lang = 'ar'; document.documentElement.dir = 'rtl'; try { localStorage.removeItem('bud-lang'); } catch { /* Legacy preferences are optional. */ } }, []);
   useEffect(() => {
     if (!modal || !dialog.current) return;
@@ -113,7 +113,7 @@ export default function Platform({ onPlay }: PlatformProps) {
       setPage(pageFromURL());
       setPanel(panelFromURL());
       setModal(null);
-      setNotice('');
+
     };
     window.addEventListener('popstate',onBackOrForward);
     return () => window.removeEventListener('popstate',onBackOrForward);
@@ -130,21 +130,22 @@ export default function Platform({ onPlay }: PlatformProps) {
   const navigate = (next: Page) => {
     if (page === next && !panel) return;
     history.pushState(null,'',routeUrl(next));
-    setPanel(null); setNotice(''); setPage(next);
+    setPanel(null); setPage(next);
     requestAnimationFrame(() => main.current?.focus({ preventScroll: true }));
   };
   const openPanel = (next: 'history' | 'setup' | 'profile' | 'owner') => {
     if (panel === next) return;
     history.pushState(null,'',routeUrl(page,next));
-    setPanel(next);setNotice('');
+    setPanel(next);
   };
   const perform = async (action: () => Promise<void>, kind: 'login' | 'purchase' | null = null) => {
-    if (locked.current) return; locked.current = true; setBusy(true); setActiveAction(kind); setNotice('');
+    if (locked.current) return; locked.current = true; setBusy(true); setActiveAction(kind);
+    const progress=kind?toast(kind==='login'?'جارٍ تجهيز تسجيل الدخول عبر Discord…':'جارٍ التحقق من طلب الشراء…','info',{persistent:true}):null;
     try { await action(); }
     catch (reason) {
-      if (reason instanceof HostClientError && reason.status === 401) { void account.refresh(); setNotice(locale === 'ar' ? 'انتهت جلسة الدخول. سجّل دخولك مجددًا.' : 'Your session ended. Please sign in again.'); }
-      else setNotice(locale === 'ar' ? 'تعذر إتمام الطلب. حاول مجددًا.' : 'Unable to complete the request. Please try again.');
-    } finally { locked.current = false; setBusy(false); setActiveAction(null); }
+      if (reason instanceof HostClientError && reason.status === 401) { void account.refresh(); notifyError(locale === 'ar' ? 'انتهت جلسة الدخول. سجّل دخولك مجددًا.' : 'Your session ended. Please sign in again.'); }
+      else notifyError(locale === 'ar' ? 'تعذر إتمام الطلب. حاول مجددًا.' : 'Unable to complete the request. Please try again.');
+    } finally { if(progress)toast.dismiss(progress);locked.current = false; setBusy(false); setActiveAction(null); }
   };
   const login = () => perform(async () => {
     const snapshot = account.status === 'loading' ? await account.whenReady() : {session:account.session,dashboard:account.dashboard};
@@ -157,7 +158,7 @@ export default function Platform({ onPlay }: PlatformProps) {
     purchaseKey.current ??= {key:newHostRequestKey(),locale};
     try { await purchaseEvent(purchaseKey.current.key, purchaseKey.current.locale); }
     catch (reason) { if (reason instanceof HostClientError && reason.status === 503 && (reason.code.startsWith('SANDBOX_CHECKOUT_')
-      || ['LIVE_CHECKOUT_NOT_CONFIGURED','LIVE_COMMERCE_DISABLED','COMMERCE_MODE_UNAVAILABLE'].includes(reason.code))) { setNotice(t.purchaseUnavailable); return; } throw reason; }
+      || ['LIVE_CHECKOUT_NOT_CONFIGURED','LIVE_COMMERCE_DISABLED','COMMERCE_MODE_UNAVAILABLE'].includes(reason.code))) { notifyError(t.purchaseUnavailable); return; } throw reason; }
   },'purchase');
   const closePanel = () => {
     const target = panel !== 'setup' ? '.platform-account-trigger' : '[data-testid=event-setup]';
@@ -177,14 +178,12 @@ export default function Platform({ onPlay }: PlatformProps) {
     <Seo locale={locale} screen={page} /><a className="skip-link" href="#platform-content">{locale === 'ar' ? 'تجاوز إلى المحتوى' : 'Skip to content'}</a>
     {page === 'home' && !panel && <HeroArtwork />}
     <header className="platform-header" data-node-id="339:2072">
-      <div className="platform-header-tools">{account.session ? <AccountMenu session={account.session} locale={locale} credits={account.dashboard?.credits ?? null} busy={busy} onSupport={() => {setPanel(null); setModal('support'); setNotice('');}} onProfile={() => openPanel('profile')} onRedeem={() => setRedeemOpen(true)} onHistory={() => openPanel('history')} onLogout={() => void perform(async () => {setPanel(null); setRedeemOpen(false); await account.logout();})} /> : <button type="button" className="platform-login" disabled={busy} aria-busy={activeAction==='login'} aria-label={locale === 'ar' ? 'سجّل دخولك عبر Discord' : 'Sign in with Discord'} onClick={() => void login()}><img src="/assets/discord-symbol-white.svg" width="24" height="18" alt="" />{activeAction==='login'?'جارٍ فتح Discord…':t.login}</button>}</div>
+      <div className="platform-header-tools">{account.session ? <AccountMenu session={account.session} locale={locale} credits={account.dashboard?.credits ?? null} busy={busy} onSupport={() => {setPanel(null); setModal('support'); }} onProfile={() => openPanel('profile')} onRedeem={() => setRedeemOpen(true)} onHistory={() => openPanel('history')} onLogout={() => void perform(async () => {setPanel(null); setRedeemOpen(false); await account.logout();toast('تم تسجيل الخروج.','success');})} /> : <button type="button" className="platform-login" disabled={busy} aria-busy={activeAction==='login'} aria-label={locale === 'ar' ? 'سجّل دخولك عبر Discord' : 'Sign in with Discord'} onClick={() => void login()}><img src="/assets/discord-symbol-white.svg" width="24" height="18" alt="" />{activeAction==='login'?'جارٍ فتح Discord…':t.login}</button>}</div>
       <div className="platform-brand-navigation">
         <nav className="platform-navigation" aria-label={locale === 'ar' ? 'التنقل الرئيسي' : 'Main navigation'}>{(['home', 'events', 'bots', 'designs'] as const).map(item => <button type="button" key={item} data-testid={`nav-${item}`} aria-label={`${t[item]}${item === 'bots' || item === 'designs' ? ` · ${t.soon}` : ''}`} aria-current={page === item ? 'page' : undefined} className={item === 'bots' || item === 'designs' ? 'platform-future-link' : ''} onPointerEnter={item === 'events' ? () => { void loadEventPreview(); } : undefined} onFocus={item === 'events' ? () => { void loadEventPreview(); } : undefined} onClick={() => navigate(item)}><span className="platform-nav-icon"><InterfaceIcon kind={item} /></span><span className="platform-nav-label">{t[item]}{(item === 'bots' || item === 'designs') && <small> · {t.soon}</small>}</span></button>)}</nav>
         <button className="platform-brand" aria-label={locale === 'ar' ? 'بُعد — الرئيسية' : 'BU’D — Home'} onClick={() => navigate('home')}><Mark /><span>بُعد</span></button>
       </div>
     </header>
-    {activeAction&&<p className="platform-account-notice" role="status">{activeAction==='purchase'?'جارٍ التحقق من طلب الشراء…':'جارٍ تجهيز تسجيل الدخول عبر Discord…'}</p>}
-    {notice && <p className="platform-account-notice" role="status">{notice}</p>}
     {page === 'events' && inspectWhop && account.session && <Suspense fallback={<p role="status">{locale === 'ar' ? 'جارٍ تحميل الفحص…' : 'Loading inspection…'}</p>}><WhopPreflight key={account.session.id} locale={locale} onAuthLost={account.expire} /></Suspense>}
     {page === 'events' && paymentOrder && account.session && <Suspense fallback={<p role="status">جارٍ تحميل حالة الطلب…</p>}><PaymentStatus key={account.session.id + paymentOrder} orderId={paymentOrder} locale={locale} onAuthLost={account.expire} onState={onReceiptState} /></Suspense>}
       {account.session&&<Suspense fallback={null}><RedeemDialog key={account.session.id} open={redeemOpen} onClose={()=>setRedeemOpen(false)} onRefresh={()=>void account.refresh()}/></Suspense>}
@@ -202,7 +201,7 @@ export default function Platform({ onPlay }: PlatformProps) {
           <button className={`platform-action ${canSetup||canResume?'platform-action-secondary':'platform-action-primary'}`} data-testid="product-card-qc" disabled={busy || paymentHold || account.dashboard?.paymentReview} aria-busy={activeAction==='purchase'} onClick={() => void buy()}>{activeAction==='purchase'?'جارٍ تجهيز الشراء…':t.buy}</button>
           </div>
           {ongoing?.localMissing&&<p className="host-local-policy">تقدم هذه الفعالية غير موجود في هذا المتصفح. <button className="platform-inline-retry" onClick={()=>setPanel('history')}>عرض سجل التشغيل</button></p>}
-          </div></div></article> : <article className="platform-product-card platform-coming-soon"><div><p className="platform-status"><BudBadge tone="warning" variant="outline">{t.soon}</BudBadge></p><h2>{t[page]}</h2><p>{t.soonDescription}</p><button className="platform-action platform-action-secondary" onClick={() => setModal('soon')}>{locale === 'ar' ? 'تفاصيل المنتج' : 'Product details'}</button></div></article>}
+          </div></div></article> : page==='bots'?<Suspense fallback={<p role="status">جارٍ تحميل البوتات…</p>}><BotCatalog/></Suspense>:<article className="platform-product-card platform-coming-soon"><div><p className="platform-status"><BudBadge tone="warning" variant="outline">{t.soon}</BudBadge></p><h2>{t[page]}</h2><p>{t.soonDescription}</p><button className="platform-action platform-action-secondary" onClick={() => setModal('soon')}>{locale === 'ar' ? 'تفاصيل المنتج' : 'Product details'}</button></div></article>}
         {page === 'events' && panel === 'setup' && account.session && <Suspense fallback={<p role="status">{locale === 'ar' ? 'جارٍ التحميل…' : 'Loading…'}</p>}><HostPortal onAuthLost={account.expire} view="setup" locale={locale} onExit={closePanel} onPlay={event => onPlay(event, locale)} /></Suspense>}
       </>}
     </main>

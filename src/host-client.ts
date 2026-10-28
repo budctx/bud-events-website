@@ -37,11 +37,14 @@ export async function resumeHostEvent(eventId:string,ownerId?:string,browserRunt
  if(ownerId&&pkg.ownerId!==ownerId)throw new HostClientError('LOCAL_CONTENT_INVALID',503);
  const run=prepareBrowserRun(pkg);try{await request('/api/host',{action:'localAdopt',eventId});saveBrowserRun({...run,adoptionPending:false});}catch{/* The verified legacy copy is already saved; retry acknowledgement on the dashboard. */}return run;
 }
-export async function startBrowserHostEvent(ownerId:string,payload:StartHostEvent):Promise<BrowserRun>{
+export async function startBrowserHostEvent(ownerId:string,payload:StartHostEvent,onProgress?:(step:0|1|2)=>void):Promise<BrowserRun>{
  if(!browserStorageReady())throw new HostClientError('LOCAL_STORAGE_UNAVAILABLE',409);
+ onProgress?.(0);
  const receipt=await request<HostEvent>('/api/host',{action:'localStart',idempotencyKey:payload.idempotencyKey,title:payload.title});
+ onProgress?.(1);
  const pkg=await request<BrowserPackage>('/api/host',{action:'localContent',eventId:receipt.eventId});
  if(pkg.ownerId!==ownerId||receipt.ownerId!==ownerId||receipt.storage!=='browser-v1')throw new HostClientError('LOCAL_CONTENT_INVALID',503);
+ onProgress?.(2);
  return prepareBrowserRun(pkg,payload);
 }
 export const closeBrowserHostRun=(eventId:string)=>request('/api/host',{action:'localFinish',eventId});

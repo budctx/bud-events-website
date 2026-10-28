@@ -91,3 +91,24 @@ test('the live browser event randomizes prize-to-card mapping once and preserves
  expect(after[0].revealed).toBe(true);
  expect(after.slice(1).every(p=>!p.revealed)).toBe(true);
 });
+
+test('event-start loader advances only when the server confirms each milestone',async({page})=>{
+ await setup(page);
+ let releaseStart!:()=>void,releaseContent!:()=>void;let starts=0;
+ const startGate=new Promise<void>(r=>{releaseStart=r;}),contentGate=new Promise<void>(r=>{releaseContent=r;});
+ await page.route('**/api/host',async route=>{
+  const body=route.request().postDataJSON();
+  if(body.action==='localStart'){starts++;await startGate;return route.fulfill(ok({eventId:id,title:body.title,storage:'browser-v1',ownerId:owner}));}
+  if(body.action==='localContent'){await contentGate;return route.fulfill(ok({eventId:id,ownerId:owner,title:'سؤال وشرط',expiresAt:new Date(Date.now()+4*3600000).toISOString(),content,legacy:null}));}
+  return route.fallback();
+ });
+ await page.getByTestId('event-setup').click();await page.getByRole('button',{name:'بدء الفعالية',exact:true}).click();
+ const loader=page.getByRole('dialog',{name:'جارٍ تجهيز الفعالية'});
+ await expect(loader).toBeVisible();await expect(loader.locator('li[data-state=current]')).toHaveText('التحقق من المفتاح وبدء الطلب');
+ await expect(loader.locator('li[data-state=done]')).toHaveCount(0);
+ await page.waitForTimeout(2200);
+ await expect(loader.locator('li[data-state=done]')).toHaveCount(0);
+ releaseStart();await expect(loader.locator('li[data-state=current]')).toHaveText('تجهيز محتوى الفعالية');
+ await expect(loader.locator('li[data-state=done]')).toHaveCount(1);
+ releaseContent();await expect(loader).not.toBeVisible();await expect(page.locator('.mg-disclosure')).toContainText('محفوظ في هذا المتصفح فقط');expect(starts).toBe(1);
+});

@@ -82,5 +82,5 @@ test('Doherty: buy shows its pending state immediately without pretending succes
   await expect(page.getByRole('status').filter({hasText:'جارٍ التحقق من طلب الشراء…'})).toBeVisible();
   release();
   await expect(page.getByTestId('product-card-qc')).toHaveText('اشترِ الآن — ٣ ر.س');
-  await expect(page.locator('.platform-account-notice')).toContainText('الشراء غير متاح');
+  await expect(page.locator('.bud-toast[data-tone=danger]').last()).toContainText('الشراء غير متاح');
 });

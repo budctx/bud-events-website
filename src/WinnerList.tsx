@@ -1,3 +1,5 @@
+import {ButtonUtility} from './ButtonUtility';
+import {Pencil,Trash2} from 'lucide-react';
 import type { ManualPrize, ManualWinner } from './manual-game';
 import type { Locale } from './i18n';
 
@@ -17,7 +19,7 @@ export function WinnerList({ winners, prizes, locale, selectedId, onSelect, onEd
     const prize = prizes.find(p => p.winnerId === winner.id);
     const content = <><WinnerNumber id={winner.id} /><span className="mg-winner-copy"><strong dir="auto">{winner.name}</strong>{onSelect && <small>{prize ? <>{ar ? 'حصل على: ' : 'Awarded: '}<bdi>{prize.name}</bdi></> : selectedId === winner.id ? (ar ? 'محدد للسحب' : 'Selected for draw') : (ar ? 'بانتظار الجائزة' : 'Awaiting prize')}</small>}</span>{onSelect && <span aria-hidden="true">{prize ? '✓' : selectedId === winner.id ? '●' : '○'}</span>}</>;
     return <li key={winner.id} data-winner-id={winner.id} data-awarded={!!prize}>
-      {onSelect ? <div className="mg-winner-select-row"><button className="mg-winner-option" type="button" aria-pressed={selectedId === winner.id} disabled={!!prize} onClick={() => onSelect(winner.id)}>{content}</button>{onDelete && !readOnly && <button type="button" className="mg-icon-button mg-winner-quick-delete" aria-label={`${ar ? 'حذف' : 'Delete'} ${winner.name} #${winner.id.replace('winner-', '')}`} title={ar ? 'حذف الفائز' : 'Delete winner'} onClick={() => onDelete(winner)}><WinnerIcon kind="delete" /></button>}</div> : <div className="mg-winner-row">{content}{!readOnly && <span className="mg-winner-tools"><button type="button" className="mg-icon-button" aria-label={`${ar ? 'تعديل' : 'Edit'} ${winner.name} #${winner.id.replace('winner-', '')}`} onClick={() => onEdit?.(winner)}><WinnerIcon kind="edit" /></button><button type="button" className="mg-icon-button" aria-label={`${ar ? 'حذف' : 'Delete'} ${winner.name} #${winner.id.replace('winner-', '')}`} onClick={() => onDelete?.(winner)}><WinnerIcon kind="delete" /></button></span>}</div>}
+      {onSelect ? <div className="mg-winner-select-row"><button className="mg-winner-option" type="button" aria-pressed={selectedId === winner.id} disabled={!!prize} onClick={() => onSelect(winner.id)}>{content}</button>{onDelete && <ButtonUtility label={`${ar ? 'حذف' : 'Delete'} ${winner.name} #${winner.id.replace('winner-', '')}`} icon={Trash2} tone="danger" className="mg-winner-quick-delete" isDisabled={readOnly} onPress={() => onDelete(winner)}/>}</div> : <div className="mg-winner-row">{content}{!readOnly && <span className="mg-winner-tools">{onEdit&&<ButtonUtility label={`${ar ? 'تعديل' : 'Edit'} ${winner.name} #${winner.id.replace('winner-', '')}`} icon={Pencil} onPress={() => onEdit(winner)}/>}{onDelete&&<ButtonUtility label={`${ar ? 'حذف' : 'Delete'} ${winner.name} #${winner.id.replace('winner-', '')}`} icon={Trash2} tone="danger" onPress={() => onDelete(winner)}/>}</span>}</div>}
     </li>;
   })}</ol>;
 }

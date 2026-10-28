@@ -195,12 +195,12 @@ test('direct checkout retries retain one key and originating locale without a se
   const payloads: { idempotencyKey: string }[] = [];
   await page.route('**/api/checkout', route => { payloads.push(route.request().postDataJSON()); return payloads.length === 1 ? route.abort('connectionfailed') : route.fulfill({ status: 503, json: { code: 'SANDBOX_CHECKOUT_DISABLED' } }); });
   await page.goto('/?screen=events&lang=ar');
-  await page.getByTestId('product-card-qc').click(); await expect(page.locator('.platform-account-notice')).toContainText('تعذر');
+  await page.getByTestId('product-card-qc').click(); await expect(page.locator('.bud-toast[data-tone=danger]').last()).toContainText('تعذر');
   await expect(page.getByTestId('locale-toggle')).toHaveCount(0);
   await page.getByTestId('product-card-qc').click(); await expect.poll(() => payloads.length).toBe(2);
   expect(payloads[0]).toEqual(payloads[1]); expect(payloads[0].idempotencyKey).toMatch(/^[a-f0-9-]{36}$/);
   expect(payloads[0]).toMatchObject({locale:'ar'});
-  await expect(page.locator('dialog[open]')).toHaveCount(0); await expect(page.locator('.platform-account-notice')).toContainText('الشراء غير متاح');
+  await expect(page.locator('dialog[open]')).toHaveCount(0); await expect(page.locator('.bud-toast[data-tone=danger]').last()).toContainText('الشراء غير متاح');
 });
 test('official checkout navigates only with the server production marker and preserves the request locale', async ({page})=>{
   await session(page);await page.route('**/api/host',route=>route.fulfill(ok({...dashboard,events:[]})));
@@ -208,7 +208,7 @@ test('official checkout navigates only with the server production marker and pre
   await page.route('**/api/checkout',route=>{payloads.push(route.request().postDataJSON());return route.fulfill(ok({url:'https://whop.com/checkout/ch_browser123/',...(verified?{environment:'production'}:{})}));});
   await page.route('https://whop.com/checkout/ch_browser123/',route=>route.fulfill({contentType:'text/html',body:'<h1>Fixture checkout destination</h1>'}));
   await page.goto('/?screen=events&lang=en');
-  await page.getByTestId('product-card-qc').click();await expect(page.locator('.platform-account-notice')).toContainText('تعذر');
+  await page.getByTestId('product-card-qc').click();await expect(page.locator('.bud-toast[data-tone=danger]').last()).toContainText('تعذر');
   expect(new URL(page.url()).hostname).toBe('127.0.0.1');
   verified=true;await page.getByTestId('product-card-qc').click();
   await expect(page).toHaveURL('https://whop.com/checkout/ch_browser123/');

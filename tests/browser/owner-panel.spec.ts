@@ -59,7 +59,7 @@ test('lost redeem response retries the same operation, then refreshes wallet',as
  await page.route('**/api/owner',r=>{const body=r.request().postDataJSON();if(body.action==='profile')return r.fulfill(ok({owner:false}));requests.push(body);return requests.length===1?r.abort('connectionfailed'):r.fulfill(ok({receipt:id,credits:3}));});
  await page.locator('.platform-account-trigger').click();await page.getByRole('menuitem',{name:'استرداد مفتاح',exact:true}).click();await page.getByLabel('المفتاح',{exact:true}).fill('BUD-ABCDEFGHIJKLMNOPQRSTUVWXYZ234567');await page.getByRole('button',{name:'استرداد',exact:true}).click();
  await expect(page.getByRole('button',{name:'التحقق من الطلب السابق'})).toBeVisible();await page.getByRole('dialog').getByRole('button',{name:'إغلاق',exact:true}).click();await page.locator('.platform-account-trigger').click();await page.getByRole('menuitem',{name:'استرداد مفتاح',exact:true}).click();await page.getByRole('button',{name:'التحقق من الطلب السابق'}).click();
- await expect(page.getByRole('status')).toContainText('تم استرداد المفتاح');expect(requests).toHaveLength(2);expect(requests[0]).toEqual(requests[1]);
+ await expect(page.locator('.owner-success')).toContainText('تم استرداد المفتاح');expect(requests).toHaveLength(2);expect(requests[0]).toEqual(requests[1]);
 });
 test('owner mutation requires reason and confirmation; one-time code is removed when closing',async({page})=>{
  await setup(page);await page.getByRole('button',{name:'لوحة المالك',exact:true}).click();await page.getByRole('navigation',{name:'أقسام لوحة المالك'}).getByRole('button',{name:'المفاتيح والمنح'}).click();
@@ -85,7 +85,7 @@ test('uncertain administrative grant remains the same operation after closing th
  await page.locator('.platform-account-trigger').click();await page.getByRole('menuitem',{name:'الملف الشخصي'}).click();await page.getByRole('button',{name:'لوحة المالك',exact:true}).click();
  await page.getByRole('button',{name:'التحقق من العملية السابقة',exact:true}).click();
  await page.getByRole('dialog').getByRole('button',{name:'تأكيد التنفيذ'}).click();
- await expect(page.getByRole('dialog').getByRole('status')).toContainText('العملية السابقة');expect(requests).toHaveLength(1);
+ await expect(page.getByRole('dialog').getByRole('status').filter({hasText:'العملية السابقة'})).toContainText('العملية السابقة');expect(requests).toHaveLength(1);
 });
 test('profile distinguishes an unavailable permission check from an ordinary account and can retry',async({page})=>{
  await setup(page);let unavailable=true;
@@ -105,7 +105,7 @@ test('an absent grant receipt retries the original frozen payload rather than op
  await page.getByRole('button',{name:'منحة إدارية',exact:true}).click();await page.getByLabel('معرّف الحساب الموثق').fill(id);await page.getByRole('button',{name:'مراجعة المنحة'}).click();await page.getByLabel('سبب الإجراء').fill('الطلب الأصلي');await page.getByRole('checkbox').check();await page.getByRole('button',{name:'تأكيد التنفيذ'}).click();
  await expect(page.getByLabel('سبب الإجراء')).toBeDisabled();await page.getByRole('dialog').getByRole('button',{name:'إغلاق',exact:true}).click();
  await page.getByRole('button',{name:'مراجعة المنحة'}).click();await expect(page.getByLabel('سبب الإجراء')).toHaveValue('الطلب الأصلي');await page.getByRole('button',{name:'تأكيد التنفيذ'}).click();
- await expect(page.getByRole('dialog').getByRole('status')).toContainText('تمت العملية');expect(requests).toHaveLength(2);expect(requests[0]).toEqual(requests[1]);
+ await expect(page.getByRole('dialog').getByRole('status').filter({hasText:'تمت العملية'})).toContainText('تمت العملية');expect(requests).toHaveLength(2);expect(requests[0]).toEqual(requests[1]);
 });
 test('unavailable tab storage blocks administrative dispatch before a mutation is sent',async({page})=>{
  await setup(page);let mutations=0;
