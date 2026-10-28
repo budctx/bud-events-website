@@ -39,4 +39,5 @@
 .bud-carousel-status{text-align:center;color:#6d6458;font-size:12px;margin:6px 0 0}
 @media(max-width:1100px){.bud-bot-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.bud-bot-grid{grid-template-columns:minmax(0,1fr)}.bud-events-viewport{padding:3px 6px 8px}.bud-carousel-navigation{gap:8px;margin-top:14px}.bud-bot-card .bud-bot-art{min-height:180px}}
+@media(max-width:350px){.bud-events-carousel .qc-demo .mg-card-content{font-size:14px;line-height:1.45}}
 @media(prefers-reduced-motion:reduce){.bud-magic-glow{display:none}.bud-carousel-dots span{transition:none}}
