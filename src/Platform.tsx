@@ -139,7 +139,9 @@ export default function Platform({ onPlay }: PlatformProps) {
     if (page === next && !panel) return;
     history.pushState(null,'',routeUrl(next));
     setPanel(null); setPage(next);
-    requestAnimationFrame(() => main.current?.focus({ preventScroll: true }));
+    // The main node persists across sections. Focus now so a later frame cannot
+    // steal focus after the user has already pressed Tab on the new section.
+    main.current?.focus({ preventScroll: true });
   };
   const openPanel = (next: 'history' | 'setup' | 'profile' | 'owner') => {
     if (panel === next) return;
