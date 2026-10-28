@@ -33,7 +33,7 @@ test('winner is impossible before both cards and correct judgment; replay cannot
 });
 test('capacity caps winners, and retry makes fresh hidden cards without tracking losers', () => {
   let state = start('One');
-  state = manualGameReducer(reveal(state), { type: 'wrong' }); assert.equal(state.attempt, 2); assert.equal(state.round, 1);
+  state = manualGameReducer(reveal(state), { type: 'wrong' }); assert.equal(state.attempt, 1); assert.equal(state.round, 1);
   state = manualGameReducer(reveal(state), { type: 'wrong' }); assert.equal(state.attempt, 1); assert.equal(state.winners.length, 0);
   state = save(state, 'A');
   const revealed = reveal(state); assert.equal(manualGameReducer(revealed, { type: 'correct' }), revealed);

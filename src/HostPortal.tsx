@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { AnimatedSwitch, HelpTip, NumberStepper } from './InterfaceControls';
+import { AnimatedSwitch, HelpTip } from './InterfaceControls';
 import {ButtonUtility} from './ButtonUtility';
 import {EventStartLoader} from './EventStartLoader';
 import {RefreshCw,Copy,X} from 'lucide-react';
@@ -13,7 +13,7 @@ import type { ManualConfig } from './manual-game';
 import './host-portal.css';
 export type { HostEvent } from './host-client';
 const text = {
-  ar: { title: 'مساحتك في بُعد', back: 'العودة إلى بُعد', loading: 'جارٍ تحميل مساحتك…', signin: 'سجّل دخولك', intro: 'ادخل إلى مساحتك لإدارة فعالياتك واستكمال جلساتك.', unavailable: 'مساحة الهوست غير متاحة حاليًا. حاول لاحقًا.', retry: 'إعادة المحاولة', failure: 'تعذر إتمام الطلب. يمكنك المحاولة مجددًا.', expired: 'انتهت جلسة الدخول. سجّل دخولك مجددًا.', logout: 'تسجيل الخروج', slots: 'مرات التشغيل المتاحة', slotHint: 'تُستخدم مرة تشغيل واحدة عند بدء فعالية جديدة. استكمال الفعالية لا يستخدم مرة إضافية.', setup: 'فعالية جديدة', eventTitle: 'اسم الفعالية', defaultTitle: 'سؤال وشرط', timer: 'تفعيل المؤقت', duration: 'مدة المؤقت بالثواني', attempts: 'عدد المحاولات', prizes: 'الجوائز', prizeHelp: 'كل سطر غير فارغ جائزة مستقلة، وهو الحد الأقصى للفائزين. حتى 50 جائزة، و100 حرف لكل جائزة.', prizeError: 'أدخل حتى 50 جائزة، بحد أقصى 100 حرف لكل سطر.', start: 'بدء الفعالية', starting: 'جارٍ بدء الفعالية…', noSlots: 'لا توجد مرات تشغيل متاحة. الشراء غير متاح حاليًا.', noContent: 'هذه الفعالية غير متاحة للبدء حاليًا.', running: 'فعالياتك الجارية', history: 'فعالياتك السابقة', emptyActive: 'لا توجد فعالية جارية. ابدأ واحدة عندما تكون مستعدًا.', emptyHistory: 'ستظهر هنا الفعاليات التي تختتمها.', resume: 'استكمال الفعالية', summary: 'عرض الملخص', winners: 'الفائزون', opened: 'الجوائز المفتوحة', close: 'إغلاق الملخص', copy: 'نسخ النتائج', copied: 'نُسخت النتائج', copyFailed: 'تعذر النسخ. حدد النتائج وانسخها.', unnamed: 'دون اسم', noPrizes: 'لا توجد جوائز مسجلة.', live: 'جارية', completed: 'مكتملة', preparing: 'إعداد', titleError: 'اكتب اسمًا للفعالية لا يتجاوز 100 حرف.', busy: 'جارٍ تنفيذ الطلب…', confirmChange: 'هناك طلب بدء لم نتأكد من نتيجته. استعد النتيجة بالمحاولة مجددًا قبل تغيير الإعدادات.', reload: 'تحديث القائمة' }
+  ar: { title: 'مساحتك في بُعد', back: 'العودة إلى بُعد', loading: 'جارٍ تحميل مساحتك…', signin: 'سجّل دخولك', intro: 'ادخل إلى مساحتك لإدارة فعالياتك واستكمال جلساتك.', unavailable: 'مساحة الهوست غير متاحة حاليًا. حاول لاحقًا.', retry: 'إعادة المحاولة', failure: 'تعذر إتمام الطلب. يمكنك المحاولة مجددًا.', expired: 'انتهت جلسة الدخول. سجّل دخولك مجددًا.', logout: 'تسجيل الخروج', slots: 'مرات التشغيل المتاحة', slotHint: 'تُستخدم مرة تشغيل واحدة عند بدء فعالية جديدة. استكمال الفعالية لا يستخدم مرة إضافية.', setup: 'فعالية جديدة', eventTitle: 'اسم الفعالية', defaultTitle: 'سؤال وشرط', timer: 'تفعيل المؤقت', duration: 'مدة المؤقت بالثواني', prizes: 'الجوائز', prizeHelp: 'كل سطر غير فارغ جائزة مستقلة، وهو الحد الأقصى للفائزين. حتى 50 جائزة، و100 حرف لكل جائزة.', prizeError: 'أدخل حتى 50 جائزة، بحد أقصى 100 حرف لكل سطر.', start: 'بدء الفعالية', starting: 'جارٍ بدء الفعالية…', noSlots: 'لا توجد مرات تشغيل متاحة. الشراء غير متاح حاليًا.', noContent: 'هذه الفعالية غير متاحة للبدء حاليًا.', running: 'فعالياتك الجارية', history: 'فعالياتك السابقة', emptyActive: 'لا توجد فعالية جارية. ابدأ واحدة عندما تكون مستعدًا.', emptyHistory: 'ستظهر هنا الفعاليات التي تختتمها.', resume: 'استكمال الفعالية', summary: 'عرض الملخص', winners: 'الفائزون', opened: 'الجوائز المفتوحة', close: 'إغلاق الملخص', copy: 'نسخ النتائج', copied: 'نُسخت النتائج', copyFailed: 'تعذر النسخ. حدد النتائج وانسخها.', unnamed: 'دون اسم', noPrizes: 'لا توجد جوائز مسجلة.', live: 'جارية', completed: 'مكتملة', preparing: 'إعداد', titleError: 'اكتب اسمًا للفعالية لا يتجاوز 100 حرف.', busy: 'جارٍ تنفيذ الطلب…', confirmChange: 'هناك طلب بدء لم نتأكد من نتيجته. استعد النتيجة بالمحاولة مجددًا قبل تغيير الإعدادات.', reload: 'تحديث القائمة' }
 
 };
 const completed = (event: HostEvent) => event.phase === 'completed' || event.phase === 'closing' || event.state.phase === 'closing';
@@ -47,7 +47,7 @@ export default function HostPortal({ onPlay, onExit, locale, view, onAuthLost,on
     if (saved) {
       setTitle(saved.title);
       setPrizeText(saved.prizeText);
-      setConfig(saved.config);
+      setConfig({...saved.config,attempts:1});
       setDraftRestored(true);
     } else setDraftRestored(false);
     setDraftOwner(session.id);
@@ -76,7 +76,7 @@ export default function HostPortal({ onPlay, onExit, locale, view, onAuthLost,on
   const start = () => perform(async () => {
     if (!title.trim() || title.trim().length > 100) { setError(t.titleError); return; }
     if (!parsed.valid) { setError(t.prizeError); return; }
-    if (!pendingStart.current) pendingStart.current = { action: 'start', idempotencyKey: newHostRequestKey(), title: title.trim(), config: { ...config }, prizeText };
+    if (!pendingStart.current) pendingStart.current = { action: 'start', idempotencyKey: newHostRequestKey(), title: title.trim(), config: { ...config, attempts: 1 }, prizeText };
     setStartStep(0);
     try { const event = dashboard?.runtime==='browser-v1'&&session?await startBrowserHostEvent(session.id,pendingStart.current,setStartStep):await startHostEvent(pendingStart.current); pendingStart.current = null; setUncertain(false); if(session)clearHostSetupDraft(session.id); onPlay(event); }
     catch (reason) { setUncertain(true); throw reason; }finally{setStartStep(null);}
@@ -92,11 +92,10 @@ export default function HostPortal({ onPlay, onExit, locale, view, onAuthLost,on
         <div className={view ? 'host-single' : 'host-grid'}>{view !== 'history' && <section className="host-panel"><BudSteps steps={locale==='ar'?['الإعداد','شاشة الفعالية','الجوائز','الختام']:['Setup','Live','Prizes','Closing']} current={0}/><h2>{t.setup}</h2>{draftRestored&&<p className="host-local-policy" role="status">استُعيدت مسودة الإعداد من هذا المتصفح. لا تُحفظ المسودة على الخادم.</p>}<form onSubmit={event => { event.preventDefault(); void start(); }}>
           {uncertain && <p className="host-message" role="status">{t.confirmChange}</p>}
           <fieldset disabled={busy || uncertain}><label htmlFor="host-title">{t.eventTitle}</label><input id="host-title" value={title} maxLength={100} onChange={event => setTitle(event.target.value)} required />
-            <div className="host-options"><AnimatedSwitch label={t.timer} checked={config.timerEnabled} onCheckedChange={timerEnabled => setConfig(previous => ({ ...previous, timerEnabled }))} /><div><label id="host-attempts-label">{t.attempts}</label><NumberStepper id="host-attempts" label={t.attempts} value={config.attempts} min={1} max={3} locale={locale} onChange={attempts => setConfig(previous => ({ ...previous, attempts: attempts as 1 | 2 | 3 }))} /></div></div>
+            <div className="host-options"><AnimatedSwitch label={t.timer} checked={config.timerEnabled} onCheckedChange={timerEnabled => setConfig(previous => ({ ...previous, timerEnabled }))} /></div>
             {config.timerEnabled && <div className="host-duration"><label htmlFor="host-duration">{t.duration}</label><input id="host-duration" type="number" min={3} max={30} step={1} value={config.duration} onChange={event => setConfig(previous => ({ ...previous, duration: Number(event.target.value) }))} required /></div>}
             <div className="host-field-label"><label htmlFor="host-prizes">{t.prizes}</label><HelpTip label={locale === 'ar' ? 'توضيح الجوائز' : 'About prizes'}>{t.prizeHelp}</HelpTip></div><textarea id="host-prizes" rows={5} value={prizeText} onChange={event => setPrizeText(event.target.value)} aria-invalid={!parsed.valid} aria-describedby={!parsed.valid ? 'host-prize-error' : undefined} />{!parsed.valid && <p id="host-prize-error" role="alert" className="host-error">{t.prizeError}</p>}
           </fieldset>
-          {dashboard.runtime==='browser-v1'&&<p className="host-local-policy">تُحفظ الفعالية ونتائجها في هذا المتصفح فقط. حذف بيانات الموقع أو تغيير الجهاز يعني فقدانها، ولا يمكن استعادتها من الخادم.</p>}
           {!enoughRuns && <p>{t.noSlots}</p>}{(!product?.available || !contentReady) && <p>{t.noContent}</p>}
           <button type="submit" className="host-primary" disabled={busy || !parsed.valid || !enoughRuns || !product?.available || !contentReady}>{busy ? t.starting : uncertain ? t.retry : t.start}</button>
         </form></section>}
