@@ -59,7 +59,7 @@ test('lost redeem response retries the same operation, then refreshes wallet',as
  await page.route('**/api/owner',r=>{const body=r.request().postDataJSON();if(body.action==='profile')return r.fulfill(ok({owner:false}));requests.push(body);return requests.length===1?r.abort('connectionfailed'):r.fulfill(ok({receipt:id,credits:3}));});
  await page.locator('.platform-account-trigger').click();await page.getByRole('menuitem',{name:'استرداد مفتاح',exact:true}).click();await page.getByLabel('المفتاح',{exact:true}).fill('BUD-ABCDEFGHIJKLMNOPQRSTUVWXYZ234567');await page.getByRole('button',{name:'تأكيد',exact:true}).click();
  await expect(page.getByRole('button',{name:'تأكيد',exact:true})).toBeVisible();await page.getByRole('dialog').getByRole('button',{name:'إغلاق',exact:true}).click();await page.locator('.platform-account-trigger').click();await page.getByRole('menuitem',{name:'استرداد مفتاح',exact:true}).click();await page.getByRole('button',{name:'تأكيد',exact:true}).click();
- await expect(page.locator('.owner-success')).toContainText('تم استرداد المفتاح');expect(requests).toHaveLength(2);expect(requests[0]).toEqual(requests[1]);
+ await expect(page.locator('.bud-toast[data-tone=success]')).toContainText('تم استرداد المفتاح');expect(requests).toHaveLength(2);expect(requests[0]).toEqual(requests[1]);
 });
 test('owner mutation requires reason and confirmation; one-time code is removed when closing',async({page})=>{
  await setup(page);await page.getByRole('button',{name:'لوحة المالك',exact:true}).click();await page.getByRole('navigation',{name:'أقسام لوحة المالك'}).getByRole('button',{name:'المفاتيح والمنح'}).click();
@@ -85,7 +85,7 @@ test('uncertain administrative grant remains the same operation after closing th
  await page.locator('.platform-account-trigger').click();await page.getByRole('menuitem',{name:'الملف الشخصي'}).click();await page.getByRole('button',{name:'لوحة المالك',exact:true}).click();
  await page.getByRole('button',{name:'التحقق من العملية السابقة',exact:true}).click();
  await page.getByRole('dialog').getByRole('button',{name:'تأكيد التنفيذ'}).click();
- await expect(page.getByRole('dialog').getByRole('status').filter({hasText:'العملية السابقة'})).toContainText('العملية السابقة');expect(requests).toHaveLength(1);
+ await expect(page.getByRole('dialog').locator('.bud-toast').filter({hasText:'العملية السابقة'})).toContainText('العملية السابقة');expect(requests).toHaveLength(1);
 });
 test('profile distinguishes an unavailable permission check from an ordinary account and can retry',async({page})=>{
  await setup(page);let unavailable=true;
@@ -113,14 +113,14 @@ test('unavailable tab storage blocks administrative dispatch before a mutation i
  await page.getByRole('button',{name:'لوحة المالك',exact:true}).click();await page.getByRole('navigation',{name:'أقسام لوحة المالك'}).getByRole('button',{name:'المفاتيح والمنح'}).click();
  await page.evaluate(()=>{Object.defineProperty(window,'sessionStorage',{value:{getItem:()=>null,setItem:()=>{throw Error('fixture disabled storage');},removeItem:()=>{}}});});
  await page.getByRole('button',{name:'منحة إدارية',exact:true}).click();await page.getByLabel('معرّف الحساب الموثق').fill(id);await page.getByRole('button',{name:'مراجعة المنحة'}).click();await page.getByLabel('سبب الإجراء').fill('لا يرسل دون مرجع');await page.getByRole('checkbox').check();await page.getByRole('button',{name:'تأكيد التنفيذ'}).click();
- await expect(page.getByRole('dialog').getByRole('status')).toContainText('لم يُرسل الطلب');expect(mutations).toBe(0);
+ await expect(page.getByRole('dialog').getByRole('alert')).toContainText('لم يُرسل الطلب');expect(mutations).toBe(0);
 });
 
 test('disabled owner configuration is distinct from permission failure; profile offers no purchase or redeem',async({page})=>{
  await setup(page,false);
  await page.route('**/api/owner',r=>r.fulfill({status:503,json:{code:'OWNER_PANEL_NOT_CONFIGURED'}}));
  await page.getByRole('button',{name:'عودة',exact:true}).click();await page.locator('.platform-account-trigger').click();await page.getByRole('menuitem',{name:'الملف الشخصي'}).click();
- await expect(page.getByRole('status')).toHaveText('لوحة المالك غير مفعّلة حاليًا.');
+ await expect(page.getByRole('status')).toContainText('لوحة المالك غير مفعّلة حاليًا.');
  await expect(page.getByRole('button',{name:'إعادة التحقق من الصلاحيات'})).toHaveCount(0);
  await expect(page.getByRole('button',{name:'شراء مفاتيح'})).toHaveCount(0);
  await expect(page.getByRole('button',{name:'استرداد مفتاح',exact:true})).toHaveCount(0);

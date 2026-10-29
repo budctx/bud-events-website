@@ -1,3 +1,4 @@
+import {BudNotice} from './BudUI';
 import {useEffect,useState} from 'react';
 import {ExternalLink,Eye,EyeOff,Plus,Save,Trash2} from 'lucide-react';
 import {BudBadge,BudStatus,BudFlipGrid,BudTooltip,BudPopover,BudDialog} from './BudUI';
@@ -27,7 +28,7 @@ export function PartnerManager({partners,onConfirm}:{partners:OwnerPartner[];onC
  <label>الترتيب<input type="number" min={0} max={999} value={editor.sortOrder} onChange={event=>change('sortOrder',Number(event.target.value))}/></label>
  <div className="owner-partner-note"><BudPopover label="كيف يظهر الشريك؟">الشريك الجديد مخفي افتراضيًا. بعد تفعيل الظهور والحفظ، يظهر شعاره في شريط الشركاء بالواجهة. الترتيب تصاعدي.</BudPopover><span>إعدادات الظهور</span></div>
  <label className="owner-partner-toggle"><input type="checkbox" checked={editor.visible} onChange={event=>change('visible',event.target.checked)}/><span>إظهار الشريك على الموقع بعد الحفظ</span></label>
- {valid(editor.logoUrl,true)&&<div className="owner-partner-preview"><button type="button" className="owner-button" onClick={()=>setZoom(true)} disabled={previewFailed}>معاينة بحجم أكبر</button>{!previewFailed?<img src={editor.logoUrl} alt={'معاينة شعار '+editor.name} referrerPolicy="no-referrer" onError={()=>setPreviewFailed(true)}/>:<p role="alert">تعذر عرض صورة الشعار. تحقق من الرابط قبل النشر.</p>}</div>}
+ {valid(editor.logoUrl,true)&&<div className="owner-partner-preview"><button type="button" className="owner-button" onClick={()=>setZoom(true)} disabled={previewFailed}>معاينة بحجم أكبر</button>{!previewFailed?<img src={editor.logoUrl} alt={'معاينة شعار '+editor.name} referrerPolicy="no-referrer" onError={()=>setPreviewFailed(true)}/>:<BudNotice tone="danger">تعذر عرض صورة الشعار. تحقق من الرابط قبل النشر.</BudNotice>}</div>}
  <div className="owner-actions"><button className="owner-button primary" type="submit" disabled={!ready||previewFailed}><Save aria-hidden="true"/>مراجعة الحفظ</button>{editor.id&&<button type="button" className="owner-button" onClick={()=>onConfirm({kind:'partnerDelete',payload:{id:editor.id},title:'حذف الشريك '+editor.name})}><Trash2 aria-hidden="true"/>حذف الشريك</button>}</div></form></div>
  <div className="owner-card owner-partner-list"><h3>الشركاء المسجلون ({partners.length})</h3>
  {!partners.length&&<p className="owner-subtle">لا يوجد شركاء مضافون بعد. لن تظهر شعارات في الموقع حتى تضيف شريكًا وتفعّله.</p>}

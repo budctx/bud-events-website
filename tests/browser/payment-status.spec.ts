@@ -13,17 +13,17 @@ for (const locale of ['ar','en'] as const) {
     });
     await page.goto(`/?screen=events&lang=${locale}&order=${order}&paid=true`);
     const panel = page.getByTestId('payment-status');
-    await expect(panel.getByRole('status')).toHaveText('الدفع قيد التحقق');
+    await expect(page.locator('.bud-toast')).toContainText('الدفع قيد التحقق');
     expect(new URL(page.url()).searchParams.get('paid')).toBeNull();
     await expect(panel).toContainText(order);
     await page.screenshot({ path:`artifacts/payment-status-${locale}-pending.png`,fullPage:true });
     state = 'confirmed';
     await panel.getByRole('button').click();
-    await expect(panel.getByRole('status')).toHaveText('تم تأكيد الدفع');
+    await expect(page.locator('.bud-toast')).toContainText('تم تأكيد الدفع');
     await expect.poll(() => dashboardCalls).toBeGreaterThan(1);
     await expect(page.getByTestId('event-setup')).toBeVisible();
     state = 'refunded'; await panel.getByRole('button').click();
-    await expect(panel.getByRole('status')).toHaveText('تم تأكيد استرداد الدفعة');
+    await expect(page.locator('.bud-toast')).toContainText('تم تأكيد استرداد الدفعة');
     await expect(page.getByTestId('event-setup')).toHaveCount(0);
     expect(checkoutCalls).toBe(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
@@ -35,7 +35,7 @@ for (const locale of ['ar','en'] as const) {
     await page.route('**/api/payment-status', route => route.fulfill({ status:503,json:{ code:'PAYMENT_STATUS_UNAVAILABLE' } }));
     await page.goto(`/?screen=events&lang=${locale}&order=${order}&success=true`);
     const panel = page.getByTestId('payment-status');
-    await expect(panel.getByRole('status')).toHaveText('تعذر التحقق من حالة الطلب الآن.');
+    await expect(page.locator('.bud-toast')).toContainText('تعذر التحقق من حالة الطلب الآن.');
     await expect(panel).not.toContainText('تم تأكيد الدفع');
   });
 }
@@ -100,4 +100,26 @@ test('independent quote is explicit, country preview only and never a purchase o
  await panel.getByRole('button',{name:'عرض سعر تقديري — السعودية'}).click();
  await expect(panel.getByRole('status')).toContainText('رفض Whop طلب التسعير: حقل مطلوب (company_id)');
  await expect(panel).not.toContainText('never-display');expect(checkouts).toBe(0);
+});
+
+for(const width of [390,1440])test(`payment toasts persist when critical, close by icon and do not repeat after refresh ${width}`,async({page})=>{
+ await page.setViewportSize({width,height:900});
+ let state='pending';
+ await page.route('**/api/auth**',route=>route.fulfill({json:{code:'OK',data:{id:host,displayName:'Fixture'}}}));
+ await page.route('**/api/host',route=>route.fulfill({json:{code:'OK',data:{credits:state==='confirmed'?1:0,events:[],products:[],contentVersions:[]}}}));
+ await page.route('**/api/payment-status',route=>route.fulfill({json:{code:'OK',data:{orderId:order,state,currency:'sar',amountMinor:300,createdAt:'2026-10-29T10:00:00Z',checkedAt:null}}}));
+ await page.clock.install();await page.goto(`/?screen=events&order=${order}`);
+ const pending=page.locator('.bud-toast').filter({hasText:'الدفع قيد التحقق'});
+ await expect(pending).toHaveAttribute('data-duration','persistent');
+ await page.clock.fastForward(30000);await expect(pending).toHaveCount(1);
+ await pending.getByRole('button',{name:'إغلاق التنبيه'}).click();await expect(pending).toHaveCount(0);
+ const panel=page.getByTestId('payment-status');await panel.getByRole('button').click();await expect(panel).toHaveAttribute('aria-busy','false');await expect(pending).toHaveCount(0);
+ state='confirmed';await panel.getByRole('button').click();
+ const success=page.locator('.bud-toast').filter({hasText:'تم تأكيد الدفع'});await expect(success).toHaveAttribute('data-duration','5000');
+ await page.clock.fastForward(5001);await expect(success).toHaveCount(0);
+ await panel.getByRole('button').click();await expect(panel).toHaveAttribute('aria-busy','false');await expect(success).toHaveCount(0);
+ state='review';await panel.getByRole('button').click();
+ const warning=page.locator('.bud-toast').filter({hasText:'الطلب قيد المراجعة'});await expect(warning).toHaveAttribute('data-duration','persistent');await page.clock.fastForward(60000);await expect(warning).toBeVisible();
+ await warning.getByRole('button',{name:'إغلاق التنبيه'}).focus();await page.keyboard.press('Enter');await expect(warning).toHaveCount(0);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });

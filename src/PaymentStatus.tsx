@@ -1,3 +1,4 @@
+import {BudNotice} from './BudUI';
 import {ButtonUtility} from './ButtonUtility';
 import {RefreshCw} from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -54,7 +55,7 @@ export default function PaymentStatus({ orderId, locale, onAuthLost, onState }: 
   const message = unavailable ? t.unavailable : state ? t[state] : t.loading;
   const detail = unavailable ? t.unavailableHelp : state ? t[`${state}Help`] : '';
   return <section className="platform-payment-status" aria-labelledby="payment-status-heading" data-testid="payment-status" aria-busy={loading}>
-    <div><h2 id="payment-status-heading">{t.title}</h2><p role="status" aria-live="polite"><strong>{message}</strong></p>{detail && <p>{detail}</p>}
+    <div><h2 id="payment-status-heading">{t.title}</h2><BudNotice id={`payment-${orderId}`} tone={unavailable?'danger':state==='confirmed'?'success':state==='pending'?'info':'warning'} persistent={unavailable||!!state&&state!=='confirmed'}>{message+(detail?' — '+detail:'')}</BudNotice>{detail && <p>{detail}</p>}
       {receipt && <p>{new Intl.NumberFormat(locale, { style: 'currency', currency: receipt.currency }).format(receipt.amountMinor / 100)}</p>}
       <p className="platform-payment-reference">{t.reference}: <bdi dir="ltr">{orderId}</bdi></p></div>
     <ButtonUtility label={t.retry} icon={RefreshCw} isDisabled={loading} onPress={() => setRevision(value => value + 1)}/>

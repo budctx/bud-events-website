@@ -83,6 +83,7 @@ test('Doherty: buy shows its pending state immediately without pretending succes
   release();
   await expect(page.getByTestId('product-card-qc')).toHaveText('شراء ٣');
   await expect(page.locator('.bud-toast[data-tone=danger]').last()).toContainText('الشراء غير متاح');
+  await expect(page.locator('.bud-toast[data-tone=danger]').last()).toHaveAttribute('data-duration','20000');
 });
 
 for(const mode of ['mouse','keyboard','touch','reduced'] as const)test.describe(`purchase ripple ${mode}`,()=>{
