@@ -58,7 +58,7 @@ test('host history summary is read only and fits a narrow viewport', async ({ pa
   await openHistory(page);
   await expect(page.getByRole('button', { name: 'بدء الفعالية', exact: true })).toHaveCount(0);
   await expect(page.locator('.host-balance')).toHaveCount(0);
-  await page.getByRole('button', { name: 'عرض الملخص' }).click();
+  await page.getByRole('button', { name: 'الملخص' }).click();
   await expect(page.getByRole('dialog')).toContainText('سارة');
   expect(requests.every(action => action === 'dashboard')).toBe(true);
   await page.keyboard.press('Escape');

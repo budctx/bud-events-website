@@ -50,15 +50,15 @@ test('account menu is the redeem entry, ordinary user has no owner entry and inv
  await setup(page,false);await expect(page.getByRole('button',{name:'لوحة المالك',exact:true})).toHaveCount(0);
  await page.locator('.platform-account-trigger').click();await page.getByRole('menuitem',{name:'استرداد مفتاح',exact:true}).click();
  await page.route('**/api/owner',r=>r.fulfill({status:400,json:{code:'INVALID_OR_EXPIRED_CODE'}}));
- await page.getByLabel('المفتاح',{exact:true}).fill('BUD-ABCDEFGHIJKLMNOPQRSTUVWXYZ234567');await page.getByRole('button',{name:'استرداد',exact:true}).click();
+ await page.getByLabel('المفتاح',{exact:true}).fill('BUD-ABCDEFGHIJKLMNOPQRSTUVWXYZ234567');await page.getByRole('button',{name:'تأكيد',exact:true}).click();
  await expect(page.getByRole('alert')).toHaveText('المفتاح غير صالح أو غير متاح للاستخدام.');await expect(page.getByLabel('المفتاح',{exact:true})).toBeEnabled();
  await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).not.toBeVisible();
 });
 test('lost redeem response retries the same operation, then refreshes wallet',async({page})=>{
  await setup(page,false);const requests:any[]=[];
  await page.route('**/api/owner',r=>{const body=r.request().postDataJSON();if(body.action==='profile')return r.fulfill(ok({owner:false}));requests.push(body);return requests.length===1?r.abort('connectionfailed'):r.fulfill(ok({receipt:id,credits:3}));});
- await page.locator('.platform-account-trigger').click();await page.getByRole('menuitem',{name:'استرداد مفتاح',exact:true}).click();await page.getByLabel('المفتاح',{exact:true}).fill('BUD-ABCDEFGHIJKLMNOPQRSTUVWXYZ234567');await page.getByRole('button',{name:'استرداد',exact:true}).click();
- await expect(page.getByRole('button',{name:'التحقق من الطلب السابق'})).toBeVisible();await page.getByRole('dialog').getByRole('button',{name:'إغلاق',exact:true}).click();await page.locator('.platform-account-trigger').click();await page.getByRole('menuitem',{name:'استرداد مفتاح',exact:true}).click();await page.getByRole('button',{name:'التحقق من الطلب السابق'}).click();
+ await page.locator('.platform-account-trigger').click();await page.getByRole('menuitem',{name:'استرداد مفتاح',exact:true}).click();await page.getByLabel('المفتاح',{exact:true}).fill('BUD-ABCDEFGHIJKLMNOPQRSTUVWXYZ234567');await page.getByRole('button',{name:'تأكيد',exact:true}).click();
+ await expect(page.getByRole('button',{name:'تأكيد',exact:true})).toBeVisible();await page.getByRole('dialog').getByRole('button',{name:'إغلاق',exact:true}).click();await page.locator('.platform-account-trigger').click();await page.getByRole('menuitem',{name:'استرداد مفتاح',exact:true}).click();await page.getByRole('button',{name:'تأكيد',exact:true}).click();
  await expect(page.locator('.owner-success')).toContainText('تم استرداد المفتاح');expect(requests).toHaveLength(2);expect(requests[0]).toEqual(requests[1]);
 });
 test('owner mutation requires reason and confirmation; one-time code is removed when closing',async({page})=>{
