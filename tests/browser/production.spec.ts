@@ -303,7 +303,7 @@ test('Nav User opens by click, preserves account actions and supports keyboard n
   await expect(trigger).toBeFocused();
   await trigger.click();
   await menu.getByRole('menuitem',{name:'الدعم'}).click();
-  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.getByRole('heading',{name:'مركز المساعدة والسياسات'})).toBeVisible();
 });
 
 test('Nav User stays inside a narrow mobile viewport and respects reduced motion', async ({page},info) => {
@@ -496,4 +496,18 @@ for(const width of [320,390,430])test(`mobile event cards keep comic titles and 
   await page.mouse.click(10,300);
   await page.screenshot({path:info.outputPath(`event-${name}-${width}.png`),fullPage:true,animations:'disabled'});
  }
+});
+
+for(const width of [390,1440])test(`policy centre deep links tabs search and accordions at ${width}`,async({page})=>{
+ await page.setViewportSize({width,height:844});await page.goto('/?screen=policies&lang=ar#privacy');
+ await expect(page.getByRole('tab',{name:'سياسة الخصوصية'})).toHaveAttribute('aria-selected','true');
+ const search=page.getByRole('searchbox');await search.fill('التخزين');await expect(page.locator('.bud-policy-topic')).toHaveCount(1);await expect(page.locator('.bud-policy-topic')).toHaveAttribute('data-active','true');
+ await search.fill('zzzz');await expect(page.getByText('لا توجد نتائج مطابقة. جرّب كلمة أخرى.')).toBeVisible();
+ await page.getByRole('tab',{name:'شروط الاستخدام'}).click();await expect(search).toHaveValue('');await expect(page).toHaveURL(/#terms$/);
+ await page.reload();await expect(page.getByRole('tab',{name:'شروط الاستخدام'})).toHaveAttribute('aria-selected','true');
+ await page.getByText('المفاتيح وتشغيل الفعاليات',{exact:true}).click();await expect(page.getByText(/يُستخدم مفتاح واحد/)).toBeVisible();
+ await page.getByRole('tab',{name:'شروط الاستخدام'}).press('ArrowLeft');await expect(page.getByRole('tab',{name:'سياسة الخصوصية'})).toBeFocused();
+ await page.goBack();await expect(page.getByRole('tab',{name:'شروط الاستخدام'})).toHaveAttribute('aria-selected','true');
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+ await expect(page.getByRole('link',{name:'تواصل عبر Discord'})).toHaveAttribute('href','https://discord.gg/9Tg4HHTmzm');
 });

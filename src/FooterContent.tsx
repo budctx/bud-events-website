@@ -1,6 +1,6 @@
 import './footer-content.css';
 export const supportUrl='https://discord.gg/9Tg4HHTmzm';
-const content={
+export const policyContent={
  terms:[
  ['عن الخدمة','بُعد تقدم منتجات رقمية لمجتمعات Discord. توضح صفحة كل منتج خصائصه وسعره ومدى توفره. المنتجات التي تحمل علامة «قريبًا» ليست متاحة حاليًا.'],
  ['الحساب والاستخدام','تسجيل الدخول عبر Discord. حافظ على أمان حسابك ومفاتيحك، ولا تشارك رموز الدخول. يُمنع التحايل على الرصيد أو تعطيل الخدمة أو الوصول إلى بيانات الآخرين.'],
@@ -26,4 +26,4 @@ const content={
  ['حماية بياناتك','لا تشارك كلمات المرور أو رموز الدخول أو بيانات البطاقة أو مفتاح استرداد كاملًا في القنوات العامة. لا تحتاج إلى إعطاء الدعم صلاحية الدخول إلى حسابك.']
  ]
 };
-export function FooterContent({page}:{page:keyof typeof content}){return <div className="bud-footer-content"><p className="bud-policy-version">مسودة للمراجعة · ٢٩ أكتوبر ٢٠٢٦</p>{content[page].map(([heading,body])=><section key={heading}><h3>{heading}</h3><p>{body}</p></section>)}<a className="platform-action" href={supportUrl} target="_blank" rel="noopener noreferrer">الدعم عبر Discord</a></div>;}
+export function FooterContent({page}:{page:keyof typeof policyContent}){return <div className="bud-footer-content"><p className="bud-policy-version">مسودة للمراجعة · ٢٩ أكتوبر ٢٠٢٦</p>{policyContent[page].map(([heading,body])=><section key={heading}><h3>{heading}</h3><p>{body}</p></section>)}<a className="platform-action" href={supportUrl} target="_blank" rel="noopener noreferrer">الدعم عبر Discord</a></div>;}
