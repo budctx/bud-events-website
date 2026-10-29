@@ -130,6 +130,7 @@ for(const width of [390,1440])test(`payment toasts persist when critical, close 
  await warning.getByRole('button',{name:'إغلاق التنبيه'}).focus();await page.keyboard.press('Enter');await expect(warning).toHaveCount(0);
  state='confirmed';await refresh();await expect(success).toBeVisible();
  await page.getByTestId('nav-home').focus();await page.keyboard.press('Enter');await expect(success).toBeVisible();
+ state='review';await success.getByRole('button',{name:'تحديث الحالة'}).click();await expect(warning).toBeVisible();state='confirmed';await warning.getByRole('button',{name:'تحديث الحالة'}).click();await expect(success).toBeVisible();
  await page.mouse.move(width-1,899);await page.clock.fastForward(5001);await expect(success).toHaveCount(0);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
