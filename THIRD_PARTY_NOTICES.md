@@ -55,3 +55,6 @@ The requested paid block https://ui.aceternity.com/blocks/cards/expandable-card-
 
 - Magic UI Ripple Button (MIT): adapted for BU’D native purchase button, keyboard-centered waves, touch, bounded ripple state, and reduced motion. Source: https://magicui.design/r/ripple-button.json. See `licenses/magicui-MIT.txt`.
 - Saudi riyal symbol: official SAMA design, local SVG asset. Primary source and usage guide: https://www.sama.gov.sa/ar-sa/Currency/SRS/Pages/Guideline.aspx. Download mirror used when SAMA returned HTTP 503: https://github.com/abdulrysrr/new-saudi-riyal-symbol/blob/main/svg/Saudi_Riyal_Symbol.svg (MIT; see `licenses/saudi-riyal-mirror-MIT.txt`). The symbol is not drawn or substituted with a generic currency icon.
+
+### Comic event title preview
+Adapted from [Magic UI Comic Text](https://magicui.design/docs/components/comic-text), source registry https://magicui.design/r/comic-text.json, under the existing Magic UI MIT notice (`licenses/magicui-MIT.txt`). Uses Readex Pro, BU’D colors, smaller outlines/shadows and reduced-motion support for Arabic titles.
