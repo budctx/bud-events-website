@@ -18,11 +18,11 @@ for (const locale of ['ar','en'] as const) {
     await expect(panel).toContainText(order);
     await page.screenshot({ path:`artifacts/payment-status-${locale}-pending.png`,fullPage:true });
     state = 'confirmed';
-    await panel.getByRole('button').click();
+    await panel.getByRole('button',{name:'تحديث الحالة'}).click();
     await expect(page.locator('.bud-toast')).toContainText('تم تأكيد الدفع');
     await expect.poll(() => dashboardCalls).toBeGreaterThan(1);
     await expect(page.getByTestId('event-setup')).toBeVisible();
-    state = 'refunded'; await panel.getByRole('button').click();
+    state = 'refunded'; await panel.getByRole('button',{name:'تحديث الحالة'}).click();
     await expect(page.locator('.bud-toast')).toContainText('تم تأكيد استرداد الدفعة');
     await expect(page.getByTestId('event-setup')).toHaveCount(0);
     expect(checkoutCalls).toBe(0);
@@ -102,8 +102,9 @@ test('independent quote is explicit, country preview only and never a purchase o
  await expect(panel).not.toContainText('never-display');expect(checkouts).toBe(0);
 });
 
-for(const width of [390,1440])test(`payment toasts persist when critical, close by icon and do not repeat after refresh ${width}`,async({page})=>{
- await page.setViewportSize({width,height:900});
+for(const width of [390,1440])test(`payment toasts persist when critical, close by icon and do not repeat after refresh ${width}`,async({page},info)=>{
+ await page.setViewportSize({width,height:900});await page.emulateMedia({reducedMotion:'reduce'});
+ const refresh=async()=>{const response=page.waitForResponse(r=>r.url().endsWith('/api/payment-status'));await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await response;};
  let state='pending';
  await page.route('**/api/auth**',route=>route.fulfill({json:{code:'OK',data:{id:host,displayName:'Fixture'}}}));
  await page.route('**/api/host',route=>route.fulfill({json:{code:'OK',data:{credits:state==='confirmed'?1:0,events:[],products:[],contentVersions:[]}}}));
@@ -113,21 +114,23 @@ for(const width of [390,1440])test(`payment toasts persist when critical, close 
  const pending=page.locator('.bud-toast').filter({hasText:'الدفع قيد التحقق'});
  await expect(pending).toHaveAttribute('data-duration','persistent');
  const viewport=page.locator('.bud-toast-viewport');const bounds=await viewport.boundingBox();expect(bounds).not.toBeNull();expect(width-bounds!.x-bounds!.width).toBeGreaterThanOrEqual(15);expect(width-bounds!.x-bounds!.width).toBeLessThan(40);expect(900-bounds!.y-bounds!.height).toBeGreaterThanOrEqual(15);expect(900-bounds!.y-bounds!.height).toBeLessThan(40);
+ await expect(page.locator('.platform-payment-status')).toHaveCount(0);const toastBounds=await pending.boundingBox();expect(toastBounds!.x).toBeGreaterThanOrEqual(16);expect(toastBounds!.x+toastBounds!.width).toBeLessThanOrEqual(width-16);await expect(pending.locator('strong')).toHaveText('الدفع قيد التحقق');await expect(pending.locator('.bud-toast-copy>p').first()).toContainText('قد يتأخر التأكيد');await page.screenshot({path:info.outputPath('payment-toast.png')});
  for(let i=0;i<4;i++){await page.getByTestId('product-card-qc').focus();await page.keyboard.press('Enter');await expect(page.locator('.bud-toast[data-tone=danger]')).toHaveCount(i+1);}
  await expect(pending).toHaveCount(1);await expect(page.locator('.bud-toast[data-tone=danger]').first()).toHaveAttribute('data-duration','20000');
  await page.mouse.move(width-1,899);await page.clock.fastForward(20001);await expect(page.locator('.bud-toast[data-tone=danger]')).toHaveCount(0);
  await page.clock.fastForward(30000);await expect(pending).toHaveCount(1);
  await pending.getByRole('button',{name:'إغلاق التنبيه'}).click();await expect(pending).toHaveCount(0);
- const panel=page.getByTestId('payment-status');await panel.getByRole('button').click();await expect(panel).toHaveAttribute('aria-busy','false');await expect(pending).toHaveCount(0);
- state='confirmed';await panel.getByRole('button').click();
+ await refresh();await expect(pending).toHaveCount(0);
+ state='confirmed';await refresh();
  const success=page.locator('.bud-toast').filter({hasText:'تم تأكيد الدفع'});await expect(success).toHaveAttribute('data-duration','5000');
- await page.clock.fastForward(5001);await expect(success).toHaveCount(0);
- await panel.getByRole('button').click();await expect(panel).toHaveAttribute('aria-busy','false');await expect(success).toHaveCount(0);
- state='review';await panel.getByRole('button').click();
+ await page.mouse.move(width-1,0);await page.getByTestId('nav-home').focus();await page.clock.fastForward(5001);await expect(success).toHaveCount(0);
+ await refresh();await expect(success).toHaveCount(0);
+ state='review';await refresh();
  const warning=page.locator('.bud-toast').filter({hasText:'الطلب قيد المراجعة'});await expect(warning).toHaveAttribute('data-duration','persistent');await page.clock.fastForward(60000);await expect(warning).toBeVisible();
  await warning.getByRole('button',{name:'إغلاق التنبيه'}).focus();await page.keyboard.press('Enter');await expect(warning).toHaveCount(0);
- state='confirmed';await panel.getByRole('button').click();await expect(success).toBeVisible();
+ state='confirmed';await refresh();await expect(success).toBeVisible();
  await page.getByTestId('nav-home').focus();await page.keyboard.press('Enter');await expect(success).toBeVisible();
- await page.mouse.move(width-1,899);await page.clock.fastForward(5001);await expect(success).toHaveCount(0);
+ state='review';await success.getByRole('button',{name:'تحديث الحالة'}).click();await expect(warning).toBeVisible();state='confirmed';await warning.getByRole('button',{name:'تحديث الحالة'}).click();await expect(success).toBeVisible();
+ await page.mouse.move(width-1,899);await page.mouse.move(width-1,0);await page.getByTestId('nav-home').focus();await page.clock.fastForward(5001);await expect(success).toHaveCount(0);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });

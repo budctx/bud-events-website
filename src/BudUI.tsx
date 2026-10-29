@@ -2,15 +2,16 @@ import {trackInputModality} from './input-modality';
 import {createContext,useCallback,useContext,useEffect,useId,useLayoutEffect,useRef,useState} from 'react';
 import type {CSSProperties,PointerEvent,ReactNode} from 'react';
 import {createPortal} from 'react-dom';
-import {AlertCircle,CheckCircle2,Info,X} from 'lucide-react';
+import {AlertCircle,CheckCircle2,Info,RefreshCw,X} from 'lucide-react';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import './bud-ui.css';
 
 // Shared React implementations of the approved component patterns.
 // Motion Core and Melt UI source components are Svelte-only; no Svelte runtime is included.
 type Tone='neutral'|'success'|'warning'|'danger'|'info';
-type Toast={id:string;text:string;tone:Tone;persistent?:boolean;duration:number};
-type ToastOptions={id?:string;persistent?:boolean;duration?:number};
+type ToastDetails={description?:string;reference?:string;referenceLabel?:string;amount?:string;action?:{label:string;onPress:()=>void};testId?:string};
+type Toast=ToastDetails&{id:string;text:string;tone:Tone;persistent?:boolean;duration:number};
+type ToastOptions=ToastDetails&{id?:string;persistent?:boolean;duration?:number};
 const toastDurations:Record<Tone,number>={success:5000,neutral:8000,info:8000,warning:15000,danger:20000};
 type Notify=((text:string,tone?:Tone,options?:ToastOptions)=>string)&{dismiss:(id:string)=>void};
 const context=createContext<Notify|null>(null);
@@ -18,18 +19,18 @@ let sequence=0;
 function ToastItem({item,dismiss}:{item:Toast;dismiss:(id:string)=>void}){
  const [paused,setPaused]=useState(false);
  useEffect(()=>{if(paused||item.persistent)return;const timeout=setTimeout(()=>dismiss(item.id),item.duration);return()=>clearTimeout(timeout);},[dismiss,item.id,item.tone,item.text,item.persistent,item.duration,paused]);
- return <div className="bud-toast" data-tone={item.tone} data-duration={item.persistent?'persistent':item.duration} role={item.tone==='danger'?'alert':'status'}
+ return <div className="bud-toast" data-testid={item.testId} data-structured={!!(item.description||item.reference)} data-tone={item.tone} data-duration={item.persistent?'persistent':item.duration} role={item.tone==='danger'?'alert':'status'}
  onMouseEnter={()=>setPaused(true)} onMouseLeave={()=>setPaused(false)}
  onFocus={()=>setPaused(true)} onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget as Node))setPaused(false);}}>
  {item.tone==='danger'?<AlertCircle aria-hidden="true"/>:item.tone==='success'?<CheckCircle2 aria-hidden="true"/>:<Info aria-hidden="true"/>}
- <span>{item.text}</span><button type="button" aria-label="إغلاق التنبيه" onClick={()=>dismiss(item.id)}><X aria-hidden="true"/></button></div>;
+ {item.description||item.reference?<div className="bud-toast-copy"><strong>{item.text}</strong>{item.description&&<p>{item.description}</p>}{item.amount&&<p className="bud-toast-meta">{item.amount}</p>}{item.reference&&<p className="bud-toast-meta">{item.referenceLabel}: <bdi dir="ltr">{item.reference}</bdi></p>}{item.action&&<button type="button" aria-label={item.action.label} onClick={item.action.onPress}><RefreshCw aria-hidden="true"/></button>}</div>:<span>{item.text}</span>}<button type="button" aria-label="إغلاق التنبيه" onClick={()=>dismiss(item.id)}><X aria-hidden="true"/></button></div>;
 }
 export function BudToastProvider({children}:{children:ReactNode}){
  useEffect(trackInputModality,[]);
  const [items,setItems]=useState<Toast[]>([]),[target,setTarget]=useState<Element|null>(null);
  const dismiss=useCallback((id:string)=>setItems(previous=>previous.filter(v=>v.id!==id)),[]);
  const notify=useCallback(Object.assign((text:string,tone:Tone='info',options?:ToastOptions)=>{
-  const id=options?.id??'toast-'+(++sequence);setItems(previous=>[...previous.filter(v=>v.id!==id),{id,text,tone,persistent:options?.persistent,duration:options?.duration??toastDurations[tone]}]);return id;
+  const id=options?.id??'toast-'+(++sequence);setItems(previous=>[...previous.filter(v=>v.id!==id),{...options,id,text,tone,duration:options?.duration??toastDurations[tone]}]);return id;
  },{dismiss}),[dismiss]);
  useEffect(()=>{const update=()=>setTarget(Array.from(document.querySelectorAll('dialog[open]')).at(-1)??null);const observer=new MutationObserver(update);observer.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['open']});update();return()=>observer.disconnect();},[]);
  const viewport=<div className="bud-toast-viewport" dir="rtl" aria-label="تنبيهات بُعد" onKeyDown={event=>{if(event.key!=='Tab')return;const dialog=event.currentTarget.closest('dialog');if(!dialog)return;const controls=Array.from(dialog.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href],[tabindex="0"]'));const first=controls[0],last=controls.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}}}>{items.map(item=><ToastItem key={item.id} item={item} dismiss={dismiss}/>)}</div>;
