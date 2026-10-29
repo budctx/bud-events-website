@@ -1,3 +1,4 @@
+import {PolicyCenter} from './PolicyCenter';
 import {FooterContent} from './FooterContent';
 import {ComicEventTitle} from './ComicEventTitle';
 import {PurchaseButton} from './PurchaseButton';
@@ -28,12 +29,12 @@ const EventPreview = lazy(loadEventPreview);
 const PaymentStatus = lazy(() => import('./PaymentStatus'));
 
 type Locale = 'ar' | 'en';
-type Page = 'home' | 'events' | 'bots' | 'designs';
+type Page = 'home' | 'events' | 'bots' | 'designs' | 'policies';
 type Modal = 'soon' | 'about' | 'privacy' | 'terms' | 'support' | 'how' | null;
 type PlatformProps = { onPlay: (event: HostEvent, locale: Locale) => void };
 
 const copy = {
-  ar: { home: 'الرئيسية', events: 'الفعاليات', bots: 'بوتات', designs: 'تصاميم', soon: 'قريبًا', login: 'سجّل دخولك', eyebrow: 'تجارب رقمية، بروح مجتمعك', title: <>ننقل تجربتك<br />إلى بُعد آخر</>, description: <>منتجات رقمية لمجتمعك على Discord.<br />ابدأ بالفعاليات، واكتشف ما يأتي بعدها.</>, explore: 'اختر فعاليتك', about: 'عن بُعد', how: 'كيف ابدأ؟', browseHint: 'تصفّح المنتجات وجرّب الفعالية قبل الشراء.', privacy: 'الخصوصية', terms: 'الشروط', support: 'الدعم', close: 'إغلاق', galleryTitle: 'فعاليات بُعد', galleryDescription: 'اختر الفعالية، وجهّز وقتًا يجمع مجتمعك.', product: 'سؤال وشرط', productEyebrow: 'فعالية صوتية على Discord', productDescription: <>سؤال يختبرك، وشرط يغيّر التحدّي.<br />أدر الفعالية بطريقتك مع مجتمعك.</>, features: 'إدارة للهوست · جوائز · مؤقت اختياري', view: 'عرض الفعالية', review: 'آراء المجتمع قريبًا', reviewNote: 'لم تُنشر آراء معتمدة بعد.', partners: 'الشركاء قريبًا', purchaseUnavailable: 'الشراء غير متاح حاليًا. لن يُخصم أي رصيد.', rehearsal: 'معاينة ببطاقتين ثابتتين ومؤقت 5 ثوانٍ، دون تشغيل فعالية كاملة.', details: 'اكشف بطاقتي السؤال والشرط، واحكم على الإجابة صوتيًا. بعد الإجابة الصحيحة أدخل اسم الفائز، ثم وزّع الجوائز واختتم الفعالية.', soonDescription: 'نعمل على منتجات جديدة لمجتمعك. ستظهر هنا عند توفرها.', aboutDescription: 'بُعد منصة منتجات رقمية لمجتمعات Discord. ننقل تجربتك إلى بُعد آخر.', legalPending: 'هذه الصفحة قيد الإعداد. ستتوفر التفاصيل المعتمدة قبل تفعيل الشراء.', loginUnavailable: 'تسجيل الدخول والشراء غير متاحين في هذه المعاينة. يمكنك تصفّح المنتجات وتجربة البطاقتين دون تسجيل.', changeLanguage: 'English', question: 'سؤال', condition: 'شرط' }
+  ar: { policies:'مركز المساعدة والسياسات', home: 'الرئيسية', events: 'الفعاليات', bots: 'بوتات', designs: 'تصاميم', soon: 'قريبًا', login: 'سجّل دخولك', eyebrow: 'تجارب رقمية، بروح مجتمعك', title: <>ننقل تجربتك<br />إلى بُعد آخر</>, description: <>منتجات رقمية لمجتمعك على Discord.<br />ابدأ بالفعاليات، واكتشف ما يأتي بعدها.</>, explore: 'اختر فعاليتك', about: 'عن بُعد', how: 'كيف ابدأ؟', browseHint: 'تصفّح المنتجات وجرّب الفعالية قبل الشراء.', privacy: 'الخصوصية', terms: 'الشروط', support: 'الدعم', close: 'إغلاق', galleryTitle: 'فعاليات بُعد', galleryDescription: 'اختر الفعالية، وجهّز وقتًا يجمع مجتمعك.', product: 'سؤال وشرط', productEyebrow: 'فعالية صوتية على Discord', productDescription: <>سؤال يختبرك، وشرط يغيّر التحدّي.<br />أدر الفعالية بطريقتك مع مجتمعك.</>, features: 'إدارة للهوست · جوائز · مؤقت اختياري', view: 'عرض الفعالية', review: 'آراء المجتمع قريبًا', reviewNote: 'لم تُنشر آراء معتمدة بعد.', partners: 'الشركاء قريبًا', purchaseUnavailable: 'الشراء غير متاح حاليًا. لن يُخصم أي رصيد.', rehearsal: 'معاينة ببطاقتين ثابتتين ومؤقت 5 ثوانٍ، دون تشغيل فعالية كاملة.', details: 'اكشف بطاقتي السؤال والشرط، واحكم على الإجابة صوتيًا. بعد الإجابة الصحيحة أدخل اسم الفائز، ثم وزّع الجوائز واختتم الفعالية.', soonDescription: 'نعمل على منتجات جديدة لمجتمعك. ستظهر هنا عند توفرها.', aboutDescription: 'بُعد منصة منتجات رقمية لمجتمعات Discord. ننقل تجربتك إلى بُعد آخر.', legalPending: 'هذه الصفحة قيد الإعداد. ستتوفر التفاصيل المعتمدة قبل تفعيل الشراء.', loginUnavailable: 'تسجيل الدخول والشراء غير متاحين في هذه المعاينة. يمكنك تصفّح المنتجات وتجربة البطاقتين دون تسجيل.', changeLanguage: 'English', question: 'سؤال', condition: 'شرط' }
 
 };
 
@@ -43,7 +44,7 @@ function Mark({ className = '' }: { className?: string }) {
 
 function pageFromURL(): Page {
   const screen = new URLSearchParams(location.search).get('screen');
-  return screen === 'bots' || screen === 'designs' ? screen : ['events', 'host', 'game','local'].includes(screen ?? '') ? 'events' : 'home';
+  return screen === 'policies' || screen === 'bots' || screen === 'designs' ? screen : ['events', 'host', 'game','local'].includes(screen ?? '') ? 'events' : 'home';
 }
 function panelFromURL(): 'history' | 'setup' | 'profile' | 'owner' | null {
   const value = new URLSearchParams(location.search).get('panel');
@@ -112,7 +113,7 @@ export default function Platform({ onPlay }: PlatformProps) {
     if (nextPage === 'events' && paymentOrder) query.set('order', paymentOrder);
     if (nextPage === 'events' && inspectWhop) query.set('check', 'whop');
     if (nextPanel) query.set('panel', nextPanel);
-    return `${location.pathname}?${query}`;
+    return `${location.pathname}?${query}${nextPage==='policies'?location.hash:''}`;
   };
   // Normalize deep links without adding an unwanted history entry; user navigation pushes entries.
   useEffect(() => {
@@ -162,12 +163,12 @@ export default function Platform({ onPlay }: PlatformProps) {
   };
   const login = () => perform(async () => {
     const snapshot = account.status === 'loading' ? await account.whenReady() : {session:account.session,dashboard:account.dashboard};
-    if (!snapshot.session) await signInHost({page, locale});
+    if (!snapshot.session) await signInHost({page:page==='policies'?'home':page, locale});
   },'login');
   const buy = () => perform(async () => {
     const snapshot = account.status === 'loading' ? await account.whenReady() : {session:account.session,dashboard:account.dashboard};
     if (paymentHold || snapshot.dashboard?.paymentReview) return;
-    if (!snapshot.session) { await signInHost({page, locale}); return; }
+    if (!snapshot.session) { await signInHost({page:page==='policies'?'home':page, locale}); return; }
     purchaseKey.current ??= {key:newHostRequestKey(),locale};
     try { await purchaseEvent(purchaseKey.current.key, purchaseKey.current.locale); }
     catch (reason) { if (reason instanceof HostClientError && reason.status === 503 && (reason.code.startsWith('SANDBOX_CHECKOUT_')
@@ -191,7 +192,7 @@ export default function Platform({ onPlay }: PlatformProps) {
     <Seo locale={locale} screen={page} /><a className="skip-link" href="#platform-content">{locale === 'ar' ? 'تجاوز إلى المحتوى' : 'Skip to content'}</a>
     {page === 'home' && !panel && <HeroArtwork />}
     <header className="platform-header" data-node-id="339:2072">
-      <div className="platform-header-tools">{account.session ? <AccountMenu session={account.session} locale={locale} credits={account.dashboard?.credits ?? null} busy={busy} onSupport={() => {setPanel(null); setModal('support'); }} onProfile={() => openPanel('profile')} onRedeem={() => setRedeemOpen(true)} onHistory={() => openPanel('history')} onLogout={() => void perform(async () => {setPanel(null); setRedeemOpen(false); await account.logout();toast('تم تسجيل الخروج.','success');})} /> : <button type="button" className="platform-login" disabled={busy} aria-busy={activeAction==='login'} aria-label={locale === 'ar' ? 'سجّل دخولك عبر Discord' : 'Sign in with Discord'} onClick={() => void login()}><img src="/assets/discord-symbol-white.svg" width="24" height="18" alt="" />{activeAction==='login'?'جارٍ فتح Discord…':t.login}</button>}</div>
+      <div className="platform-header-tools">{account.session ? <AccountMenu session={account.session} locale={locale} credits={account.dashboard?.credits ?? null} busy={busy} onSupport={() => {setPanel(null); history.pushState(null,'',`${location.pathname}?screen=policies&lang=ar#support`);setPage('policies');window.dispatchEvent(new HashChangeEvent('hashchange')); }} onProfile={() => openPanel('profile')} onRedeem={() => setRedeemOpen(true)} onHistory={() => openPanel('history')} onLogout={() => void perform(async () => {setPanel(null); setRedeemOpen(false); await account.logout();toast('تم تسجيل الخروج.','success');})} /> : <button type="button" className="platform-login" disabled={busy} aria-busy={activeAction==='login'} aria-label={locale === 'ar' ? 'سجّل دخولك عبر Discord' : 'Sign in with Discord'} onClick={() => void login()}><img src="/assets/discord-symbol-white.svg" width="24" height="18" alt="" />{activeAction==='login'?'جارٍ فتح Discord…':t.login}</button>}</div>
       <div className="platform-brand-navigation">
         <nav className="platform-navigation" aria-label={locale === 'ar' ? 'التنقل الرئيسي' : 'Main navigation'}>{(['home', 'events', 'bots', 'designs'] as const).map(item => <button type="button" key={item} data-testid={`nav-${item}`} aria-label={`${t[item]}${item === 'bots' || item === 'designs' ? ` · ${t.soon}` : ''}`} aria-current={page === item ? 'page' : undefined} className={item === 'bots' || item === 'designs' ? 'platform-future-link' : ''} onPointerEnter={item === 'events' ? () => { void loadEventPreview(); } : undefined} onFocus={item === 'events' ? () => { void loadEventPreview(); } : undefined} onClick={() => navigate(item)}><span className="platform-nav-icon"><InterfaceIcon kind={item} /></span><span className="platform-nav-label">{t[item]}{(item === 'bots' || item === 'designs') && <small> · {t.soon}</small>}</span></button>)}</nav>
         <button className="platform-brand" aria-label={locale === 'ar' ? 'بُعد — الرئيسية' : 'BU’D — Home'} onClick={() => navigate('home')}><Mark /><span>بُعد</span></button>
@@ -201,7 +202,7 @@ export default function Platform({ onPlay }: PlatformProps) {
     {page === 'events' && paymentOrder && account.session && <Suspense fallback={<p role="status">جارٍ تحميل حالة الطلب…</p>}><PaymentStatus key={account.session.id + paymentOrder} orderId={paymentOrder} locale={locale} onAuthLost={account.expire} onState={onReceiptState} /></Suspense>}
       {account.session&&<Suspense fallback={null}><RedeemDialog key={account.session.id} open={redeemOpen} onClose={()=>setRedeemOpen(false)} onRefresh={()=>void account.refresh()}/></Suspense>}
     <main id="platform-content" className={page === 'home' && !panel ? 'platform-home-main' : 'platform-gallery-main'} ref={main} tabIndex={-1} key={page}>
-      {panel === 'profile' && account.session ? <Suspense fallback={<p role="status">جارٍ تحميل البروفايل…</p>}><Profile key={account.session.id} session={account.session} credits={account.dashboard?.credits ?? null} onClose={closePanel} onOwner={() => openPanel('owner')} /></Suspense> : panel === 'history' && account.session ? <Suspense fallback={<p role="status">{locale === 'ar' ? 'جارٍ تحميل السجل…' : 'Loading history…'}</p>}><HostPortal onAuthLost={account.expire} view="history" locale={locale} onExit={closePanel} onPlay={event => onPlay(event, locale)} /></Suspense> : page === 'home' ? <>
+      {page === 'policies' ? <PolicyCenter/> : panel === 'profile' && account.session ? <Suspense fallback={<p role="status">جارٍ تحميل البروفايل…</p>}><Profile key={account.session.id} session={account.session} credits={account.dashboard?.credits ?? null} onClose={closePanel} onOwner={() => openPanel('owner')} /></Suspense> : panel === 'history' && account.session ? <Suspense fallback={<p role="status">{locale === 'ar' ? 'جارٍ تحميل السجل…' : 'Loading history…'}</p>}><HostPortal onAuthLost={account.expire} view="history" locale={locale} onExit={closePanel} onPlay={event => onPlay(event, locale)} /></Suspense> : page === 'home' ? <>
         <section className="platform-hero" data-node-id="339:2099"><p className="platform-eyebrow">{t.eyebrow}</p><h1>{t.title}</h1><p className="platform-hero-description">{t.description}</p><div className="platform-hero-actions"><BudMagnetic><button className="platform-action platform-action-primary" data-testid="hero-explore" onPointerEnter={() => { void loadEventPreview(); }} onFocus={() => { void loadEventPreview(); }} onClick={() => navigate('events')}>{t.explore}<span aria-hidden="true">←</span></button></BudMagnetic></div><p className="platform-hero-hint">{t.browseHint}</p>{partners.length>0&&<div className="platform-partners-mobile"><BudLogoCarousel logos={partners}/></div>}</section>
         <aside className="platform-proof" aria-label={locale === 'ar' ? 'المجتمع والشركاء' : 'Community and partners'} data-node-id="359:2272"><div className="platform-review-empty"><strong>{t.review}</strong><p>{t.reviewNote}</p></div><div className="platform-partners-empty">{partners.length>0?<><strong>شركاؤنا</strong><BudLogoCarousel logos={partners}/></>:t.partners}</div></aside>
       </> : <>
@@ -218,7 +219,7 @@ export default function Platform({ onPlay }: PlatformProps) {
       </>}
     </main>
     {page==='events'&&panel==='setup'&&account.session&&<Suspense fallback={<p role="status">جارٍ فتح إعداد الفعالية…</p>}><EventSetupModal key={account.session.id} locale={locale} onAuthLost={account.expire} onClose={closePanel} onPlay={event=>onPlay(event,locale)}/></Suspense>}
-    <footer className="platform-footer"><small>© {locale === 'ar' ? 'بُعد' : 'BU’D'} 2026</small><div className="platform-footer-links">{(['privacy', 'terms', 'support'] as const).map(item => <button key={item} onClick={() => setModal(item)}>{t[item]}</button>)}</div></footer>
+    <footer className="platform-footer"><small>© {locale === 'ar' ? 'بُعد' : 'BU’D'} 2026</small><div className="platform-footer-links">{(['privacy', 'terms', 'support'] as const).map(item => <button key={item} onClick={() => {setPanel(null);history.pushState(null,'',`${location.pathname}?screen=policies&lang=ar#${item}`);setPage('policies');window.dispatchEvent(new HashChangeEvent('hashchange'));}}>{t[item]}</button>)}</div></footer>
 
     <dialog ref={dialog} className="platform-dialog" data-testid="platform-dialog" aria-labelledby="platform-dialog-title" onKeyDown={event => {
       if (event.key !== 'Tab') return;
