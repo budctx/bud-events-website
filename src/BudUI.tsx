@@ -37,10 +37,10 @@ export function BudToastProvider({children}:{children:ReactNode}){
 }
 export function useBudToast(){const notify=useContext(context);if(!notify)throw Error('Missing BudToastProvider');return notify;}
 /** Announce state-driven feedback once per actual message transition, never on rerenders. */
-export function BudNotice({children,tone='info',persistent=false,id}:{children:string;tone?:Tone;persistent?:boolean;id?:string}){
+export function BudNotice({children,tone='info',persistent=false,id,resolveOnUnmount=false}:{children:string;tone?:Tone;persistent?:boolean;id?:string;resolveOnUnmount?:boolean}){
  const toast=useBudToast(),generated=useId();
  const key=id??`notice-${generated}`;
- useEffect(()=>{if(children)toast(children,tone,{id:key,persistent});else toast.dismiss(key);return()=>toast.dismiss(key);},[children,tone,persistent,key,toast]);
+ useEffect(()=>{if(children)toast(children,tone,{id:key,persistent});else toast.dismiss(key);return()=>{if(resolveOnUnmount)toast.dismiss(key);};},[children,tone,persistent,key,toast,resolveOnUnmount]);
  return null;
 }
 export function BudBadge({children,tone='neutral',variant='soft'}:{children:ReactNode;tone?:Tone;variant?:'soft'|'outline'}){return <span className="bud-badge" data-tone={tone} data-variant={variant}>{children}</span>;}

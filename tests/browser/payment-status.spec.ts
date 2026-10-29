@@ -108,9 +108,13 @@ for(const width of [390,1440])test(`payment toasts persist when critical, close 
  await page.route('**/api/auth**',route=>route.fulfill({json:{code:'OK',data:{id:host,displayName:'Fixture'}}}));
  await page.route('**/api/host',route=>route.fulfill({json:{code:'OK',data:{credits:state==='confirmed'?1:0,events:[],products:[],contentVersions:[]}}}));
  await page.route('**/api/payment-status',route=>route.fulfill({json:{code:'OK',data:{orderId:order,state,currency:'sar',amountMinor:300,createdAt:'2026-10-29T10:00:00Z',checkedAt:null}}}));
+ await page.route('**/api/checkout',route=>route.fulfill({status:503,json:{code:'LIVE_COMMERCE_DISABLED'}}));
  await page.clock.install();await page.goto(`/?screen=events&order=${order}`);
  const pending=page.locator('.bud-toast').filter({hasText:'الدفع قيد التحقق'});
  await expect(pending).toHaveAttribute('data-duration','persistent');
+ for(let i=0;i<4;i++){await page.getByTestId('product-card-qc').focus();await page.keyboard.press('Enter');await expect(page.locator('.bud-toast[data-tone=danger]')).toHaveCount(i+1);}
+ await expect(pending).toHaveCount(1);await expect(page.locator('.bud-toast[data-tone=danger]').first()).toHaveAttribute('data-duration','20000');
+ await page.mouse.move(width-1,899);await page.clock.fastForward(20001);await expect(page.locator('.bud-toast[data-tone=danger]')).toHaveCount(0);
  await page.clock.fastForward(30000);await expect(pending).toHaveCount(1);
  await pending.getByRole('button',{name:'إغلاق التنبيه'}).click();await expect(pending).toHaveCount(0);
  const panel=page.getByTestId('payment-status');await panel.getByRole('button').click();await expect(panel).toHaveAttribute('aria-busy','false');await expect(pending).toHaveCount(0);
