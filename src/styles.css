@@ -1,3 +1,6 @@
+/* Keep the browser canvas and reserved scrollbar gutters on the BU’D surface.
+   Explicit body specificity also wins over component-library global resets. */
+html, html body { background: var(--bud-color-surface-canvas); }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bud-color-surface-canvas); color: var(--bud-color-text-primary); font: 400 16px/28px 'Readex Pro Variable', sans-serif; }
 button, select { font: inherit; color: inherit; }

@@ -112,6 +112,7 @@ for(const width of [390,1440])test(`payment toasts persist when critical, close 
  await page.clock.install();await page.goto(`/?screen=events&order=${order}`);
  const pending=page.locator('.bud-toast').filter({hasText:'الدفع قيد التحقق'});
  await expect(pending).toHaveAttribute('data-duration','persistent');
+ const viewport=page.locator('.bud-toast-viewport');const bounds=await viewport.boundingBox();expect(bounds).not.toBeNull();expect(width-bounds!.x-bounds!.width).toBeGreaterThanOrEqual(15);expect(width-bounds!.x-bounds!.width).toBeLessThan(40);expect(900-bounds!.y-bounds!.height).toBeGreaterThanOrEqual(15);expect(900-bounds!.y-bounds!.height).toBeLessThan(40);
  for(let i=0;i<4;i++){await page.getByTestId('product-card-qc').focus();await page.keyboard.press('Enter');await expect(page.locator('.bud-toast[data-tone=danger]')).toHaveCount(i+1);}
  await expect(pending).toHaveCount(1);await expect(page.locator('.bud-toast[data-tone=danger]').first()).toHaveAttribute('data-duration','20000');
  await page.mouse.move(width-1,899);await page.clock.fastForward(20001);await expect(page.locator('.bud-toast[data-tone=danger]')).toHaveCount(0);

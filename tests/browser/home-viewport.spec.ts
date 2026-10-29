@@ -24,6 +24,7 @@ for(const viewport of standardDesktop)for(const withPartner of [false,true]){
  test(`home fits ${viewport.width}x${viewport.height} with partners=${withPartner}`,async({page},info)=>{
   await page.setViewportSize(viewport);
   await home(page,withPartner);
+  expect(await page.evaluate(()=>[document.documentElement,document.body].map(el=>getComputedStyle(el).backgroundColor))).toEqual(['rgb(246, 240, 226)','rgb(246, 240, 226)']);
   const metrics=await page.evaluate(()=>{
    const box=(selector:string)=>{const r=document.querySelector(selector)!.getBoundingClientRect();return {top:r.top,bottom:r.bottom,left:r.left,right:r.right,width:r.width,height:r.height};};
    return {viewport:{width:innerWidth,height:innerHeight},docWidth:document.documentElement.scrollWidth,docHeight:document.documentElement.scrollHeight,
