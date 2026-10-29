@@ -30,7 +30,9 @@ type Action={kind:string;payload:Record<string,unknown>;title:string};
 export default function OwnerPanel({onClose,ownerId,ownerName="المالك",initialReturn}:{onClose:()=>void;ownerId:string;ownerName?:string;initialReturn?:OwnerReturn|null}){
  const [section,setSection]=useState<string>(initialReturn?.section??'overview'),[query,setQuery]=useState(initialReturn?.search??''),[search,setSearch]=useState(initialReturn?.search??''),[offset,setOffset]=useState(initialReturn?.offset??0),[revision,setRevision]=useState(0);
  const [data,setData]=useState<OwnerData|null>(null),[error,setError]=useState(''),[loading,setLoading]=useState(false),[busy,setBusy]=useState(false),[reauth,setReauth]=useState(false);
- const [action,setAction]=useState<Action|null>(null),[reason,setReason]=useState(''),[checked,setChecked]=useState(false),[notice,setNotice]=useState(''),[secret,setSecret]=useState('');
+ const [action,setAction]=useState<Action|null>(null),[reason,setReason]=useState(''),[checked,setChecked]=useState(false),[notice,setNoticeText]=useState(''),[secret,setSecret]=useState('');
+ const [noticeTone,setNoticeTone]=useState<'info'|'success'|'warning'|'danger'>('info');
+ const setNotice=(text:string,tone:typeof noticeTone='info')=>{setNoticeText(text);setNoticeTone(tone);};
  const [qty,setQty]=useState('1'),[maxUses,setMaxUses]=useState('1'),[expires,setExpires]=useState(''),[target,setTarget]=useState(''),[note,setNote]=useState('');
  const [recoveryOrder,setRecoveryOrder]=useState(''),[recoveryPayment,setRecoveryPayment]=useState('');
  const [composer,setComposer]=useState<'code'|'grant'|'recovery'|null>(null),[listTab,setListTab]=useState('primary'),[userTab,setUserTab]=useState<'payments'|'history'|'events'>('payments');
@@ -66,12 +68,12 @@ export default function OwnerPanel({onClose,ownerId,ownerName="المالك",ini
    result??=await ownerRequest<OwnerData>({action:saved.kind,payload:saved.payload,operationId:saved.operationId,reason:saved.reason,confirmed:true});
    clearOwnerPending(ownerId,saved.operationId);pendingRef.current=null;if(!alive.current)return;setPending(null);
    if(saved.kind==='partnerSave'||saved.kind==='partnerDelete')clearPublicPartnersCache();
-   if(typeof result.code==='string'){setSecret(result.code);setNotice('احفظ المفتاح الآن. يُعرض مرة واحدة فقط.');}
-   else{setNotice(saved.kind==='createCode'&&result.replayed===true?`تم تأكيد إنشاء المفتاح السابق دون تكراره. لا يمكن إعادة عرض نصه؛ يمكنك إيقافه من سجل المفاتيح. المرجع: ${String(result.id??'')}`:result.verified===true?'تم التحقق من الدفعة لدى Whop دون إضافة رصيد.':result.replayed===true?'تم تأكيد إيصال العملية السابقة دون تكرارها.':'تمت العملية وسُجلت في سجل العمليات.');}
+   if(typeof result.code==='string'){setSecret(result.code);setNotice('احفظ المفتاح الآن. يُعرض مرة واحدة فقط.','warning');}
+   else{setNotice(saved.kind==='createCode'&&result.replayed===true?`تم تأكيد إنشاء المفتاح السابق دون تكراره. لا يمكن إعادة عرض نصه؛ يمكنك إيقافه من سجل المفاتيح. المرجع: ${String(result.id??'')}`:result.verified===true?'تم التحقق من الدفعة لدى Whop دون إضافة رصيد.':result.replayed===true?'تم تأكيد إيصال العملية السابقة دون تكرارها.':'تمت العملية وسُجلت في سجل العمليات.','success');}
    setAction(null);setRevision(v=>v+1);
   }catch(e){
    if(!previous&&e instanceof HostClientError&&!['OWNER_REAUTH_REQUIRED','DISCORD_AUTH_REQUIRED'].includes(e.code)&&[400,401,403,429].includes(e.status)){clearOwnerPending(ownerId);pendingRef.current=null;if(alive.current)setPending(null);}
-   if(alive.current){setNotice(ownerError(e));setReauth(e instanceof HostClientError&&['OWNER_REAUTH_REQUIRED','DISCORD_AUTH_REQUIRED'].includes(e.code));}
+   if(alive.current){setNotice(ownerError(e),'danger');setReauth(e instanceof HostClientError&&['OWNER_REAUTH_REQUIRED','DISCORD_AUTH_REQUIRED'].includes(e.code));}
   }
   finally{locked.current=false;if(alive.current)setBusy(false);}
  };
@@ -116,8 +118,8 @@ export default function OwnerPanel({onClose,ownerId,ownerName="المالك",ini
   </div>
   <dialog ref={dialog} className="owner-modal" onClose={() => setSecret('')} aria-labelledby="owner-confirm-title" onCancel={e=>{if(busy)e.preventDefault();}}><form onSubmit={e=>{e.preventDefault();void submit();}}><h2 id="owner-confirm-title">{action?.title??'إيصال العملية'}</h2>
    {action&&<><label>سبب الإجراء<textarea required minLength={3} maxLength={300} value={reason} disabled={busy||!!pending} onChange={e=>setReason(e.target.value)}/></label><p>لا تُدخل كلمات مرور أو مفاتيح سرية في السبب.</p><label className="owner-check"><input type="checkbox" checked={checked} disabled={busy||!!pending} onChange={e=>setChecked(e.target.checked)}/>راجعت الإجراء والحساب المستهدف وأؤكد تنفيذه.</label></>}
-   <BudNotice tone={reauth?'warning':action?'danger':'success'} persistent={!!pending||!!secret||reauth}>{notice}</BudNotice>{secret&&<><output className="owner-secret" dir="ltr">{secret}</output><button className="owner-button" type="button" onClick={()=>{void navigator.clipboard.writeText(secret).then(()=>setNotice('نُسخ المفتاح. احفظه في مكان آمن.')).catch(()=>setNotice('تعذر النسخ. انسخ المفتاح الظاهر يدويًا.'));}}>نسخ المفتاح</button></>}
-   {reauth&&<button className="owner-button" type="button" disabled={busy} onClick={()=>{if(!saveOwnerReturn({ownerId,section,search,offset})){setNotice('تعذر حفظ مسار العودة في هذا التبويب. لم يبدأ التحقق.');return;}setBusy(true);void signInHost({page:'home',locale:'ar'}).catch(e=>{clearOwnerReturn();setBusy(false);setNotice(ownerError(e));});}}>تأكيد الهوية عبر Discord</button>}
+   <BudNotice tone={reauth?'warning':noticeTone} persistent={!!pending||!!secret||reauth}>{notice}</BudNotice>{secret&&<><output className="owner-secret" dir="ltr">{secret}</output><button className="owner-button" type="button" onClick={()=>{void navigator.clipboard.writeText(secret).then(()=>setNotice('نُسخ المفتاح. احفظه في مكان آمن.','success')).catch(()=>setNotice('تعذر النسخ. انسخ المفتاح الظاهر يدويًا.','danger'));}}>نسخ المفتاح</button></>}
+   {reauth&&<button className="owner-button" type="button" disabled={busy} onClick={()=>{if(!saveOwnerReturn({ownerId,section,search,offset})){setNotice('تعذر حفظ مسار العودة في هذا التبويب. لم يبدأ التحقق.','danger');return;}setBusy(true);void signInHost({page:'home',locale:'ar'}).catch(e=>{clearOwnerReturn();setBusy(false);setNotice(ownerError(e),'danger');});}}>تأكيد الهوية عبر Discord</button>}
    <div className="owner-actions">{action&&<button className="owner-button primary" disabled={busy||!checked||reason.trim().length<3}>{busy?'جارٍ التحقق…':'تأكيد التنفيذ'}</button>}<button className="owner-button" type="button" disabled={busy} onClick={()=>{dialog.current?.close();setSecret('');}}>إغلاق</button></div>
   </form></dialog>
  </section>;
