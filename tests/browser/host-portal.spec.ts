@@ -118,7 +118,7 @@ test('persisted host game recovers an acknowledged reveal after a lost response'
   await page.getByRole('button',{name:'اكشف شرط',exact:true}).click();
   await page.getByRole('button',{name:'صحيحة',exact:true}).click();
   await page.getByLabel('اسم الفائز',{exact:true}).fill('سارة');
-  await page.getByRole('button',{name:'إضافة الفائز',exact:true}).click();
+  await page.getByRole('button',{name:'إضافة فائز',exact:true}).click();
   await expect(page.locator('#mg-winner-name')).not.toBeVisible();
   expect(current.state.winners).toEqual([{id:'winner-1',name:'سارة'}]);
   expect(requests.at(-1)?.version).toBe(4);
@@ -319,7 +319,7 @@ test('host alone can approve a new draw cycle after persisted activity exhaustio
   await page.getByRole('button', { name: 'عودة للفعالية', exact: true }).click();
   await expect(page.getByText('استُخدمت جميع التركيبات', { exact: false })).toBeVisible();
   await expect(page.getByRole('button', { name: 'اكشف سؤال', exact: true })).toBeDisabled();
-  await page.getByRole('button', { name: 'بدء دورة جديدة', exact: true }).click();
+  await page.getByRole('button', { name: 'انتهت الاحتمالات الممكنه نعيد من جديد؟', exact: true }).click();
   await expect(page.getByText('استُخدمت جميع التركيبات', { exact: false })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'اكشف سؤال', exact: true })).toBeEnabled();
   expect(observedRestart).toBe(1);
@@ -356,7 +356,7 @@ test('a conflict discards queued reveals and returns both faces to the refreshed
 test('a failed winner save can recover from inside its open dialog without duplicating the winner',async({page})=>{
  await session(page);let current={...active,state:{...structuredClone(initialState),question:true,condition:true} as ManualState,cards:{question:'دولة',condition:'تبدأ بحرف س'},serverNow:Date.now()};const receipts=new Map<string,typeof current>();const saves:any[]=[];
  await page.route('**/api/host',async route=>{const payload=route.request().postDataJSON();if(payload.action==='dashboard')return route.fulfill(ok({...dashboard,events:[current]}));if(payload.action==='resume')return route.fulfill(ok(current));if(payload.command.type==='save-winner')saves.push(payload);if(receipts.has(payload.idempotencyKey))return route.fulfill(ok(receipts.get(payload.idempotencyKey)));current={...current,version:current.version+1,state:manualGameReducer(current.state,payload.command),serverNow:Date.now()};receipts.set(payload.idempotencyKey,current);return payload.command.type==='save-winner'?route.abort('connectionfailed'):route.fulfill(ok(current));});
- await page.goto('/?screen=events');await page.getByRole('button',{name:'عودة للفعالية',exact:true}).click();await page.getByRole('button',{name:'صحيحة',exact:true}).click();const dialog=page.getByRole('dialog',{name:'تسجيل الفائز',exact:true});await dialog.getByLabel('اسم الفائز',{exact:true}).fill('سارة');await dialog.getByRole('button',{name:'إضافة الفائز',exact:true}).click();await expect(dialog.getByRole('alert')).toContainText('تعذر تأكيد');await dialog.getByRole('button',{name:'إعادة المحاولة',exact:true}).click();await expect(dialog).not.toBeVisible();expect(saves).toHaveLength(2);expect(saves[0]).toEqual(saves[1]);expect(current.state.winners).toHaveLength(1);
+ await page.goto('/?screen=events');await page.getByRole('button',{name:'عودة للفعالية',exact:true}).click();await page.getByRole('button',{name:'صحيحة',exact:true}).click();const dialog=page.getByRole('dialog',{name:'تسجيل الفائز',exact:true});await dialog.getByLabel('اسم الفائز',{exact:true}).fill('سارة');await dialog.getByRole('button',{name:'إضافة فائز',exact:true}).click();await expect(dialog.getByRole('alert')).toContainText('تعذر تأكيد');await dialog.getByRole('button',{name:'إعادة المحاولة',exact:true}).click();await expect(dialog).not.toBeVisible();expect(saves).toHaveLength(2);expect(saves[0]).toEqual(saves[1]);expect(current.state.winners).toHaveLength(1);
 });
 
 for(const width of [390,1440])test(`event setup opens in a viewport-safe modal and restores its draft at ${width}`,async({page})=>{

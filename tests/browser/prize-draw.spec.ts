@@ -10,13 +10,13 @@ async function add(page: Page, ar: boolean, name: string) {
   await page.getByRole('button', { name: ar ? 'اكشف شرط' : 'Reveal Condition', exact: true }).click();
   await page.getByRole('button', { name: ar ? 'صحيحة' : 'Correct', exact: true }).click();
   await page.getByLabel(ar ? 'اسم الفائز' : 'Winner name', { exact: true }).fill(name);
-  await page.getByRole('button', { name: ar ? 'إضافة الفائز' : 'Add winner', exact: true }).click();
+  await page.getByRole('button', { name: ar ? 'إضافة فائز' : 'Add winner', exact: true }).click();
 }
 async function prizes(page: Page, ar: boolean) {
-  await page.getByRole('button', { name: ar ? 'صفحة الجوائز' : 'Prize page', exact: true }).click();
+  await page.getByRole('button', { name: ar ? 'الجوائز' : 'Prize page', exact: true }).click();
 }
 async function confirm(page: Page, ar: boolean) {
-  await page.getByRole('button', { name: ar ? 'افتح جائزته!' : 'Open their prize!', exact: true }).click();
+  await page.getByRole('button', { name: ar ? 'فتح الجائزة' : 'Open their prize!', exact: true }).click();
 }
 
 for (const ar of [true]) for (const width of [1440, 390, 360]) {
@@ -28,20 +28,20 @@ for (const ar of [true]) for (const width of [1440, 390, 360]) {
     await expect(page.locator('.mg-winners-sidebar')).toContainText(ar ? 'لا يوجد فائزون بعد' : 'No winners yet');
     await expect(page.locator('.mg-prize-card').first()).toBeEnabled();
     await page.screenshot({ path: info.outputPath('empty.png'), fullPage: true });
-    await page.getByRole('button', { name: ar ? 'العودة للفعالية' : 'Back to event', exact: true }).click();
+    await page.getByRole('button', { name: ar ? 'عودة' : 'Back to event', exact: true }).click();
     const name = ar ? 'سارة' : 'Sara';
     await add(page, ar, name); await add(page, ar, name);
     await page.getByRole('button', { name: new RegExp(ar ? '^الفائزون' : '^Winners') }).click();
     await expect(page.locator('.mg-management .mg-winner-row')).toHaveCount(2);
     await page.getByRole('button', { name: `${ar ? 'تعديل' : 'Edit'} ${name} #2`, exact: true }).click();
     await page.locator('#mg-edit-name').fill(ar ? 'علي' : 'Ali');
-    await page.getByRole('button', { name: ar ? 'حفظ التعديل' : 'Save changes', exact: true }).click();
+    await page.getByRole('button', { name: ar ? 'حفظ' : 'Save changes', exact: true }).click();
     await expect(page.getByRole('button', { name: `${ar ? 'تعديل' : 'Edit'} ${ar ? 'علي' : 'Ali'} #2`, exact: true })).toBeFocused();
     await expect(page.locator('[data-winner-id="winner-1"]')).toContainText(name);
     const newName = ar ? 'علي' : 'Ali';
     await page.getByRole('button', { name: `${ar ? 'تعديل' : 'Edit'} ${newName} #2`, exact: true }).click();
     await page.locator('#mg-edit-name').fill(name);
-    await page.getByRole('button', { name: ar ? 'حفظ التعديل' : 'Save changes', exact: true }).click();
+    await page.getByRole('button', { name: ar ? 'حفظ' : 'Save changes', exact: true }).click();
     await page.screenshot({ path: info.outputPath('management.png'), fullPage: true });
     await page.keyboard.press('Escape');
     await prizes(page, ar);
@@ -67,7 +67,7 @@ for (const ar of [true]) for (const width of [1440, 390, 360]) {
     await expect(page.locator('.mg-confetti')).toHaveCount(1);
     await page.waitForTimeout(700); // Capture the visible burst, rather than its first frame.
     await page.screenshot({ path: info.outputPath('result.png'), fullPage: true });
-    await page.getByRole('button', { name: ar ? 'متابعة السحب' : 'Continue draw', exact: true }).click();
+    await page.getByRole('button', { name: ar ? 'اللي بعده' : 'Continue draw', exact: true }).click();
     await expect(second).toBeDisabled();
     await expect(page.locator('.mg-prize-card').first()).toContainText(name);
     await expect(page.getByRole('checkbox', { name: ar ? 'مؤثرات الاحتفال' : 'Celebration effects' })).toHaveCount(0);
@@ -110,7 +110,7 @@ test('single winner, reduced motion, keyboard confirmation and terminal read-onl
   }
   await confirm(page, true); await expect(page.locator('.mg-confetti')).toHaveCount(0);
   await page.keyboard.press('Escape');
-  await page.getByRole('button', { name: 'إنهاء الفعالية', exact: true }).click();
+  await page.getByRole('button', { name: 'انهاء', exact: true }).click();
   await page.getByRole('button', { name: 'إنهاء وعرض النتائج', exact: true }).click();
   await page.getByRole('button', { name: /^الفائزون/ }).click();
   await expect(page.locator('.mg-management')).toContainText('سارة');
@@ -129,7 +129,7 @@ test('many winners, long names and full prize list remain usable on short mobile
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBeTruthy();
   await page.locator('.mg-prize-card').last().click();
   await expect(page.locator('.mg-award-confirm')).toContainText('س'.repeat(80));
-  await expect(page.getByRole('button', { name: 'افتح جائزته!', exact: true })).toBeInViewport();
+  await expect(page.getByRole('button', { name: 'فتح الجائزة', exact: true })).toBeInViewport();
 });
 
 test('deleting an awarded record explains and restores only its prize', async ({ page }) => {
@@ -170,7 +170,7 @@ test('suspense finishes automatically and reduced motion reveals instantly', asy
   await expect(page.locator('.mg-reveal-experience')).toHaveAttribute('data-stage','anticipation');
   await expect(page.locator('.mg-result-prize')).toHaveText(/^هدية (أولى|ثانية|ثالثة)$/);
   const firstAward=await page.locator('.mg-result-prize').textContent();
-  await expect(page.getByRole('button',{name:'متابعة السحب',exact:true})).toBeFocused();
+  await expect(page.getByRole('button',{name:'اللي بعده',exact:true})).toBeFocused();
   await page.keyboard.press('Escape');
   await page.emulateMedia({reducedMotion:'reduce'});
   await page.locator('.mg-winner-option:not(:disabled)').click(); await page.locator('.mg-prize-card').nth(1).click(); await confirm(page,true);
@@ -193,11 +193,11 @@ test('winners + icon, deletion confirmation and automatic reveal of leftover pri
 
   await plus.click();
   await page.locator('#mg-add-name').fill('Sara');
-  await page.getByRole('button',{name:'إضافة الفائز',exact:true}).click();
+  await page.getByRole('dialog').getByRole('button',{name:'إضافة فائز',exact:true}).click();
   await expect(page.getByRole('button',{name:'تعديل Sara #1',exact:true})).toBeFocused();
   await page.locator('.mg-management .mg-add-winner').click();
   await page.locator('#mg-add-name').fill('Ali');
-  await page.getByRole('button',{name:'إضافة الفائز',exact:true}).click();
+  await page.getByRole('dialog').getByRole('button',{name:'إضافة فائز',exact:true}).click();
   await page.keyboard.press('Escape');
   // A delete from the sidebar is never immediate; cancellation preserves the record.
   await page.locator('.mg-winners-sidebar').getByRole('button',{name:'حذف Sara #1',exact:true}).click();
@@ -210,7 +210,7 @@ test('winners + icon, deletion confirmation and automatic reveal of leftover pri
   await expect(page.locator('.mg-management [data-winner-id="winner-1"]')).toHaveCount(0);
   await page.locator('.mg-management .mg-add-winner').click();
   await page.locator('#mg-add-name').fill('Sara');
-  await page.getByRole('button',{name:'إضافة الفائز',exact:true}).click();
+  await page.getByRole('dialog').getByRole('button',{name:'إضافة فائز',exact:true}).click();
   await expect(page.locator('.mg-management [data-winner-id="winner-3"]')).toContainText('Sara');
   await page.keyboard.press('Escape');
 
@@ -231,14 +231,14 @@ test('winners + icon, deletion confirmation and automatic reveal of leftover pri
   await page.keyboard.press('Escape');
   await expect(page.locator('.mg-prize-card').nth(2)).toHaveAttribute('data-revealed','false');
   await page.locator('.mg-prize-card').nth(2).click();
-  await page.getByRole('button',{name:'كشف الجائزة',exact:true}).click();
+  await page.getByRole('button',{name:'فتح الجائزة',exact:true}).click();
   await expect(page.locator('.mg-result-prize')).toHaveText(/^Gift (one|two|three)$/);
   const revealedUnnamed=(await page.locator('.mg-result-prize').textContent())!;
   await expect(page.locator('.mg-result-winner')).toContainText('دون تخصيص اسم');
   await page.screenshot({path:info.outputPath('remaining-auto-open.png'),fullPage:true});
   await page.keyboard.press('Escape');
   await expect(page.locator('.mg-prize-card').nth(2)).toContainText('دون اسم');
-  await page.getByRole('button',{name:'إنهاء الفعالية',exact:true}).click();
+  await page.getByRole('button',{name:'انهاء',exact:true}).click();
   await page.getByRole('button',{name:'إنهاء وعرض النتائج',exact:true}).click();
   await expect(page.locator('.mg-unnamed-results')).toContainText(revealedUnnamed);
   await expect(page.locator('.mg-results')).toContainText('Ali');
@@ -248,7 +248,7 @@ test('winners + icon, deletion confirmation and automatic reveal of leftover pri
 test('all prizes can be manually opened with an empty winner list', async ({page}) => {
   await page.emulateMedia({reducedMotion:'reduce'});await start(page,true,'هدية');await prizes(page,true);
   await expect(page.locator('.mg-prize-card')).toBeEnabled();
-  await page.locator('.mg-prize-card').click();await page.getByRole('button',{name:'كشف الجائزة',exact:true}).click();
+  await page.locator('.mg-prize-card').click();await page.getByRole('button',{name:'فتح الجائزة',exact:true}).click();
   await expect(page.locator('.mg-result-prize')).toHaveText('هدية');
   await page.keyboard.press('Escape');await expect(page.locator('.mg-winner-option')).toHaveCount(0);
   await expect(page.locator('.mg-prize-card')).toBeDisabled();
@@ -259,11 +259,11 @@ test('winner utility controls retain Arabic names and toast feedback inside the 
  const addWinner=page.getByRole('button',{name:'إضافة فائز',exact:true});
  await expect(addWinner).toHaveClass(/bud-utility/);
  await addWinner.click();await page.locator('#mg-add-name').fill('سارة');
- await page.getByRole('button',{name:'إضافة الفائز',exact:true}).click();
+ await page.getByRole('dialog').getByRole('button',{name:'إضافة فائز',exact:true}).click();
  const dialog=page.locator('.mg-management');
  await expect(dialog.locator('.bud-toast')).toContainText('أُضيف الفائز.');
  const edit=dialog.getByRole('button',{name:'تعديل سارة #1',exact:true});await expect(edit).toHaveClass(/bud-utility/);
- await edit.click();await page.getByLabel(/تعديل اسم الفائز/).fill('نورة');await page.getByRole('button',{name:'حفظ التعديل',exact:true}).click();
+ await edit.click();await page.getByLabel(/تعديل اسم الفائز/).fill('نورة');await page.getByRole('button',{name:'حفظ',exact:true}).click();
  await expect(dialog.locator('.bud-toast').last()).toContainText('عُدّل اسم الفائز.');
  await dialog.getByRole('button',{name:'حذف نورة #1',exact:true}).click();await page.getByRole('button',{name:'تأكيد الحذف',exact:true}).click();
  await expect(dialog.locator('.bud-toast').last()).toContainText('حُذف الفائز.');
