@@ -94,17 +94,17 @@ for(const locale of ['ar','en']) test(`manual journey ${locale}`,async({page},in
   await expect(winnerDialog).toBeVisible();
   await expect(page.getByLabel(ar?'اسم الفائز':'Winner name',{exact:true})).toBeFocused();
   await page.getByLabel(ar?'اسم الفائز':'Winner name',{exact:true}).fill('Test Winner');
-  await page.getByRole('button',{name:ar?'إضافة الفائز':'Add winner',exact:true}).click();
+  await page.getByRole('button',{name:ar?'إضافة فائز':'Add winner',exact:true}).click();
   await expect(winnerDialog).not.toBeVisible();
   await expect(page.locator('.mg-header h1')).toBeFocused();
   await page.screenshot({path:info.outputPath(`game-${locale}.png`),fullPage:true,animations:'disabled'});
-  await page.getByRole('button',{name:ar?'صفحة الجوائز':'Prize page',exact:true}).click();
+  await page.getByRole('button',{name:ar?'الجوائز':'Prize page',exact:true}).click();
   await page.locator('.mg-winner-option').click();
   await page.locator('.mg-prize-card').click();
-  await page.getByRole('button',{name:ar?'افتح جائزته!':'Open their prize!',exact:true}).click();
-  await page.getByRole('button',{name:ar?'متابعة السحب':'Continue draw',exact:true}).click();
+  await page.getByRole('button',{name:ar?'فتح الجائزة':'Open their prize!',exact:true}).click();
+  await page.getByRole('button',{name:ar?'اللي بعده':'Continue draw',exact:true}).click();
   await expect(page.locator('.mg-prize-card')).toContainText('Test Winner');
-  await page.getByRole('button',{name:ar?'إنهاء الفعالية':'End event',exact:true}).click();
+  await page.getByRole('button',{name:ar?'انهاء':'End event',exact:true}).click();
   await page.getByRole('button',{name:ar?'إنهاء وعرض النتائج':'End and view results',exact:true}).click();
   await expect(page.locator('.mg-results')).toContainText('Test Winner');
   await expect(page.locator('.mg-results')).not.toContainText('local-manual');
@@ -144,7 +144,7 @@ test('game fills short viewport without clipping controls',async({page})=>{
  await page.getByRole('button',{name:'بدء الفعالية',exact:true}).click();
  const geometry=await page.locator('.manual-game').evaluate(el=>({height:el.getBoundingClientRect().height, viewport:innerHeight, minHeight:getComputedStyle(el).minHeight, display:getComputedStyle(el).display, classes:el.className}));
  expect(geometry.height).toBeGreaterThanOrEqual(geometry.viewport);
- await expect(page.getByRole('button',{name:'صفحة الجوائز',exact:true})).toBeInViewport();
+ await expect(page.getByRole('button',{name:'الجوائز',exact:true})).toBeInViewport();
 });
 
 test('event explanation preserves the dotted secondary button asset',async({page})=>{

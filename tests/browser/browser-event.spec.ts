@@ -13,12 +13,12 @@ async function start(page:Page){await page.getByTestId('event-setup').click();aw
 test('browser game starts timer immediately, persists locally and never uploads gameplay or private prizes',async({page,context})=>{
  const requests=await setup(page);await page.evaluate(owner=>localStorage.setItem(`bud-host-setup-draft:v1:${owner}`,JSON.stringify({schema:1,title:'سؤال وشرط',prizeText:'',config:{duration:5,timerEnabled:false,attempts:3},savedAt:Date.now()})),owner);await start(page);const before=requests.length;
  const paid=requests.find(x=>x.action==='localStart');expect(Object.keys(paid).sort()).toEqual(['action','idempotencyKey','title']);expect(JSON.stringify(requests)).not.toContain('جائزة محلية خاصة');
- await context.setOffline(true);await page.getByRole('button',{name:'اكشف سؤال',exact:true}).click();await page.getByRole('button',{name:'اكشف شرط',exact:true}).click();await expect(page.getByRole('timer')).toHaveText('5');await expect(page.getByRole('button',{name:'صحيحة',exact:true})).toBeEnabled();await page.getByRole('button',{name:'صحيحة',exact:true}).click();await page.getByLabel('اسم الفائز',{exact:true}).fill('اسم محلي خاص');await page.getByRole('button',{name:'إضافة الفائز',exact:true}).click();await expect(page.getByRole('dialog',{name:'تسجيل الفائز',exact:true})).not.toBeVisible();expect(requests).toHaveLength(before);
+ await context.setOffline(true);await page.getByRole('button',{name:'اكشف سؤال',exact:true}).click();await page.getByRole('button',{name:'اكشف شرط',exact:true}).click();await expect(page.getByRole('timer')).toHaveText('5');await expect(page.getByRole('button',{name:'صحيحة',exact:true})).toBeEnabled();await page.getByRole('button',{name:'صحيحة',exact:true}).click();await page.getByLabel('اسم الفائز',{exact:true}).fill('اسم محلي خاص');await page.getByRole('button',{name:'إضافة فائز',exact:true}).click();await expect(page.getByRole('dialog',{name:'تسجيل الفائز',exact:true})).not.toBeVisible();expect(requests).toHaveLength(before);
  const record=await page.evaluate(({owner,id})=>JSON.parse(localStorage.getItem(`bud-browser-event:v1:${owner}:${id}`)!),{owner,id});expect(record.state.config.attempts).toBe(1);expect(record.state.winners[0].name).toBe('اسم محلي خاص');expect(record.state.round).toBe(1);await expect(page.locator('.mg-remote-status')).toHaveCount(0);
  await context.setOffline(false);await page.reload();await expect(page.getByRole('button',{name:/الفائزون/})).toContainText('1/1');expect(requests).toHaveLength(before);
 });
 test('another tab cannot write the same locally saved event',async({page,context})=>{
- await setup(page);await start(page);const other=await context.newPage();await other.goto(page.url());await other.evaluate(({owner,id})=>sessionStorage.setItem('bud-browser-event:active',JSON.stringify({ownerId:owner,eventId:id})),{owner,id});await other.reload();await expect(other.getByRole('heading',{name:'الفعالية مفتوحة في تبويب آخر'})).toBeVisible();await expect(other.getByRole('button',{name:'اكشف سؤال',exact:true})).toHaveCount(0);await other.close();
+ await setup(page);await start(page);const other=await context.newPage();await other.goto(page.url());await other.evaluate(({owner,id})=>sessionStorage.setItem('bud-browser-event:active',JSON.stringify({ownerId:owner,eventId:id})),{owner,id});await other.reload();await expect(other.getByRole('heading',{name:'الفعالية مفتوحة في تبويب آخر'})).toBeVisible();await expect(other.getByRole('button',{name:'اكشف سؤال',exact:true})).toHaveCount(0);await other.getByRole('button',{name:'عودة الى الصفحة الرئيسية',exact:true}).click();await expect(other).toHaveURL(/screen=home/);await expect(other.getByTestId('hero-explore')).toBeVisible();await other.close();
 });
 test('unavailable local storage stops before paying for a new run',async({page})=>{
  const requests=await setup(page);await page.evaluate(()=>{Object.defineProperty(window,'localStorage',{value:{getItem:()=>null,setItem:()=>{throw Error('fixture storage blocked');},removeItem:()=>{}}});});await page.getByTestId('event-setup').click();await page.getByRole('button',{name:'بدء الفعالية',exact:true}).click();await expect(page.getByRole('alert')).toContainText('الحفظ المحلي');expect(requests.some(x=>x.action==='localStart')).toBe(false);
@@ -75,7 +75,7 @@ test('the live browser event randomizes prize-to-card mapping once and preserves
  // An unbiased random shuffle can reproduce input order by chance.
  // The persisted mapping, not visual nonidentity, is what must remain fixed.
  expect(before.every(p=>p.revealed===false&&p.winnerId===null)).toBe(true);
- await page.getByRole('button',{name:'صفحة الجوائز',exact:true}).click();
+ await page.getByRole('button',{name:'الجوائز',exact:true}).click();
  await expect(page.locator('.mg-prize-card')).toHaveCount(entered.length);
  for(const name of entered)await expect(page.locator('.mg-prize-grid')).not.toContainText(name);
  await page.reload();
@@ -84,7 +84,7 @@ test('the live browser event randomizes prize-to-card mapping once and preserves
  await expect(page.getByRole('button',{name:'فتح دون اسم',exact:true})).toHaveCount(0);
  await expect(page.locator('.mg-prize-card').first()).toBeEnabled();
  await page.locator('.mg-prize-card').first().click();
- await page.getByRole('button',{name:'كشف الجائزة',exact:true}).click();
+ await page.getByRole('button',{name:'فتح الجائزة',exact:true}).click();
  await expect(page.locator('.mg-result-prize')).toHaveText(before[0].name);
  const after=await readPrizes();
  expect(after.map(p=>p.name)).toEqual(before.map(p=>p.name));
