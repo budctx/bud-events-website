@@ -90,7 +90,7 @@ test('uncertain administrative grant remains the same operation after closing th
 test('profile distinguishes an unavailable permission check from an ordinary account and can retry',async({page})=>{
  await setup(page);let unavailable=true;
  await page.route('**/api/owner',r=>r.fulfill(unavailable?{status:503,json:{code:'OWNER_BACKEND_UNAVAILABLE'}}:ok({owner:true})));
- await page.getByRole('button',{name:'العودة للموقع'}).click();await page.locator('.platform-account-trigger').click();await page.getByRole('menuitem',{name:'الملف الشخصي'}).click();
+ await page.getByRole('button',{name:'عودة',exact:true}).click();await page.locator('.platform-account-trigger').click();await page.getByRole('menuitem',{name:'الملف الشخصي'}).click();
  await expect(page.getByRole('alert')).toContainText('تعذر التحقق من صلاحيات الحساب');unavailable=false;
  await page.getByRole('button',{name:'إعادة التحقق من الصلاحيات'}).click();await expect(page.getByRole('button',{name:'لوحة المالك',exact:true})).toBeVisible();
 });
@@ -119,7 +119,7 @@ test('unavailable tab storage blocks administrative dispatch before a mutation i
 test('disabled owner configuration is distinct from permission failure; profile offers no purchase or redeem',async({page})=>{
  await setup(page,false);
  await page.route('**/api/owner',r=>r.fulfill({status:503,json:{code:'OWNER_PANEL_NOT_CONFIGURED'}}));
- await page.getByRole('button',{name:'العودة للموقع'}).click();await page.locator('.platform-account-trigger').click();await page.getByRole('menuitem',{name:'الملف الشخصي'}).click();
+ await page.getByRole('button',{name:'عودة',exact:true}).click();await page.locator('.platform-account-trigger').click();await page.getByRole('menuitem',{name:'الملف الشخصي'}).click();
  await expect(page.getByRole('status')).toHaveText('لوحة المالك غير مفعّلة حاليًا.');
  await expect(page.getByRole('button',{name:'إعادة التحقق من الصلاحيات'})).toHaveCount(0);
  await expect(page.getByRole('button',{name:'شراء مفاتيح'})).toHaveCount(0);
