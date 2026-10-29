@@ -193,11 +193,11 @@ test('winners + icon, deletion confirmation and automatic reveal of leftover pri
 
   await plus.click();
   await page.locator('#mg-add-name').fill('Sara');
-  await page.getByRole('button',{name:'إضافة فائز',exact:true}).click();
+  await page.getByRole('dialog').getByRole('button',{name:'إضافة فائز',exact:true}).click();
   await expect(page.getByRole('button',{name:'تعديل Sara #1',exact:true})).toBeFocused();
   await page.locator('.mg-management .mg-add-winner').click();
   await page.locator('#mg-add-name').fill('Ali');
-  await page.getByRole('button',{name:'إضافة فائز',exact:true}).click();
+  await page.getByRole('dialog').getByRole('button',{name:'إضافة فائز',exact:true}).click();
   await page.keyboard.press('Escape');
   // A delete from the sidebar is never immediate; cancellation preserves the record.
   await page.locator('.mg-winners-sidebar').getByRole('button',{name:'حذف Sara #1',exact:true}).click();
@@ -210,7 +210,7 @@ test('winners + icon, deletion confirmation and automatic reveal of leftover pri
   await expect(page.locator('.mg-management [data-winner-id="winner-1"]')).toHaveCount(0);
   await page.locator('.mg-management .mg-add-winner').click();
   await page.locator('#mg-add-name').fill('Sara');
-  await page.getByRole('button',{name:'إضافة فائز',exact:true}).click();
+  await page.getByRole('dialog').getByRole('button',{name:'إضافة فائز',exact:true}).click();
   await expect(page.locator('.mg-management [data-winner-id="winner-3"]')).toContainText('Sara');
   await page.keyboard.press('Escape');
 
@@ -259,7 +259,7 @@ test('winner utility controls retain Arabic names and toast feedback inside the 
  const addWinner=page.getByRole('button',{name:'إضافة فائز',exact:true});
  await expect(addWinner).toHaveClass(/bud-utility/);
  await addWinner.click();await page.locator('#mg-add-name').fill('سارة');
- await page.getByRole('button',{name:'إضافة فائز',exact:true}).click();
+ await page.getByRole('dialog').getByRole('button',{name:'إضافة فائز',exact:true}).click();
  const dialog=page.locator('.mg-management');
  await expect(dialog.locator('.bud-toast')).toContainText('أُضيف الفائز.');
  const edit=dialog.getByRole('button',{name:'تعديل سارة #1',exact:true});await expect(edit).toHaveClass(/bud-utility/);
