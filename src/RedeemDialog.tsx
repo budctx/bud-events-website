@@ -23,6 +23,6 @@ export default function RedeemDialog({open,onClose,onRefresh}:{open:boolean;onCl
  return <dialog dir="rtl" className="owner-modal" ref={dialog} aria-labelledby="redeem-title" onClose={onClose} onCancel={e=>{if(busy)e.preventDefault();}}><form onSubmit={e=>{e.preventDefault();void submit();}}>
    <h2 id="redeem-title">استرداد مفتاح</h2><p>أدخل مفتاح الهدية لإضافته إلى رصيد تشغيلك.</p><label>المفتاح<input autoFocus dir="ltr" autoComplete="off" spellCheck={false} value={code} disabled={busy||!!attempt.current} onChange={e=>setCode(e.target.value)} maxLength={64} required={!attempt.current}/></label>
    {message&&<p role={success?'status':'alert'} className={success?'owner-success':'owner-error'}>{message}</p>}
-   <div className="owner-actions"><button className="owner-button primary" type="submit" disabled={busy||success}>{busy?'جارٍ التحقق…':attempt.current?'تحقق':'تأكيد'}</button><ButtonUtility label="إغلاق" icon={X} isDisabled={busy} onPress={()=>dialog.current?.close()}/></div>
+   <div className="owner-actions"><button className="owner-button primary" type="submit" disabled={busy||success}>{busy?'جارٍ التحقق…':'تأكيد'}</button><ButtonUtility label="إغلاق" icon={X} isDisabled={busy} onPress={()=>dialog.current?.close()}/></div>
   </form></dialog>;
 }
