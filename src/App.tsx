@@ -1,3 +1,4 @@
+import {BudNotice} from './BudUI';
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import Platform from './Platform';
 import { Seo } from './Seo';
@@ -25,7 +26,7 @@ export default function App() {
   const leaveHome = () => { setScreen('platform'); setEvent(null); currentEvent.current = null; history.replaceState(null, '', `${location.pathname}?screen=home&lang=${locale}`); };
   useEffect(() => { document.documentElement.lang = locale; document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr'; document.documentElement.dataset.theme = 'light'; }, [locale]);
   const fallback = <p role="status">جارٍ التحميل…</p>;
-  if(missing)return <main className="host-portal" dir="rtl"><section className="host-panel host-access"><h1>الحفظ المحلي غير موجود</h1><p>استخدم المتصفح الذي بدأت فيه الفعالية. حذف بيانات الموقع أو تغيير الجهاز يفقدك التقدم؛ لا توجد نسخة على الخادم.</p><button onClick={()=>{setMissing(false);leaveHost();}}>العودة إلى بُعد</button></section></main>;
+  if(missing)return <main className="host-portal" dir="rtl"><section className="host-panel host-access"><BudNotice tone="danger" persistent>الحفظ المحلي غير موجود. استخدم المتصفح الذي بدأت فيه الفعالية. حذف بيانات الموقع أو تغيير الجهاز يفقدك التقدم؛ لا توجد نسخة على الخادم.</BudNotice><h1>الحفظ المحلي غير موجود</h1><p>استخدم المتصفح الذي بدأت فيه الفعالية. حذف بيانات الموقع أو تغيير الجهاز يفقدك التقدم؛ لا توجد نسخة على الخادم.</p><button onClick={()=>{setMissing(false);leaveHost();}}>العودة إلى بُعد</button></section></main>;
   if(screen==='game'&&event?.storage==='browser-v1'&&'content' in event)return <Suspense fallback={fallback}><BrowserGame key={event.eventId} initial={event as BrowserRun} onExit={leaveHost} onHome={leaveHome}/></Suspense>;
   if (screen === 'game' && (event || import.meta.env.DEV)) return <Suspense fallback={fallback}><Seo locale={locale} screen="game" /><Game key={event?.eventId ?? 'development'} locale={locale} initialState={event?.state} cards={event?.cards} serverNow={event?.serverNow} onAction={event ? async (command, key) => {
     if (!currentEvent.current) throw new Error('No active session');
