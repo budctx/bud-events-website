@@ -41,3 +41,15 @@
 @media(max-width:600px){.bud-bot-grid{grid-template-columns:minmax(0,1fr)}.bud-events-viewport{padding:3px 6px 8px}.bud-carousel-navigation{gap:8px;margin-top:14px}.bud-bot-card .bud-bot-art{min-height:180px}}
 @media(max-width:350px){.bud-events-carousel .qc-demo .mg-card-content{font-size:14px;line-height:1.45}}
 @media(prefers-reduced-motion:reduce){.bud-magic-glow{display:none}.bud-carousel-dots span{transition:none}}
+
+/* Mobile event cards follow their content instead of reserving desktop space. */
+@media(max-width:700px){
+ .bud-events-slide>.platform-product-card{min-height:0;gap:20px;padding:18px;}
+ .bud-events-slide .platform-product-information{min-height:0;justify-content:flex-start;gap:12px;}
+ .bud-events-slide .platform-product-information h2{max-width:100%;margin:0;}
+ .bud-events-slide .platform-product-description{min-height:0;line-height:1.65;}
+ .bud-events-slide .platform-event-ownership{margin-top:4px;}
+ .bud-events-slide .platform-upcoming-preview{min-height:176px;height:176px;}
+ .bud-events-slide .platform-upcoming-face{width:140px;min-height:148px;gap:12px;box-shadow:3px 3px 0 #d2c6af;}
+ .bud-events-slide .platform-upcoming-face svg{width:52px;height:52px;}
+}

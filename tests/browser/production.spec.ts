@@ -478,3 +478,21 @@ for(const width of [390,1440])test(`selected catalogues: four-column bots and RT
  await expect(page.getByTestId('product-card-qc')).toBeInViewport();await expect(previous).toBeDisabled();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });
+
+for(const width of [320,390,430])test(`mobile event cards keep comic titles and actions inside their content at ${width}`,async({page},info)=>{
+ await page.setViewportSize({width,height:844});await page.emulateMedia({reducedMotion:'reduce'});
+ await page.goto('/?screen=events');
+ for(const name of ['سؤال وشرط','ميني قيمز','كروت الحظ']){
+  await page.getByRole('button',{name:'عرض فعالية '+name,exact:true}).click();
+  const heading=page.getByRole('heading',{name,exact:true});await expect(heading).toBeVisible();
+  const article=heading.locator('xpath=ancestor::article');const title=heading.locator('.bud-comic-layers');
+  const card=await article.boundingBox(),text=await title.boundingBox();
+  expect(text!.x).toBeGreaterThan(card!.x+8);expect(text!.x+text!.width).toBeLessThan(card!.x+card!.width-8);
+  const description=await article.locator('.platform-product-description').boundingBox();
+  expect(description!.y).toBeGreaterThan(text!.y+text!.height);
+  const action=article.locator('.platform-action');await expect(action).toHaveCount(1);const button=await action.boundingBox();
+  expect(button!.height).toBeGreaterThanOrEqual(44);expect(button!.x).toBeGreaterThan(card!.x);expect(button!.x+button!.width).toBeLessThan(card!.x+card!.width);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+  await page.screenshot({path:info.outputPath(`event-${name}-${width}.png`),fullPage:true,animations:'disabled'});
+ }
+});
