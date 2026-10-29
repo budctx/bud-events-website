@@ -123,7 +123,7 @@ for(const width of [390,1440])test(`payment toasts persist when critical, close 
  await refresh();await expect(pending).toHaveCount(0);
  state='confirmed';await refresh();
  const success=page.locator('.bud-toast').filter({hasText:'تم تأكيد الدفع'});await expect(success).toHaveAttribute('data-duration','5000');
- await page.mouse.move(width-1,0);await page.clock.fastForward(5001);await expect(success).toHaveCount(0);
+ await page.mouse.move(width-1,0);await page.getByTestId('nav-home').focus();await page.clock.fastForward(5001);await expect(success).toHaveCount(0);
  await refresh();await expect(success).toHaveCount(0);
  state='review';await refresh();
  const warning=page.locator('.bud-toast').filter({hasText:'الطلب قيد المراجعة'});await expect(warning).toHaveAttribute('data-duration','persistent');await page.clock.fastForward(60000);await expect(warning).toBeVisible();
@@ -131,6 +131,6 @@ for(const width of [390,1440])test(`payment toasts persist when critical, close 
  state='confirmed';await refresh();await expect(success).toBeVisible();
  await page.getByTestId('nav-home').focus();await page.keyboard.press('Enter');await expect(success).toBeVisible();
  state='review';await success.getByRole('button',{name:'تحديث الحالة'}).click();await expect(warning).toBeVisible();state='confirmed';await warning.getByRole('button',{name:'تحديث الحالة'}).click();await expect(success).toBeVisible();
- await page.mouse.move(width-1,899);await page.mouse.move(width-1,0);await page.clock.fastForward(5001);await expect(success).toHaveCount(0);
+ await page.mouse.move(width-1,899);await page.mouse.move(width-1,0);await page.getByTestId('nav-home').focus();await page.clock.fastForward(5001);await expect(success).toHaveCount(0);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
