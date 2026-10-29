@@ -17,7 +17,7 @@ const context=createContext<Notify|null>(null);
 let sequence=0;
 function ToastItem({item,dismiss}:{item:Toast;dismiss:(id:string)=>void}){
  const [paused,setPaused]=useState(false);
- useEffect(()=>{if(paused||item.persistent)return;const timeout=setTimeout(()=>dismiss(item.id),item.duration);return()=>clearTimeout(timeout);},[dismiss,item.id,item.tone,item.persistent,item.duration,paused]);
+ useEffect(()=>{if(paused||item.persistent)return;const timeout=setTimeout(()=>dismiss(item.id),item.duration);return()=>clearTimeout(timeout);},[dismiss,item.id,item.tone,item.text,item.persistent,item.duration,paused]);
  return <div className="bud-toast" data-tone={item.tone} data-duration={item.persistent?'persistent':item.duration} role={item.tone==='danger'?'alert':'status'}
  onMouseEnter={()=>setPaused(true)} onMouseLeave={()=>setPaused(false)}
  onFocus={()=>setPaused(true)} onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget as Node))setPaused(false);}}>
