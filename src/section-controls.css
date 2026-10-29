@@ -52,4 +52,5 @@
  .bud-events-slide .platform-upcoming-preview{min-height:176px;height:176px;}
  .bud-events-slide .platform-upcoming-face{width:140px;min-height:148px;gap:12px;box-shadow:3px 3px 0 #d2c6af;}
  .bud-events-slide .platform-upcoming-face svg{width:52px;height:52px;}
+ .bud-events-slide .platform-upcoming-event .platform-action{margin-top:auto;}
 }

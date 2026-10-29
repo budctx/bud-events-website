@@ -493,6 +493,7 @@ for(const width of [320,390,430])test(`mobile event cards keep comic titles and 
   const action=article.locator('.platform-action');await expect(action).toHaveCount(1);const button=await action.boundingBox();
   expect(button!.height).toBeGreaterThanOrEqual(44);expect(button!.x).toBeGreaterThan(card!.x);expect(button!.x+button!.width).toBeLessThan(card!.x+card!.width);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+  await page.mouse.click(10,300);
   await page.screenshot({path:info.outputPath(`event-${name}-${width}.png`),fullPage:true,animations:'disabled'});
  }
 });
