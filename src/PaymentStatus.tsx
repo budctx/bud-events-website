@@ -1,7 +1,5 @@
-import {BudNotice} from './BudUI';
-import {ButtonUtility} from './ButtonUtility';
-import {RefreshCw} from 'lucide-react';
-import { useEffect, useState } from 'react';
+import {useBudToast} from './BudUI';
+import { useCallback, useEffect, useState } from 'react';
 import { getPaymentReceipt, HostClientError } from './host-client';
 import type { Locale } from './host-client';
 import type { PaymentReceipt, PaymentState } from './payment-state';
@@ -24,15 +22,17 @@ export default function PaymentStatus({ orderId, locale, onAuthLost, onState }: 
   orderId: string; locale: Locale; onAuthLost: () => void; onState: (state: PaymentState) => void;
 }) {
   const [receipt, setReceipt] = useState<PaymentReceipt | null>(null);
-  const [loading, setLoading] = useState(true);
+
   const [unavailable, setUnavailable] = useState(false);
   const [revision, setRevision] = useState(0);
   const t = copy[locale];
+  const toast=useBudToast();
+  const retry=useCallback(()=>setRevision(value=>value+1),[]);
   useEffect(() => {
     const controller = new AbortController(); let timer: ReturnType<typeof setTimeout> | undefined, polls = 0, refreshing = false, notified: PaymentState | null = null;
     const refresh = async () => {
       if (refreshing || controller.signal.aborted) return;
-      refreshing = true; setLoading(true); setUnavailable(false);
+      refreshing = true; setUnavailable(false);
       try {
         const data = await getPaymentReceipt(orderId, controller.signal);
         if (controller.signal.aborted) return;
@@ -45,7 +45,7 @@ export default function PaymentStatus({ orderId, locale, onAuthLost, onState }: 
         if (controller.signal.aborted) return;
         setReceipt(null); setUnavailable(true);
         if (error instanceof HostClientError && error.status === 401) onAuthLost();
-      } finally { if (!controller.signal.aborted) setLoading(false); refreshing = false; }
+      } finally { refreshing = false; }
     };
     const focus = () => { if (timer) clearTimeout(timer); void refresh(); };
     void refresh(); window.addEventListener('focus', focus);
@@ -54,10 +54,11 @@ export default function PaymentStatus({ orderId, locale, onAuthLost, onState }: 
   const state = receipt?.state;
   const message = unavailable ? t.unavailable : state ? t[state] : t.loading;
   const detail = unavailable ? t.unavailableHelp : state ? t[`${state}Help`] : '';
-  return <section className="platform-payment-status" aria-labelledby="payment-status-heading" data-testid="payment-status" aria-busy={loading}>
-    <div><h2 id="payment-status-heading">{t.title}</h2><BudNotice id={`payment-${orderId}`} tone={unavailable?'danger':state==='confirmed'?'success':state==='pending'?'info':'warning'} persistent={unavailable||!!state&&state!=='confirmed'}>{message+(detail?' — '+detail:'')}</BudNotice>{detail && <p>{detail}</p>}
-      {receipt && <p>{new Intl.NumberFormat(locale, { style: 'currency', currency: receipt.currency }).format(receipt.amountMinor / 100)}</p>}
-      <p className="platform-payment-reference">{t.reference}: <bdi dir="ltr">{orderId}</bdi></p></div>
-    <ButtonUtility label={t.retry} icon={RefreshCw} isDisabled={loading} onPress={() => setRevision(value => value + 1)}/>
-  </section>;
+  const amount=receipt?new Intl.NumberFormat(locale,{style:'currency',currency:receipt.currency}).format(receipt.amountMinor/100):'';
+  const tone=unavailable?'danger':state==='confirmed'?'success':state==='pending'?'info':'warning';
+  const persistent=unavailable||!!state&&state!=='confirmed';
+  useEffect(()=>{
+    toast(message,tone,{id:`payment-${orderId}`,description:detail,amount,reference:orderId,referenceLabel:t.reference,action:{label:t.retry,onPress:retry},testId:'payment-status',persistent});
+  },[toast,message,tone,orderId,detail,amount,t.reference,t.retry,retry,persistent]);
+  return null;
 }

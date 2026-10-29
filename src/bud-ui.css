@@ -39,3 +39,5 @@
 @keyframes bud-logo-scroll{to{transform:translateX(50%)}}
 @media(max-width:600px){.bud-steps li{font-size:10px}.bud-step-dot{width:23px;height:23px}.bud-steps li:not(:last-child):after{margin-inline:5px}.bud-logo-item{width:90px}}
 @media(prefers-reduced-motion:reduce){.bud-toast,.bud-dialog{animation:none}.bud-skeleton i,.bud-logo-track{animation:none!important}.bud-magnetic{transform:none!important;transition:none}}
+
+.bud-toast[data-structured=true]{align-items:flex-start}.bud-toast-copy{flex:1;min-width:0;display:grid;gap:7px;text-align:start}.bud-toast-copy strong{font-size:13px;font-weight:700}.bud-toast-copy p{margin:0;font-size:12px;line-height:1.8}.bud-toast-copy .bud-toast-meta{font-size:10px;color:#686052}.bud-toast-copy button{justify-self:start}.bud-toast-copy bdi{overflow-wrap:anywhere}
