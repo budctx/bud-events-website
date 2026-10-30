@@ -139,6 +139,7 @@ for(const viewport of [
 
 for(const viewport of [{width:320,height:568},{width:375,height:667},{width:390,height:844},{width:430,height:932},{width:768,height:1024},{width:844,height:390},{width:700,height:440},{width:667,height:375},{width:1024,height:768},{width:1366,height:768},{width:1440,height:900}])test(`events catalogue fits the viewport ${viewport.width}x${viewport.height}`,async({page},info)=>{
  await page.setViewportSize(viewport);await page.emulateMedia({reducedMotion:'reduce'});
+ await page.route('**/api/checkout?price=1',r=>r.fulfill({json:{code:'OK',data:{baseAmountMinor:2000,amountMinor:1800,currency:'sar',promotion:{code:'bud10',percent:10}}}}));
  await page.route('**/api/auth**',r=>r.fulfill({json:{code:'OK',data:{id:'11111111-1111-4111-8111-111111111111',displayName:'مقدم بُعد'}}}));
  await page.route('**/api/host',r=>r.fulfill({json:{code:'OK',data:{credits:2,events:[{eventId:'fit-fixture',title:'فعالية',phase:'live',version:1,state:{phase:'live',winners:[],prizes:[]}}],products:[],contentVersions:[]}}}));
  await page.goto('/?screen=events');await expect(page.getByTestId('event-carousel')).toBeVisible();await expect(page.getByTestId('event-setup')).toBeVisible();await expect(page.getByTestId('event-preview')).toBeVisible();
