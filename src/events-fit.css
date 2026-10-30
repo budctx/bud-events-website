@@ -247,3 +247,7 @@
  .platform.platform-events-fit .qc-demo:has(.qc-demo-timer[data-active=true]) .qc-demo-hint{visibility:hidden}
  .platform.platform-events-fit .qc-demo{flex-shrink:0}
 }
+@media(max-width:700px) and (max-height:640px) and (min-height:501px){
+ .platform.platform-events-fit .qc-demo-timer{--countdown-size:24px}
+ .platform.platform-events-fit .qc-demo-timer .event-countdown-value{font-size:11px}
+}
