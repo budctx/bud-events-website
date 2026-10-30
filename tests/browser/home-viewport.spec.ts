@@ -136,11 +136,11 @@ for(const viewport of [
  });
 }
 
-for(const viewport of [{width:320,height:568},{width:375,height:667},{width:390,height:844},{width:430,height:932},{width:768,height:1024},{width:844,height:390},{width:1024,height:768},{width:1366,height:768},{width:1440,height:900}])test(`events catalogue fits the viewport ${viewport.width}x${viewport.height}`,async({page},info)=>{
+for(const viewport of [{width:320,height:568},{width:375,height:667},{width:390,height:844},{width:430,height:932},{width:768,height:1024},{width:844,height:390},{width:700,height:440},{width:667,height:375},{width:1024,height:768},{width:1366,height:768},{width:1440,height:900}])test(`events catalogue fits the viewport ${viewport.width}x${viewport.height}`,async({page},info)=>{
  await page.setViewportSize(viewport);await page.emulateMedia({reducedMotion:'reduce'});
  await page.route('**/api/auth**',r=>r.fulfill({json:{code:'OK',data:{id:'11111111-1111-4111-8111-111111111111',displayName:'مقدم بُعد'}}}));
  await page.route('**/api/host',r=>r.fulfill({json:{code:'OK',data:{credits:2,events:[{eventId:'fit-fixture',title:'فعالية',phase:'live',version:1,state:{phase:'live',winners:[],prizes:[]}}],products:[],contentVersions:[]}}}));
- await page.goto('/?screen=events');await expect(page.getByTestId('event-carousel')).toBeVisible();await expect(page.getByTestId('event-setup')).toBeVisible();
+ await page.goto('/?screen=events');await expect(page.getByTestId('event-carousel')).toBeVisible();await expect(page.getByTestId('event-setup')).toBeVisible();await expect(page.getByTestId('event-preview')).toBeVisible();
  const fits=async()=>{const dimensions=await page.evaluate(()=>({height:document.documentElement.scrollHeight,width:document.documentElement.scrollWidth,h:innerHeight,w:innerWidth}));expect(dimensions.height).toBeLessThanOrEqual(dimensions.h+1);expect(dimensions.width).toBeLessThanOrEqual(dimensions.w+1);
  for(const selector of ['.platform-header','.platform-footer','.platform-gallery-intro','.bud-carousel-navigation','.bud-carousel-status','.bud-events-slide:not([inert])>.platform-product-card']){const b=await page.locator(selector).boundingBox();expect(b,selector).not.toBeNull();expect(b!.y,selector).toBeGreaterThanOrEqual(0);expect(b!.y+b!.height,selector).toBeLessThanOrEqual(viewport.height+1);}};
  await fits();const cardBounds=await page.locator('.bud-events-slide:not([inert])>article').boundingBox();for(const sample of await page.locator('.qc-demo-card').all()){const b=await sample.boundingBox();expect(b!.x).toBeGreaterThanOrEqual(cardBounds!.x+5);expect(b!.x+b!.width).toBeLessThanOrEqual(cardBounds!.x+cardBounds!.width-5);}

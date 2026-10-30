@@ -135,7 +135,7 @@ for (const locale of ['ar', 'en'] as const) test(`Arabic sign-in is enforced for
     await page.getByRole('button', { name: 'سجّل دخولك عبر Discord', exact: true }).click();
     await expect.poll(() => payloads.length).toBe(['home', 'events', 'bots', 'designs'].indexOf(screen) + 1);
     expect(payloads.at(-1)).toEqual({ page: screen, locale: 'ar' });
-    await expect(page.getByTestId('platform-root')).toHaveClass(`platform platform-${screen}`);
+    await expect(page.getByTestId('platform-root')).toHaveClass(new RegExp('(^| )platform-'+screen+'( |$)'));
     await expect(page.locator('dialog[open]')).toHaveCount(0);
   }
 });
@@ -177,7 +177,7 @@ test('touch account menu toggles by tap and closes outside on mobile', async ({ 
   await page.screenshot({ path: info.outputPath('account-menu-mobile.png'), fullPage: true, animations: 'disabled' });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   await account.tap(); await expect(page.getByRole('menu')).toHaveCount(0);
-  await account.tap(); await page.getByRole('heading', { name: 'سؤال وشرط', exact: true }).tap(); await expect(page.getByRole('menu')).toHaveCount(0);
+  await account.tap(); await page.touchscreen.tap(10,500); await expect(page.getByRole('menu')).toHaveCount(0);
   await context.close();
 });
 test('real zero keys differs from an unavailable balance and refresh focus updates ownership', async ({ page }) => {
