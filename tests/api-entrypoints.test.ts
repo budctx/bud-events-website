@@ -8,7 +8,7 @@ import reconcile from '../api/payment-reconcile.ts';
 import receipt from '../api/payment-status.ts';
 
 test('deployed fetch entrypoints ignore runtime context and read server environment', async () => {
-  const origin = 'https://bud-events-website.vercel.app';
+  const origin = 'https://budteam.net';
   const values = {
     BUD_AUTH_ENABLED: 'true', BUD_BACKEND_ENABLED: 'true', BUD_APP_ORIGIN: origin,
     SUPABASE_URL: 'https://cepmvqqrjcvhyzszqand.supabase.co', SUPABASE_PUBLISHABLE_KEY: 'test-publishable',

@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 export function Seo({ locale = 'ar', screen = 'home' }: { locale?: 'ar' | 'en'; screen?: string }) {
   useEffect(() => {
     const isPublic = ['home', 'events', 'bots', 'designs'].includes(screen);
-    const origin = 'https://bud-events-website.vercel.app';
+    const origin = 'https://budteam.net';
     const title = 'بُعد — تجارب رقمية بروح مجتمعك';
     const description = 'اكتشف فعاليات بُعد لمجتمعات Discord. جرّب بطاقتي سؤال وشرط وتعرّف إلى طريقة إدارة الفعالية.';
     document.title = title;

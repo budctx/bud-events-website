@@ -5,7 +5,7 @@ import { handleWebhookRoute } from '../server/commerce-routing.ts';
 import { handleWhopWebhookVerification } from '../server/whop-webhook-verification.ts';
 import type { CommerceEnv } from '../server/whop.ts';
 
-const origin = 'https://bud-events-website.vercel.app';
+const origin = 'https://budteam.net';
 const env: CommerceEnv = { BUD_WHOP_WEBHOOK_VERIFY_ONLY_ENABLED: 'true', VERCEL_ENV: 'production', BUD_APP_ORIGIN: origin,
   WHOP_PRODUCTION_WEBHOOK_SECRET: 'ws_0123456789abcdef0123456789abcdef0123456789abcdef',
   WHOP_PRODUCTION_COMPANY_ID: 'biz_fixture123', WHOP_PRODUCTION_WEBHOOK_API_VERSION: '2026-10-15-1',

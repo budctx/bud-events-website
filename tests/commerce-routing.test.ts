@@ -6,7 +6,7 @@ import { checkoutDestination } from '../src/checkout-destination.ts';
 const host = '11111111-1111-4111-8111-111111111111', other = '22222222-2222-4222-8222-222222222222';
 test('server-owned live selection cannot be enabled by browser fields and never falls back to Sandbox', async () => {
   const noNetwork:typeof fetch=async()=>{assert.fail('no disabled route may reach network');};
-  const request=()=>new Request('https://bud-events-website.vercel.app/api/checkout?environment=production',{method:'POST',headers:{'x-bud-commerce-mode':'live','content-type':'application/json'},body:JSON.stringify({mode:'live'})});
+  const request=()=>new Request('https://budteam.net/api/checkout?environment=production',{method:'POST',headers:{'x-bud-commerce-mode':'live','content-type':'application/json'},body:JSON.stringify({mode:'live'})});
   for(const handler of [handleCheckoutRoute,handleHostRoute,handleWebhookRoute]) {
     for(const env of [{},{BUD_COMMERCE_MODE:'typo'},{BUD_COMMERCE_MODE:'live',VERCEL_ENV:'preview',WHOP_ENVIRONMENT:'production'},
       {BUD_COMMERCE_MODE:'live',VERCEL_ENV:'production',WHOP_ENVIRONMENT:'sandbox'},

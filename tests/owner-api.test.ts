@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {handleAuth} from '../server/auth.ts';
 import {handleOwner} from '../server/owner.ts';
-const origin='https://bud-events-website.vercel.app',project='https://cepmvqqrjcvhyzszqand.supabase.co',host='11111111-1111-4111-8111-111111111111',discord='123456789012345678';
+const origin='https://budteam.net',project='https://cepmvqqrjcvhyzszqand.supabase.co',host='11111111-1111-4111-8111-111111111111',discord='123456789012345678';
 const env={BUD_AUTH_ENABLED:'true',BUD_BACKEND_ENABLED:'true',BUD_OWNER_PANEL_ENABLED:'true',BUD_REDEEM_ENABLED:'true',BUD_APP_ORIGIN:origin,SUPABASE_URL:project,SUPABASE_PUBLISHABLE_KEY:'sb_publishable_mock',SUPABASE_SERVICE_ROLE_KEY:'fixture-service-only-key',BUD_AUTH_COOKIE_SECRET:'fixture-cookie-012345678901234567890123456789',BUD_REDEEM_HASH_SECRET:'fixture-hash-012345678901234567890123456789',BUD_RATE_LIMIT_ENABLED:'true',BUD_RATE_LIMIT_SECRET:'fixture-rate-012345678901234567890123456789',VERCEL:'1',BUD_OWNER_MAX_GRANT_SLOTS:'10',BUD_OWNER_MAX_CODE_USES:'20'};
 type Handler=(name:string,body:any)=>Response;
 function mock(handler:Handler=()=>Response.json({replayed:false,id:host}),owner=true,identity=discord):typeof fetch{return async(input,init)=>{

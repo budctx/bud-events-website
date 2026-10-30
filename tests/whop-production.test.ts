@@ -7,7 +7,7 @@ import { WhopError } from '../server/whop.ts';
 const env = { WHOP_PRODUCTION_API_KEY: 'test-only-production-key', WHOP_PRODUCTION_COMPANY_ID: 'biz_production123',
   WHOP_PRODUCTION_PLAN_ID: 'plan_production123', WHOP_PRODUCTION_PRODUCT_ID: 'prod_production123', WHOP_PRODUCTION_CURRENCY: 'sar',
   WHOP_PRODUCTION_AMOUNT_MINOR: '300', WHOP_PRODUCTION_WEBHOOK_SECRET: 'ws_' + 'x'.repeat(48),
-  WHOP_PRODUCTION_WEBHOOK_API_VERSION: '2026-10-15-1', BUD_APP_ORIGIN: 'https://bud-events-website.vercel.app',
+  WHOP_PRODUCTION_WEBHOOK_API_VERSION: '2026-10-15-1', BUD_APP_ORIGIN: 'https://budteam.net',
   WHOP_ENVIRONMENT: 'production', BUD_WHOP_PRODUCTION_ENABLED: 'true', BUD_WHOP_PRODUCTION_PROCESSING_ENABLED: 'true', BUD_WHOP_PRODUCTION_MODE: 'pilot',
   BUD_WHOP_PILOT_HOST_ID: '22222222-2222-4222-8222-222222222222' };
 const config = whopProductionConfig(env)!;

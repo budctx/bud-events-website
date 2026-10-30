@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { handleAuth } from '../server/auth.ts';
 import { handleWhopPreflight, handleWhopQuote } from '../server/whop-preflight.ts';
 
-const origin = 'https://bud-events-website.vercel.app';
+const origin = 'https://budteam.net';
 const project = 'https://cepmvqqrjcvhyzszqand.supabase.co';
 const hostId = '22222222-2222-4222-8222-222222222222';
 const env = { BUD_WHOP_PREFLIGHT_ENABLED: 'true', BUD_WHOP_PRODUCTION_ENABLED: 'false', BUD_WHOP_PILOT_HOST_ID: hostId,

@@ -19,7 +19,7 @@ export async function handleWhopWebhookVerification(request: Request, env: Comme
   if (!/^ws_[A-Za-z0-9]{32,128}$/.test(secret) || !/^biz_[A-Za-z0-9]{5,80}$/.test(company)
     || !['2026-08-14', '2026-10-15-1'].includes(version)) return result(503, 'WEBHOOK_VERIFICATION_NOT_CONFIGURED');
   const url = new URL(request.url);
-  if (env.BUD_APP_ORIGIN !== 'https://bud-events-website.vercel.app' || url.origin !== env.BUD_APP_ORIGIN
+  if (env.BUD_APP_ORIGIN !== 'https://budteam.net' || url.origin !== env.BUD_APP_ORIGIN
     || url.pathname !== '/api/whop-webhook' || url.search) return result(400, 'INVALID_WEBHOOK_ENDPOINT');
   try {
     const envelope = await verifyWhopEnvelope(request, secret, company, version);

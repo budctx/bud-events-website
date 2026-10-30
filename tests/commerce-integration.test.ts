@@ -1,7 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';import {PGlite} from '@electric-sql/pglite';
 import {handleAuth} from '../server/auth.ts';import {handleCheckout,handleSandboxWhopWebhook} from '../server/checkout.ts';
 test('isolated API-to-SQL checkout and signed webhook grant one run across replay',async()=>{
- const db=new PGlite(),origin='https://bud-events-website.vercel.app',host='11111111-1111-4111-8111-111111111111';
+ const db=new PGlite(),origin='https://budteam.net',host='11111111-1111-4111-8111-111111111111';
  const env={VERCEL:'1',BUD_AUTH_ENABLED:'true',BUD_BACKEND_ENABLED:'true',BUD_RATE_LIMIT_ENABLED:'true',BUD_RATE_LIMIT_SECRET:'test-rate-only-secret-over-32-bytes',BUD_AUTH_COOKIE_SECRET:'test-cookie-only-secret-over-32-bytes',BUD_APP_ORIGIN:origin,SUPABASE_URL:'https://cepmvqqrjcvhyzszqand.supabase.co',SUPABASE_PUBLISHABLE_KEY:'test',SUPABASE_SERVICE_ROLE_KEY:'test-service',BUD_WHOP_SANDBOX_ENABLED:'true',WHOP_ENVIRONMENT:'sandbox',WHOP_SANDBOX_API_KEY:'test-whop',WHOP_SANDBOX_WEBHOOK_SECRET:'ws_0123456789abcdef0123456789abcdef0123456789abcdef',WHOP_SANDBOX_COMPANY_ID:'biz_fixture123',WHOP_SANDBOX_PRODUCT_ID:'prod_fixture123',WHOP_SANDBOX_PLAN_ID:'plan_fixture123',WHOP_SANDBOX_CURRENCY:'sar',WHOP_SANDBOX_AMOUNT_MINOR:'2500'};
  let orderId='',amount=25,checkouts=0;
  const edge={'x-vercel-forwarded-for':'192.0.2.1'};

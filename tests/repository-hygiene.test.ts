@@ -37,7 +37,7 @@ test('production source of truth and archive are clear to future agents', () => 
   const readme = read('README.md');
   const agents = read('AGENTS.md');
   const archive = read('docs/BUD_REPOSITORY_ARCHIVE.md');
-  assert.match(readme, /https:\/\/bud-events-website\.vercel\.app/);
+  assert.match(readme, /https:\/\/budteam\.net/);
   assert.match(readme, /Notion/);
   assert.match(readme, /No Discord bot, participant registration\/tracking/);
   assert.match(agents, /Stage 00/);

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { handleAuth } from '../server/auth.ts';
 import { handleHost,handleLiveHost } from '../server/host.ts';
 import { initialManualState, manualGameReducer } from '../src/manual-game.ts';
-const origin = 'https://bud-events-website.vercel.app';
+const origin = 'https://budteam.net';
 const project = 'https://cepmvqqrjcvhyzszqand.supabase.co';
 const id = '11111111-1111-4111-8111-111111111111';
 const eventId = '22222222-2222-4222-8222-222222222222';

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { enforceRateLimit } from '../server/rate-limit.ts';
 import { handleAuth } from '../server/auth.ts';
 const env={VERCEL:'1',BUD_RATE_LIMIT_ENABLED:'true',BUD_RATE_LIMIT_SECRET:'test-only-rate-key-at-least-32-bytes',SUPABASE_URL:'https://cepmvqqrjcvhyzszqand.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'private-test-key'};
-const request=(ip='192.0.2.1')=>new Request('https://bud-events-website.vercel.app/api/host',{headers:{'x-vercel-forwarded-for':ip}});
+const request=(ip='192.0.2.1')=>new Request('https://budteam.net/api/host',{headers:{'x-vercel-forwarded-for':ip}});
 test('limiter uses fixed server endpoint, keyed pseudonyms and isolated scope',async()=>{
  const buckets:string[]=[];
  const transport:typeof fetch=async(url,init)=>{assert.equal(String(url),env.SUPABASE_URL+'/rest/v1/rpc/bud_consume_rate_limit');const body=JSON.parse(String(init?.body));assert.match(body.p_bucket,/^[a-f0-9]{64}$/);assert.ok(!String(init?.body).includes('192.0.2.1'));assert.equal(init?.redirect,'error');buckets.push(body.p_bucket);return Response.json({allowed:true,retryAfter:0});};
@@ -25,7 +25,7 @@ test('limiter rejects missing configuration, untrusted proxy chains and unavaila
 test('rate rejection returns Retry-After; logout still clears local cookies',async()=>{
  const blocked:typeof fetch=async()=>Response.json({allowed:false,retryAfter:28});
  const result=await enforceRateLimit(request(),env,blocked,'host');assert.equal(result?.status,429);assert.equal(result?.headers.get('Retry-After'),'28');
- const origin='https://bud-events-website.vercel.app';
+ const origin='https://budteam.net';
  const logout=await handleAuth(new Request(origin+'/api/auth?action=logout',{method:'POST',headers:{origin,'x-vercel-forwarded-for':'192.0.2.1'}}),{...env,BUD_AUTH_ENABLED:'true',SUPABASE_PUBLISHABLE_KEY:'test',BUD_APP_ORIGIN:origin,BUD_AUTH_COOKIE_SECRET:'test-cookie-secret-at-least-32-bytes'},blocked);
  assert.equal(logout.status,429);assert.equal(logout.headers.getSetCookie().length,2);
 });

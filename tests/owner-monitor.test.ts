@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {handleOwnerMonitor} from '../server/owner-monitor.ts';
-const origin='https://bud-events-website.vercel.app',id='11111111-1111-4111-8111-111111111111',lease='22222222-2222-4222-8222-222222222222';
+const origin='https://budteam.net',id='11111111-1111-4111-8111-111111111111',lease='22222222-2222-4222-8222-222222222222';
 const env={BUD_OWNER_MONITOR_ENABLED:'true',BUD_BACKEND_ENABLED:'true',SUPABASE_URL:'https://cepmvqqrjcvhyzszqand.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'fixture-service',VERCEL_ENV:'production',CRON_SECRET:'fixture_cron_token_01234567890123456789',BUD_APP_ORIGIN:origin,BUD_OWNER_HOST_ID:id,BUD_OWNER_DISCORD_ID:'123456789012345678',BUD_OWNER_ALERT_STALE_SECONDS:'300',BUD_OWNER_ALERT_ESCALATION_SECONDS:'900',RESEND_API_KEY:'fixture-resend-secret',BUD_OWNER_ALERT_FROM:'alerts@example.test',BUD_OWNER_ALERT_TO:'owner@example.test'};
 const request=(token=env.CRON_SECRET)=>new Request(origin+'/api/owner-monitor',{headers:{authorization:'Bearer '+token}});
 test('monitor never contacts providers without operator authorization and explicit configured channel',async()=>{

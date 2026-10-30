@@ -1,6 +1,6 @@
 import { writeFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
-export const CANONICAL_ORIGIN = 'https://bud-events-website.vercel.app';
+export const CANONICAL_ORIGIN = 'https://budteam.net';
 /** Non-authenticated probes only. Never signs in, starts an event, charges, or sends cookies. */
 export async function runLaunchSmoke({ mode = 'maintenance', baseUrl = CANONICAL_ORIGIN, transport = fetch } = {}) {
   if (!['maintenance', 'commercial'].includes(mode) || baseUrl !== CANONICAL_ORIGIN) return { schemaVersion: 1, mode: 'invalid', smokePassed: false, commercialReady: false, checks: [], blockers: ['INVALID_SMOKE_CONFIGURATION'] };
