@@ -241,3 +241,9 @@
  .platform.platform-events-fit .qc-demo-reset{min-height:24px}
  .platform.platform-events-fit .platform-event-keys{padding-block:0;line-height:16px;margin-bottom:2px}
 }
+/* The sample timer shares the instruction row, so reveals never add height. */
+@media(max-width:700px) and (min-height:501px){
+ .platform.platform-events-fit .qc-demo-timer{grid-column:1;grid-row:2;--countdown-size:32px;align-self:center;justify-self:center}
+ .platform.platform-events-fit .qc-demo:has(.qc-demo-timer[data-active=true]) .qc-demo-hint{visibility:hidden}
+ .platform.platform-events-fit .qc-demo{flex-shrink:0}
+}
