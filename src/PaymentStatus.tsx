@@ -54,7 +54,7 @@ export default function PaymentStatus({ orderId, locale, onAuthLost, onState }: 
   const state = receipt?.state;
   const message = unavailable ? t.unavailable : state ? t[state] : t.loading;
   const detail = unavailable ? t.unavailableHelp : state ? t[`${state}Help`] : '';
-  const amount=receipt?new Intl.NumberFormat(locale,{style:'currency',currency:receipt.currency}).format(receipt.amountMinor/100):'';
+  const amount=receipt?new Intl.NumberFormat(locale,{numberingSystem:'latn',style:'currency',currency:receipt.currency}).format(receipt.amountMinor/100):'';
   const tone=unavailable?'danger':state==='confirmed'?'success':state==='pending'?'info':'warning';
   const persistent=unavailable||!!state&&state!=='confirmed';
   useEffect(()=>{

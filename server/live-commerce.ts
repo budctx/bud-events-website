@@ -40,8 +40,8 @@ async function rpc(name: string, params: object, secret: string, transport: type
   }
   return data;
 }
-function order(value: unknown, config: ProductionConfig): StoredOrder {
-  if (!object(value) || !productionOrderMatches(value as StoredOrder, config) || typeof value.fulfilled !== 'boolean'
+function order(value: unknown, config: ProductionConfig, historicalPayment = false): StoredOrder {
+  if (!object(value) || !productionOrderMatches(value as StoredOrder, config, historicalPayment) || typeof value.fulfilled !== 'boolean'
     || !((value.checkoutId === null && value.checkoutUrl === null) || (typeof value.checkoutId === 'string' && typeof value.checkoutUrl === 'string')))
     throw new WhopError('LIVE_ORDER_MISMATCH', 409);
   const stored = value as StoredOrder;
@@ -139,7 +139,7 @@ export async function runProductionPaymentJob(env: CommerceEnv, transport: typeo
   try {
     const { orderId, payment } = await lookupProductionPayment(job.paymentId, config, transport);
     verificationStage = 'order_lookup';
-    const stored = order(await rpc('bud_live_order', { p_order: orderId }, secret, transport), config);
+    const stored = order(await rpc('bud_live_order', { p_order: orderId }, secret, transport), config, true);
     verificationStage = 'order_binding';
     if (stored.orderId !== orderId) throw new WhopError('LIVE_ORDER_MISMATCH', 409);
     verificationStage = 'payment_identity';

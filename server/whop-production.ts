@@ -53,7 +53,7 @@ function money(value: unknown): number | null {
   const match = /^(0|[1-9][0-9]{0,6})(?:\.([0-9]{1,2}))?$/.exec(String(value));
   return match ? Number(match[1]) * 100 + Number((match[2] ?? '').padEnd(2, '0')) : null;
 }
-/** Read-only expectations. The owner adopted SAR 3 as the current official one-time price. */
+/** Read-only expectations. Owner-approved current price comes from server configuration; display promotion is SAR 20 to SAR 18. */
 export function productionPlanExpectation(env: CommerceEnv): ProductionPlanExpectation | null {
   if (!env.WHOP_PRODUCTION_API_KEY || !/^biz_[A-Za-z0-9]{5,80}$/.test(env.WHOP_PRODUCTION_COMPANY_ID ?? '')
     || !/^plan_[A-Za-z0-9]{5,80}$/.test(env.WHOP_PRODUCTION_PLAN_ID ?? '')
@@ -143,10 +143,11 @@ export async function inspectProductionPlan(config: ProductionPlanExpectation, t
   const product = plan.product as { id: string };
   return { companyId: config.company, productId: product.id, planId: config.plan, currency: config.currency, amountMinor: config.amount };
 }
-export function productionOrderMatches(order: ProductionOrder, config: ProductionConfig): boolean {
+export function productionOrderMatches(order: ProductionOrder, config: ProductionConfig, historicalPayment = false): boolean {
+  const amountMatches = order.amountMinor === config.amount || (historicalPayment && config.amount === 1800 && order.amountMinor === 300);
   return uuid.test(order.orderId) && uuid.test(order.hostId) && (config.audience === 'public' || order.hostId === config.pilotHostId) && order.environment === 'production'
     && order.companyId === config.company && order.productId === config.product && order.planId === config.plan
-    && order.currency === config.currency && order.amountMinor === config.amount && (order.locale === 'ar' || order.locale === 'en');
+    && order.currency === config.currency && amountMatches && (order.locale === 'ar' || order.locale === 'en');
 }
 export function assertProductionCheckoutUrl(checkoutId: string, value: string, expectedPlanId?: string): void {
   let url: URL; try { url = new URL(value); } catch { throw new WhopError('INVALID_PRODUCTION_CHECKOUT_URL'); }
@@ -196,7 +197,7 @@ export function assertProductionPaymentMatches(payment: Record<string, unknown>,
 }
 /** Stable binding checks also apply when the authoritative payment has since been refunded/disputed. */
 export function assertProductionPaymentIdentity(payment: Record<string, unknown>, order: ProductionOrder, config: ProductionConfig): void {
-  if (!productionOrderMatches(order, config) || !order.checkoutId || !order.checkoutUrl) throw new WhopError('PRODUCTION_PAYMENT_MISMATCH', 409);
+  if (!productionOrderMatches(order, config, true) || !order.checkoutId || !order.checkoutUrl) throw new WhopError('PRODUCTION_PAYMENT_MISMATCH', 409);
   assertProductionCheckoutUrl(order.checkoutId, order.checkoutUrl);
   if (typeof payment.id !== 'string' || !/^pay_[A-Za-z0-9]{5,80}$/.test(payment.id) || payment.checkout_configuration_id !== order.checkoutId
     || !object(payment.company) || payment.company.id !== order.companyId || !object(payment.product) || payment.product.id !== order.productId
