@@ -1,3 +1,4 @@
+import {BudNotice} from './BudUI';
 import { useEffect, useRef, useState } from 'react';
 import type { Ref } from 'react';
 import type { Locale } from './i18n';
@@ -37,7 +38,8 @@ export function EventPreview({ locale, previewRef }: { locale: Locale; previewRe
       const text = ar ? (index === 0 ? 'اذكر دولة' : 'تبدأ بحرف «س»') : (index === 0 ? 'Name a country' : 'Starts with S');
       return <GameCard key={kind} kind={kind} locale={locale} content={text} revealed={revealed} buttonRef={index === 0 ? firstCard : undefined} className="qc-demo-card" onReveal={() => reveal(kind)} />;
     })}</div>
-    <p className="qc-demo-hint" role="status">{expired ? (ar ? 'انتهى الوقت! أعد المحاولة بالبطاقتين نفسيهما.' : 'Time’s up! Try the same two cards again.') : both ? (ar ? 'ما الدولة التي تبدأ بحرف س؟' : 'Which country starts with S?') : (ar ? 'اضغط البطاقتين؛ يبدأ المؤقت بعد كشفهما.' : 'Tap both cards; the timer starts once both are revealed.')}</p>
+    {expired&&<BudNotice tone="warning" resolveOnUnmount>{ar?'انتهى الوقت! أعد المحاولة بالبطاقتين نفسيهما.':'Time’s up! Try the same two cards again.'}</BudNotice>}
+    <p className="qc-demo-hint" role="status">{expired ? '' : both ? (ar ? 'ما الدولة التي تبدأ بحرف س؟' : 'Which country starts with S?') : (ar ? 'اضغط البطاقتين؛ يبدأ المؤقت بعد كشفهما.' : 'Tap both cards; the timer starts once both are revealed.')}</p>
     <button type="button" className="qc-demo-reset" disabled={!question && !condition} onClick={reset}>{ar ? 'إعادة المحاولة' : 'Try again'}</button>
   </section>;
 }

@@ -31,7 +31,7 @@ for(const locale of ['ar','en']) for(const size of [{width:1440,height:900},{wid
     await page.screenshot({path:info.outputPath('inline-countdown.png'),fullPage:true,animations:'disabled'});
     await page.clock.runFor(3100);
     await expect(page.getByRole('timer')).toHaveText(ar?'0ث':'0s');
-    await expect(preview.getByRole('status')).toContainText(ar?'انتهى الوقت':'Time’s up');
+    await expect(page.locator('.bud-toast')).toContainText(ar?'انتهى الوقت':'Time’s up');
     await page.getByRole('button',{name:ar?'إعادة المحاولة':'Try again',exact:true}).click();
     await expect(question).toBeEnabled(); await expect(question).toBeFocused();
     await expect(page.getByRole('timer')).toHaveCount(0);
