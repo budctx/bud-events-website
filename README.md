@@ -1,6 +1,6 @@
 # BU’D — Official Discord-first Digital Products Website
 
-**Canonical production:** https://bud-events-website.vercel.app  
+**Canonical production:** https://budteam.net
 **Source of truth for decisions, approvals, and stage gates:** [BU’D Project Command Center in Notion](https://app.notion.com/p/401b475e25f18133bdedc0fab9ee1287)
 
 BU’D is a Saudi Discord-first digital products brand. The official website includes Home, Events, Bots and Designs galleries, with a reusable product-detail modal. **Question & Condition / سؤال وشرط** is the first event demo, not the entire brand or a live paid service.

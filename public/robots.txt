@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 Disallow: /api/
-Sitemap: https://bud-events-website.vercel.app/sitemap.xml
+Sitemap: https://budteam.net/sitemap.xml

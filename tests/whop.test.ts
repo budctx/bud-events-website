@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { assertSandboxPaymentMatches, createSandboxCheckout, verifySandboxWebhook, WhopError, whopSandboxConfig } from '../server/whop.ts';
 import { handleSandboxWhopWebhook } from '../server/checkout.ts';
-const origin = 'https://bud-events-website.vercel.app';
+const origin = 'https://budteam.net';
 const env = { BUD_WHOP_SANDBOX_ENABLED: 'true', WHOP_ENVIRONMENT: 'sandbox', WHOP_SANDBOX_API_KEY: 'mock-sandbox-api-key',
   WHOP_SANDBOX_WEBHOOK_SECRET: 'ws_0123456789abcdef0123456789abcdef0123456789abcdef', WHOP_SANDBOX_COMPANY_ID: 'biz_sandbox123',
   WHOP_SANDBOX_PRODUCT_ID: 'prod_sandbox123', WHOP_SANDBOX_PLAN_ID: 'plan_sandbox123', WHOP_SANDBOX_CURRENCY: 'sar', WHOP_SANDBOX_AMOUNT_MINOR: '2500',

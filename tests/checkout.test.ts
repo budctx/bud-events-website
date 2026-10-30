@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { handleAuth } from '../server/auth.ts';
 import { handleCheckout } from '../server/checkout.ts';
-const origin = 'https://bud-events-website.vercel.app';
+const origin = 'https://budteam.net';
 const project = 'https://cepmvqqrjcvhyzszqand.supabase.co';
 const hostId = '22222222-2222-4222-8222-222222222222';
 const env = { BUD_WHOP_SANDBOX_ENABLED: 'true', WHOP_ENVIRONMENT: 'sandbox', WHOP_SANDBOX_API_KEY: 'mock-sandbox-api-key',

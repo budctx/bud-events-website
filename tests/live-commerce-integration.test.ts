@@ -8,7 +8,7 @@ import { handleHost, handleLiveHost } from '../server/host.ts';
 import { handleCheckoutRoute, handleHostRoute, handleWebhookRoute } from '../server/commerce-routing.ts';
 import { handlePaymentStatus } from '../server/payment-status.ts';
 
-const origin = 'https://bud-events-website.vercel.app', host = '11111111-1111-4111-8111-111111111111';
+const origin = 'https://budteam.net', host = '11111111-1111-4111-8111-111111111111';
 const other = '22222222-2222-4222-8222-222222222222';
 const edge = { 'x-vercel-forwarded-for': '192.0.2.1' };
 const env = { VERCEL: '1', BUD_AUTH_ENABLED: 'true', BUD_BACKEND_ENABLED: 'true', BUD_RATE_LIMIT_ENABLED: 'true',

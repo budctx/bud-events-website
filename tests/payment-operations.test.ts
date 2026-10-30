@@ -10,7 +10,7 @@ import { productionPaymentCondition } from '../server/whop-production.ts';
 
 test('payment operations: protected worker, own receipts, authoritative refund hold and lease fencing use real SQL', async t => {
   const db = new PGlite(), host = '11111111-1111-4111-8111-111111111111', other = '22222222-2222-4222-8222-222222222222';
-  const origin = 'https://bud-events-website.vercel.app', edge = { 'x-vercel-forwarded-for': '192.0.2.10' };
+  const origin = 'https://budteam.net', edge = { 'x-vercel-forwarded-for': '192.0.2.10' };
   const env = { BUD_APP_ORIGIN: origin, BUD_AUTH_ENABLED: 'true', BUD_BACKEND_ENABLED: 'true', BUD_RATE_LIMIT_ENABLED: 'true',
     BUD_RATE_LIMIT_SECRET: 'fixture-only-rate-secret-at-least-32-bytes', BUD_AUTH_COOKIE_SECRET: 'fixture-only-cookie-secret-at-least-32-bytes', VERCEL: '1', VERCEL_ENV: 'production',
     SUPABASE_URL: 'https://cepmvqqrjcvhyzszqand.supabase.co', SUPABASE_PUBLISHABLE_KEY: 'fixture-public', SUPABASE_SERVICE_ROLE_KEY: 'fixture-service',

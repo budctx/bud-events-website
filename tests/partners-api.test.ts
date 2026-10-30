@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {handlePartners} from '../server/partners.ts';
-const url='https://bud-events-website.vercel.app/api/owner?public=partners';
+const url='https://budteam.net/api/owner?public=partners';
 const env={BUD_BACKEND_ENABLED:'true',SUPABASE_URL:'https://cepmvqqrjcvhyzszqand.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'test-backend-secret'};
 test('public partners endpoint is read-only, filters unsafe logos and never returns owner data',async()=>{
  const traffic:{url:string;method:string}[]=[];

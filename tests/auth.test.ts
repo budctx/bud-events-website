@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { handleAuth, resolveSession } from '../server/auth.ts';
 
-const origin = 'https://bud-events-website.vercel.app';
+const origin = 'https://budteam.net';
 const project = 'https://cepmvqqrjcvhyzszqand.supabase.co';
 const env = { BUD_AUTH_ENABLED: 'true', BUD_APP_ORIGIN: origin, SUPABASE_URL: project,
   SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_mock', BUD_AUTH_COOKIE_SECRET: 'test-only-secret-not-a-real-secret-0123456789', VERCEL:'1',BUD_RATE_LIMIT_ENABLED:'true', BUD_RATE_LIMIT_SECRET:'test-rate-secret-never-live-0123456789',SUPABASE_SERVICE_ROLE_KEY:'test-service-key' };

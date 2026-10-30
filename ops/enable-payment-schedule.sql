@@ -15,7 +15,7 @@ begin
  foreach v_path in array array['payment-worker','payment-reconcile'] loop
   v_name:='bud-'||v_path;
   v_command:=format($command$select net.http_get(
-   url:='https://bud-events-website.vercel.app/api/%s',
+   url:='https://budteam.net/api/%s',
    headers:=jsonb_build_object('Authorization','Bearer '||(select decrypted_secret from vault.decrypted_secrets where name='bud_payment_worker_token')),
    timeout_milliseconds:=60000);$command$,v_path);
   select schedule,command into v_existing from cron.job where jobname=v_name;
