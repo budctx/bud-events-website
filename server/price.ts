@@ -11,7 +11,7 @@ export async function handlePrice(request:Request,env:CommerceEnv=(globalThis as
  if(!config||!config.product)return liveResponse(503,'PRICE_NOT_CONFIGURED');
  try{
   const limited=await enforceRateLimit(request,env,transport,'host');if(limited)return limited;
-  const code=url.searchParams.get('promoCode');
+  const code=url.searchParams.get('promoCode')??(env.BUD_PROMO_CODES_ENABLED==='true'?env.BUD_DEFAULT_PROMO_CODE??null:null);
   if(code!==null&&env.BUD_PROMO_CODES_ENABLED!=='true')throw new WhopError('PROMO_NOT_CONFIGURED');
   if(code!==null)await inspectProductionPlan(config,transport);
   const promo=code===null?null:await findPromo(normalizePromo(code),config,transport);
