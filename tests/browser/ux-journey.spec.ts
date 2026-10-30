@@ -14,7 +14,7 @@ test('Hick: a signed-in host with slots sees setup as the main action, not purch
   await page.goto('/?screen=events');
   await expect(page.getByTestId('event-setup')).toHaveClass(/platform-action-primary/);
   await expect(page.getByTestId('product-card-qc')).toHaveClass(/platform-action-secondary/);
-  await expect(page.getByTestId('product-card-qc')).toHaveText('شراء مفتاح 20');
+  await expect(page.getByTestId('product-card-qc')).toHaveText('شراء 20');
 });
 
 test('Hick: when an event is active, resume is the primary action; without slots buying stays primary',async({page})=>{
@@ -82,7 +82,7 @@ test('Doherty: buy shows its pending state immediately without pretending succes
   await expect(page.getByTestId('product-card-qc')).toHaveText('جارٍ تجهيز الشراء…');
   await expect(page.getByRole('status').filter({hasText:'جارٍ التحقق من طلب الشراء…'})).toBeVisible();
   release();
-  await expect(page.getByTestId('product-card-qc')).toHaveText('شراء مفتاح 20');
+  await expect(page.getByTestId('product-card-qc')).toHaveText('شراء 20');
   await expect(page.locator('.bud-toast[data-tone=danger]').last()).toContainText('الشراء غير متاح');
   await expect(page.locator('.bud-toast[data-tone=danger]').last()).toHaveAttribute('data-duration','20000');
 });
@@ -96,7 +96,7 @@ for(const mode of ['mouse','keyboard','touch','reduced'] as const)test.describe(
   let calls=0,release!:()=>void;const gate=new Promise<void>(resolve=>{release=resolve;});
   await page.route('**/api/checkout',async route=>{calls++;await gate;await route.fulfill({status:503,json:{code:'LIVE_COMMERCE_DISABLED'}});});
   await page.goto('/?screen=events');const buy=page.getByTestId('product-card-qc');
-  await expect(buy).toBeEnabled();await expect(buy).toHaveText('شراء مفتاح 20');await expect(buy).toHaveAccessibleName('شراء مفتاح فعالية سؤال وشرط مقابل 20 ريال سعودي');
+  await expect(buy).toBeEnabled();await expect(buy).toHaveText('شراء 20');await expect(buy).toHaveAccessibleName('شراء مفتاح فعالية سؤال وشرط مقابل 20 ريال سعودي');
   const currency=buy.locator('img');await expect.poll(()=>currency.evaluate((img:HTMLImageElement)=>img.complete&&img.naturalWidth>0)).toBe(true);
   const symbol=await currency.boundingBox(),number=await buy.locator('bdi').boundingBox();expect(symbol!.x+symbol!.width).toBeLessThanOrEqual(number!.x+1);
   const before=await buy.boundingBox();await page.clock.install();await page.clock.pauseAt((await page.evaluate(()=>Date.now()))+1000);
@@ -107,7 +107,7 @@ for(const mode of ['mouse','keyboard','touch','reduced'] as const)test.describe(
   if(mode==='touch')expect(await buy.evaluate(el=>getComputedStyle(el).outlineStyle)).toBe('none');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
   await page.clock.runFor(650);await expect(buy.locator('.bud-button-wave')).toHaveCount(0);await expect.poll(()=>calls).toBe(1);
-  release();await expect(buy).toBeEnabled();await expect(buy).toHaveText('شراء مفتاح 20');
+  release();await expect(buy).toBeEnabled();await expect(buy).toHaveText('شراء 20');
  });
 });
 
@@ -115,11 +115,11 @@ test('coupon link displays only a server verified discount and blocks an invalid
  await page.route('**/api/auth?action=session',r=>r.fulfill({status:401,json:{code:'DISCORD_AUTH_REQUIRED'}}));
  await page.route('**/api/checkout?promoCode=bud10',r=>r.fulfill({status:200,json:{code:'OK',data:{baseAmountMinor:2000,amountMinor:1800,currency:'sar',promotion:{code:'bud10',percent:10}}}}));
  await page.goto('/?screen=events&promoCode=BUD10');
- await expect(page.getByTestId('product-card-qc')).toHaveText('شراء مفتاح 20 18');
- await expect(page.getByText(/تم تطبيق كوبون/)).toContainText('bud10');
+ await expect(page.getByTestId('product-card-qc')).toHaveText('شراء 20 18');
+ await expect(page.getByRole('status').filter({hasText:'خصم 10% مفعّل'})).toContainText('bud10');
  await page.route('**/api/checkout?promoCode=invalid',r=>r.fulfill({status:400,json:{code:'PROMO_INVALID'}}));
  await page.goto('/?screen=events&promoCode=invalid');
  await expect(page.getByTestId('product-card-qc')).toBeDisabled();await expect(page.getByRole('alert')).toContainText('لم يُطبّق أي خصم');
  await page.getByRole('button',{name:'المتابعة بدون كوبون'}).click();
- await expect(page.getByTestId('product-card-qc')).toHaveText('شراء مفتاح 20');await expect(page.getByTestId('product-card-qc')).toBeEnabled();
+ await expect(page.getByTestId('product-card-qc')).toHaveText('شراء 20');await expect(page.getByTestId('product-card-qc')).toBeEnabled();
 });
