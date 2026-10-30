@@ -14,7 +14,7 @@ export function normalizePromo(value:unknown):string {
 function summary(raw:unknown,config:ProductionPlanExpectation,checkAccount=true):PromoSummary {
  if(!object(raw)||typeof raw.id!=='string'||!/^promo_[A-Za-z0-9]{5,80}$/.test(raw.id)
   ||(checkAccount&&(!object(raw.account)||raw.account.id!==config.company))
-  ||!object(raw.product)||raw.product.id!==config.product||raw.promo_type!=='percentage'
+  ||(raw.product!==null&&(!object(raw.product)||raw.product.id!==config.product))||raw.promo_type!=='percentage'
   ||typeof raw.amount_off!=='number'||!Number.isInteger(Math.round(raw.amount_off*100))
   ||Math.abs(raw.amount_off*100-Math.round(raw.amount_off*100))>0.000001||raw.amount_off<=0||raw.amount_off>=1
   ||!['active','inactive','archived'].includes(String(raw.status))||!Number.isSafeInteger(raw.uses)||Number(raw.uses)<0
@@ -29,7 +29,7 @@ export async function retrievePromo(id:string,config:ProductionPlanExpectation,t
 }
 export async function listPromos(config:ProductionPlanExpectation,after:string|null=null,transport:typeof fetch=fetch){
  if(after!==null&&(after.length>300||/[\x00-\x1f]/.test(after)))throw new WhopError('INVALID_REQUEST',400);
- const query=new URLSearchParams({account_id:config.company,product_ids:config.product!,first:'50',...(after?{after}:{})});
+ const query=new URLSearchParams({account_id:config.company,first:'50',...(after?{after}:{})});
  const data=await productionProvider('/promo_codes?'+query,config,transport,{},PROMO_VERSION);
  if(!Array.isArray(data.data)||data.data.length>50||!object(data.page_info)||typeof data.page_info.has_next_page!=='boolean')throw new WhopError('PROMO_UNAVAILABLE');
  const rows:PromoSummary[]=[];
