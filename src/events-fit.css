@@ -121,3 +121,7 @@
  .platform.platform-events-fit .platform-product-description{font-size:11px;line-height:16px}
  .platform.platform-events-fit .platform-event-keys{position:absolute;top:0;inset-inline-end:0}
 }
+@media(min-width:500px) and (max-height:500px){
+ .platform.platform-events-fit .platform-upcoming-preview{width:44%;height:100%;min-height:0}
+ .platform.platform-events-fit .platform-product-information{gap:3px}
+}
