@@ -1,3 +1,4 @@
+import './events-fit.css';
 import {BudNotice,BudSkeleton} from './BudUI';
 import {PolicyCenter} from './PolicyCenter';
 import {FooterContent} from './FooterContent';
@@ -189,7 +190,7 @@ export default function Platform({ onPlay }: PlatformProps) {
 
   if(panel==='owner'&&account.session)return <Suspense fallback={<BudSkeleton label="جارٍ تحميل لوحة المالك…"/>}><OwnerPanel key={account.session.id} ownerId={account.session.id} ownerName={account.session.displayName} initialReturn={ownerReturn} onClose={()=>{setOwnerReturn(null);setPanel('profile');}}/></Suspense>;
 
-  return <div className={`platform platform-${page}`} dir={locale === 'ar' ? 'rtl' : 'ltr'} data-testid="platform-root">
+  return <div className={`platform platform-${page}${page==='events'&&(!panel||panel==='setup')?' platform-events-fit':''}`} dir={locale === 'ar' ? 'rtl' : 'ltr'} data-testid="platform-root">
     <Seo locale={locale} screen={page} /><a className="skip-link" href="#platform-content">{locale === 'ar' ? 'تجاوز إلى المحتوى' : 'Skip to content'}</a>
     {page === 'home' && !panel && <HeroArtwork />}
     <header className="platform-header" data-node-id="339:2072">
