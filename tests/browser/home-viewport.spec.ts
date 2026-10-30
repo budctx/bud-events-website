@@ -149,6 +149,11 @@ for(const viewport of [{width:320,height:568},{width:375,height:667},{width:390,
  for(const id of ['event-resume','event-setup','product-card-qc']){const b=await page.getByTestId(id).boundingBox();expect(b!.height).toBeGreaterThanOrEqual(44);expect(b!.y+b!.height).toBeLessThanOrEqual(viewport.height);const card=await page.locator('.bud-events-slide:not([inert])>article').boundingBox();expect(b!.y+b!.height).toBeLessThanOrEqual(card!.y+card!.height-5);}
  for(const element of await page.locator('.qc-demo-card, .bud-promo-confirmation').all()){const b=await element.boundingBox();expect(b!.y).toBeGreaterThanOrEqual(cardBounds!.y+4);expect(b!.y+b!.height).toBeLessThanOrEqual(cardBounds!.y+cardBounds!.height-4);}
  await page.screenshot({path:info.outputPath('events-fit.png')});
+ await page.getByRole('button',{name:'اكشف سؤال',exact:true}).click();await page.getByRole('button',{name:'اكشف شرط',exact:true}).click();
+ await expect(page.getByRole('timer')).toBeVisible();await fits();
+ await expect(page.getByRole('timer')).toHaveText('0ث',{timeout:8000});await fits();
+ for(const element of await page.locator('.qc-demo-card, .bud-promo-confirmation').all()){const b=await element.boundingBox();expect(b!.y).toBeGreaterThanOrEqual(cardBounds!.y+4);expect(b!.y+b!.height).toBeLessThanOrEqual(cardBounds!.y+cardBounds!.height-4);}
+
  for(const title of ['ميني قيمز','كروت الحظ']){await page.getByRole('button',{name:'عرض فعالية '+title,exact:true}).click();await expect(page.getByRole('heading',{name:title,exact:true})).toBeVisible();await fits();}
  await page.getByRole('button',{name:'عرض فعالية سؤال وشرط',exact:true}).click();await page.getByTestId('event-how').click();await expect(page.getByRole('dialog',{name:'كيف ابدأ؟'})).toBeVisible();
 });
