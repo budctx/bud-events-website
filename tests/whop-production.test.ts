@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { assertProductionCheckoutUrl, assertProductionPaymentMatches, createProductionCheckout, inspectProductionPlan,
-  lookupProductionPayment, productionPlanExpectation, verifyProductionWebhook, whopProductionConfig, whopProductionProcessingConfig } from '../server/whop-production.ts';
+  lookupProductionPayment, productionOrderMatches, productionPlanExpectation, verifyProductionWebhook, whopProductionConfig, whopProductionProcessingConfig } from '../server/whop-production.ts';
 import { WhopError } from '../server/whop.ts';
 
 const env = { WHOP_PRODUCTION_API_KEY: 'test-only-production-key', WHOP_PRODUCTION_COMPANY_ID: 'biz_production123',
@@ -154,4 +154,17 @@ test('production webhook accepts signed pinned and unpinned Whop v1 accounts, an
   for (const offset of [-301, 301]) await assert.rejects(verifyProductionWebhook(await signed({}, offset), config));
   const request = await signed(); const tampered = new Request(request.url, { method: 'POST', headers: request.headers, body: (await request.text()) + ' ' });
   await assert.rejects(verifyProductionWebhook(tampered, config));
+});
+
+
+test('SAR 18 checkout stays strict while verified SAR 3 historical payments remain processable', async () => {
+  const current = { ...config, amount: 1800 };
+  assert.equal(productionOrderMatches(order, current), false);
+  assert.equal(productionOrderMatches(order, current, true), true);
+  assert.doesNotThrow(() => assertProductionPaymentMatches(payment, order, current));
+  assert.throws(() => assertProductionPaymentMatches({...payment,total:18}, order, current));
+  assert.equal(productionOrderMatches({...order,amountMinor:500}, current, true), false);
+  assert.equal(productionOrderMatches({...order,companyId:'biz_foreign123'}, current, true), false);
+  assert.equal(productionOrderMatches({...order,planId:'plan_foreign123'}, current, true), false);
+  await assert.rejects(createProductionCheckout(order,current,async()=>{throw new Error('Historical price must not create new checkout');}), /PRODUCTION_ORDER_MISMATCH/);
 });

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+test.beforeEach(async({page})=>{await page.route('**/api/checkout?price=1',r=>r.fulfill({status:200,json:{code:'OK',data:{baseAmountMinor:2000,amountMinor:2000,currency:'sar',promotion:null}}}));});
 import { readFileSync } from 'node:fs';
 
 test.beforeEach(async ({page}) => {
@@ -67,7 +68,7 @@ for (const locale of ['ar','en']) for (const size of sizes) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth+1)).toBeTruthy();
     await page.screenshot({path:info.outputPath(`home-${locale}-${size.width}.png`),fullPage:true,animations:'disabled'});
     await page.getByTestId('nav-events').click();
-    await expect(page.getByTestId('product-card-qc')).toHaveText('شراء ٣');
+    await expect(page.getByTestId('product-card-qc')).toHaveText('شراء مفتاح 20');
     await expect(page.getByTestId('product-dialog')).toHaveCount(0);
     await page.screenshot({path:info.outputPath(`events-${locale}-${size.width}.png`),fullPage:true,animations:'disabled'});
     await page.getByTestId('nav-bots').click();

@@ -50,7 +50,7 @@ export default function WhopPreflight({ locale, onAuthLost }: { locale:Locale; o
         &&data.paymentCreated===false&&data.checkoutCreated===false&&data.creditGranted===false
         &&Number.isSafeInteger(data.totalMinor)&&data.totalMinor>=0&&data.totalMinor<=1000000000
         &&Number.isSafeInteger(data.taxAmountMinor)&&data.taxAmountMinor>=0&&data.taxAmountMinor<=data.totalMinor) {
-        const format=(value:number)=>new Intl.NumberFormat(locale,{style:'currency',currency:'sar'}).format(value/100);
+        const format=(value:number)=>new Intl.NumberFormat(locale,{numberingSystem:'latn',style:'currency',currency:'sar'}).format(value/100);
         setMessage(ar?`تقدير السعودية لمفتاح واحد: الإجمالي ${format(data.totalMinor)}؛ الضريبة ${format(data.taxAmountMinor)}. ليس سعرًا نهائيًا لعميل، ولا دفعة أو إذنًا لفتح البيع.`
           :`Saudi Arabia preview for one key: total ${format(data.totalMinor)}; tax ${format(data.taxAmountMinor)}. Not a final buyer quote, payment or launch approval.`,'info'); return;
       }
@@ -92,7 +92,7 @@ export default function WhopPreflight({ locale, onAuthLost }: { locale:Locale; o
       if (!response.ok && typeof body?.code === 'string' && Object.hasOwn(reasons, body.code)) { setMessage(reasons[body.code]); return; }
       if (!response.ok || body?.code !== 'OK' || !data || typeof data.companyId !== 'string' || !/^biz_[A-Za-z0-9]{5,80}$/.test(data.companyId)
         || typeof data.productId !== 'string' || !/^prod_[A-Za-z0-9]{5,80}$/.test(data.productId) || typeof data.planId !== 'string' || !/^plan_[A-Za-z0-9]{5,80}$/.test(data.planId) || data.currency !== 'sar'
-        || data.amountMinor !== 300 || data.checkoutCreated !== false || data.paymentCreated !== false || data.creditGranted !== false) throw Error();
+        || (!Number.isSafeInteger(data.amountMinor)||data.amountMinor<=0) || data.checkoutCreated !== false || data.paymentCreated !== false || data.creditGranted !== false) throw Error();
       setResult({ companyId:data.companyId,productId:data.productId,planId:data.planId,currency:data.currency,amountMinor:data.amountMinor });
       setMessage(ar ? 'تم التحقق من خطة الدفع. لم يُنشأ طلب شراء أو دفعة أو مفتاح.' : 'The payment plan was verified. No checkout, payment or key was created.','success');
     } catch { if (!controller.signal.aborted) setMessage(ar ? 'لم ينجح التحقق. لا تفعّل الدفع قبل مراجعة الإعدادات.' : 'Verification did not pass. Review the configuration before attempting a payment.'); }
@@ -103,7 +103,7 @@ export default function WhopPreflight({ locale, onAuthLost }: { locale:Locale; o
       <p>{ar ? 'إعدادات الخطة الخام لا تثبت المبلغ النهائي أو الضريبة على عملية شراء. فحص السعر منفصل ولا ينفذ دفعًا.' : 'Raw plan settings do not establish a purchase total or tax. The separate quote probe never charges.'}</p>
       <BudNotice tone={tone}>{message}</BudNotice>
       {references.length>0&&<details><summary>{ar?'دليل القراءة':'Read evidence'}</summary>{references.map(value=><p key={value}><bdi dir="ltr">{value}</bdi></p>)}</details>}
-      {result && <><p>{new Intl.NumberFormat(locale,{style:'currency',currency:'sar'}).format(result.amountMinor/100)}</p>
+      {result && <><p>{new Intl.NumberFormat(locale,{numberingSystem:'latn',style:'currency',currency:'sar'}).format(result.amountMinor/100)}</p>
         <details><summary>{ar ? 'مراجع الفحص' : 'Inspection references'}</summary>
           <p><bdi dir="ltr">{result.companyId}</bdi></p><p><bdi dir="ltr">{result.productId}</bdi></p><p><bdi dir="ltr">{result.planId}</bdi></p>
         </details></>}

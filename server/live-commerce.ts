@@ -1,3 +1,4 @@
+import {findPromo,normalizePromo} from './whop-promos.ts';
 // Live handlers require runtime routing, explicit controls and verified customer identity.
 import { resolveSession } from './auth.ts';
 import { enforceRateLimit } from './rate-limit.ts';
@@ -40,8 +41,8 @@ async function rpc(name: string, params: object, secret: string, transport: type
   }
   return data;
 }
-function order(value: unknown, config: ProductionConfig): StoredOrder {
-  if (!object(value) || !productionOrderMatches(value as StoredOrder, config) || typeof value.fulfilled !== 'boolean'
+function order(value: unknown, config: ProductionConfig, historicalPayment = false): StoredOrder {
+  if (!object(value) || !productionOrderMatches(value as StoredOrder, config, historicalPayment) || typeof value.fulfilled !== 'boolean'
     || !((value.checkoutId === null && value.checkoutUrl === null) || (typeof value.checkoutId === 'string' && typeof value.checkoutUrl === 'string')))
     throw new WhopError('LIVE_ORDER_MISMATCH', 409);
   const stored = value as StoredOrder;
@@ -75,10 +76,13 @@ export async function handleProductionCheckout(request: Request, env: CommerceEn
     try { body = JSON.parse(await boundedProviderText(request.body, 2048)); }
     catch { throw new WhopError('INVALID_CHECKOUT_REQUEST', 400); }
     if (!object(body) || typeof body.idempotencyKey !== 'string' || !/^[A-Za-z0-9_-]{16,100}$/.test(body.idempotencyKey)
-      || typeof body.locale !== 'string' || !['ar', 'en'].includes(body.locale) || Object.keys(body).some(key => !['idempotencyKey', 'locale'].includes(key)))
+      || typeof body.locale !== 'string' || !['ar', 'en'].includes(body.locale) || Object.keys(body).some(key => !['idempotencyKey', 'locale','promoCode'].includes(key)))
       throw new WhopError('INVALID_CHECKOUT_REQUEST', 400);
-    const stored = order(await rpc('bud_live_create_order', { p_host: session.hostId, p_key: body.idempotencyKey, p_company: config.company,
-      p_product: config.product, p_plan: config.plan, p_currency: config.currency, p_amount: config.amount, p_locale: body.locale }, secret, transport), config);
+    const promotion=body.promoCode===undefined?undefined:env.BUD_PROMO_CODES_ENABLED==='true'
+      ?await findPromo(normalizePromo(body.promoCode),config,transport):(()=>{throw new WhopError('PROMO_NOT_CONFIGURED');})();
+    const stored = order(await rpc(promotion?'bud_live_create_promo_order':'bud_live_create_order', { p_host: session.hostId, p_key: body.idempotencyKey, p_company: config.company,
+      p_product: config.product, p_plan: config.plan, p_currency: config.currency, p_amount: promotion?config.amount-promotion.discountMinor:config.amount, p_locale: body.locale,...(promotion?{p_promotion:promotion}:{}) }, secret, transport), config);
+    if((stored.promotion?.id??null)!==(promotion?.id??null)|| (stored.promotion?.code??null)!==(promotion?.code??null)) throw new WhopError('LIVE_ORDER_MISMATCH',409);
     if (stored.locale !== body.locale) throw new WhopError('LIVE_ORDER_MISMATCH', 409);
     if (stored.fulfilled) throw new WhopError('ORDER_ALREADY_PAID', 409);
     let checkout = stored.checkoutId ? { checkoutId: stored.checkoutId, url: stored.checkoutUrl! } : null;
@@ -91,7 +95,8 @@ export async function handleProductionCheckout(request: Request, env: CommerceEn
       if (saved.fulfilled) throw new WhopError('ORDER_ALREADY_PAID', 409);
     }
     // A URL is returned only after its durable binding is confirmed. Lost responses reuse the same order/provider key.
-    return result(200, 'OK', { orderId: stored.orderId, url: checkout.url, environment: 'production' }, sessionHeaders);
+    const destination=new URL(checkout.url);if(stored.promotion)destination.searchParams.set('promoCode',stored.promotion.code);
+    return result(200, 'OK', { orderId: stored.orderId, url: destination.href, environment: 'production' }, sessionHeaders);
   } catch (error) {
     // Operational diagnostics without names, tokens, order IDs, provider payloads or buyer data.
     // Existing client contract and retry/idempotency semantics remain unchanged.
@@ -139,7 +144,7 @@ export async function runProductionPaymentJob(env: CommerceEnv, transport: typeo
   try {
     const { orderId, payment } = await lookupProductionPayment(job.paymentId, config, transport);
     verificationStage = 'order_lookup';
-    const stored = order(await rpc('bud_live_order', { p_order: orderId }, secret, transport), config);
+    const stored = order(await rpc('bud_live_order', { p_order: orderId }, secret, transport), config, true);
     verificationStage = 'order_binding';
     if (stored.orderId !== orderId) throw new WhopError('LIVE_ORDER_MISMATCH', 409);
     verificationStage = 'payment_identity';

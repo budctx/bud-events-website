@@ -58,7 +58,7 @@ export async function diagnoseReviewedPayment(env: CommerceEnv, transport: typeo
     }
     stage = 'server_order';
     const stored = await liveRpc('bud_live_order', { p_order: orderId }, secret, transport);
-    if (!object(stored) || !productionOrderMatches(stored as ProductionOrder, config)
+    if (!object(stored) || !productionOrderMatches(stored as ProductionOrder, config, true)
       || stored.orderId !== orderId || stored.fulfilled !== false
       || typeof stored.checkoutId !== 'string' || typeof stored.checkoutUrl !== 'string')
       return { stage: 'server_order', fields: ['order_contract'] };

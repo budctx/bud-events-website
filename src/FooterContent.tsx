@@ -26,4 +26,4 @@ export const policyContent={
  ['حماية بياناتك','لا تشارك كلمات المرور أو رموز الدخول أو بيانات البطاقة أو مفتاح استرداد كاملًا في القنوات العامة. لا تحتاج إلى إعطاء الدعم صلاحية الدخول إلى حسابك.']
  ]
 };
-export function FooterContent({page}:{page:keyof typeof policyContent}){return <div className="bud-footer-content"><p className="bud-policy-version">مسودة للمراجعة · ٢٩ أكتوبر ٢٠٢٦</p>{policyContent[page].map(([heading,body])=><section key={heading}><h3>{heading}</h3><p>{body}</p></section>)}<a className="platform-action" href={supportUrl} target="_blank" rel="noopener noreferrer">الدعم عبر Discord</a></div>;}
+export function FooterContent({page}:{page:keyof typeof policyContent}){return <div className="bud-footer-content"><p className="bud-policy-version">مسودة للمراجعة · 29 أكتوبر 2026</p>{policyContent[page].map(([heading,body])=><section key={heading}><h3>{heading}</h3><p>{body}</p></section>)}<a className="platform-action" href={supportUrl} target="_blank" rel="noopener noreferrer">الدعم عبر Discord</a></div>;}

@@ -108,7 +108,7 @@ export function AccountMenu({ session, locale, credits, busy, onHistory, onLogou
       </div>
       <div className="platform-account-balance" role="presentation">
         <span><Wallet size={17} aria-hidden="true" />{ar ? 'رصيد المفاتيح' : 'Key balance'}</span>
-        <strong dir="ltr">{credits === null ? '—' : credits.toLocaleString(ar ? 'ar-SA' : 'en-US')}</strong>
+        <strong dir="ltr">{credits === null ? '—' : credits.toLocaleString(ar ? 'ar-SA-u-nu-latn' : 'en-US')}</strong>
       </div>
       <div className="platform-account-separator" role="separator" />
       {onProfile && <button type="button" role="menuitem" onClick={() => select(onProfile)}>

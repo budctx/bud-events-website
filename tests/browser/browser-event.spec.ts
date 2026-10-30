@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+test.beforeEach(async({page})=>{await page.route('**/api/checkout?price=1',r=>r.fulfill({status:200,json:{code:'OK',data:{baseAmountMinor:2000,amountMinor:2000,currency:'sar',promotion:null}}}));});
 import type {Page} from '@playwright/test';
 const owner='11111111-1111-4111-8111-111111111111',id='22222222-2222-4222-8222-222222222222';
 const ok=(data:unknown)=>({status:200,json:{code:'OK',data}});
@@ -21,7 +22,7 @@ test('another tab cannot write the same locally saved event',async({page,context
  await setup(page);await start(page);const other=await context.newPage();await other.goto(page.url());await other.evaluate(({owner,id})=>sessionStorage.setItem('bud-browser-event:active',JSON.stringify({ownerId:owner,eventId:id})),{owner,id});await other.reload();await expect(other.locator('.bud-toast').filter({hasText:'الفعالية مفتوحة في تبويب آخر'})).toBeVisible();await expect(other.locator('.host-access>p')).toHaveCount(0);await expect(other.getByRole('button',{name:'اكشف سؤال',exact:true})).toHaveCount(0);await other.getByRole('button',{name:'عودة الى الصفحة الرئيسية',exact:true}).click();await expect(other).toHaveURL(/\/\?lang=ar$/);await expect(other.getByTestId('hero-explore')).toBeVisible();await other.close();
 });
 test('unavailable local storage stops before paying for a new run',async({page})=>{
- const requests=await setup(page);await page.evaluate(()=>{Object.defineProperty(window,'localStorage',{value:{getItem:()=>null,setItem:()=>{throw Error('fixture storage blocked');},removeItem:()=>{}}});});await page.getByTestId('event-setup').click();await page.getByRole('button',{name:'بدء الفعالية',exact:true}).click();await expect(page.getByRole('alert')).toContainText('الحفظ المحلي');expect(requests.some(x=>x.action==='localStart')).toBe(false);
+ const requests=await setup(page);await page.evaluate(()=>{Object.defineProperty(window,'localStorage',{value:{getItem:()=>null,setItem:()=>{throw Error('fixture storage blocked');},removeItem:()=>{}}});});await page.getByTestId('event-setup').click();await page.getByRole('button',{name:'بدء الفعالية',exact:true}).click();await expect(page.getByRole('dialog',{name:'إعداد الفعالية'}).getByRole('alert')).toContainText('الحفظ المحلي');expect(requests.some(x=>x.action==='localStart')).toBe(false);
 });
 test('a cached application can reload an ongoing local event offline without server recovery',async({page,context})=>{
  await setup(page,'http://127.0.0.1:4175');await page.evaluate(async()=>{await navigator.serviceWorker.ready;await new Promise<void>(resolve=>{if(navigator.serviceWorker.controller)resolve();else navigator.serviceWorker.addEventListener('controllerchange',()=>resolve(),{once:true});});});
@@ -111,4 +112,16 @@ test('event-start loader advances only when the server confirms each milestone',
  releaseStart();await expect(loader.locator('li[data-state=current]')).toHaveText('تجهيز محتوى الفعالية');
  await expect(loader.locator('li[data-state=done]')).toHaveCount(1);
  releaseContent();await expect(loader).not.toBeVisible();await expect(page.locator('.manual-game')).toBeVisible();await expect(page.locator('.mg-disclosure')).toHaveCount(0);expect(starts).toBe(1);
+});
+
+test('closing offers an optional review without uploading winners or publishing consent by default',async({page})=>{
+ await setup(page);await start(page);
+ await page.evaluate(({owner,id})=>{const key=`bud-browser-event:v1:${owner}:${id}`;const run=JSON.parse(localStorage.getItem(key)!);run.state.phase='closing';localStorage.setItem(key,JSON.stringify(run));},{owner,id});
+ const reviews:any[]=[];await page.route('**/api/owner',r=>{const body=r.request().postDataJSON();if(body.action==='reviewSubmit'){reviews.push(body);return r.fulfill(ok({received:true}));}return r.fulfill(ok({owner:false}));});
+ await page.reload();await page.getByRole('button',{name:'الختام',exact:true}).click();
+ const modal=page.getByRole('dialog',{name:'كيف كانت تجربتك؟'});await expect(modal).toBeVisible();await expect(modal.getByRole('checkbox')).not.toBeChecked();
+ await expect(modal.getByRole('button',{name:'إرسال التقييم والختام'})).toBeDisabled();
+ await modal.getByRole('radio',{name:'4 من 5'}).check();await modal.getByLabel('وش حبيت في التجربة؟').fill('فعالية ممتعة');
+ await modal.getByRole('button',{name:'إرسال التقييم والختام'}).click();
+ await expect(modal).not.toBeVisible();expect(reviews).toEqual([{action:'reviewSubmit',eventId:id,rating:4,comment:'فعالية ممتعة',displayName:'أحد مستخدمي بُعد',publishConsent:false}]);expect(JSON.stringify(reviews)).not.toContain('جائزة محلية خاصة');
 });
