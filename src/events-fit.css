@@ -132,3 +132,9 @@
  .platform.platform-events-fit .platform-event-catalog{grid-template-rows:minmax(0,1fr) 44px}
  .platform.platform-events-fit .bud-carousel-status{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
 }
+/* Keep the shared brand intact in the existing short landscape header. */
+@media(min-width:500px) and (max-height:500px){
+ .platform .platform-brand .platform-mark{width:32px;height:20px;flex:none}
+ .platform .platform-brand .platform-mark img{width:28px;height:auto;transform:none}
+ .platform .platform-brand>span:last-child{font-size:20px;line-height:24px}
+}
