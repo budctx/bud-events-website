@@ -8,6 +8,6 @@ export async function promoPrice(code:string|null,signal:AbortSignal):Promise<Pu
  const res=await fetch('/api/checkout?'+(code?'promoCode='+encodeURIComponent(code):'price=1'),{credentials:'same-origin',signal,cache:'no-store'});
  const body=await res.json();const data=body?.data;
  if(!res.ok||body?.code!=='OK'||!data||data.currency!=='sar'||!Number.isSafeInteger(data.amountMinor)||data.amountMinor<=0
-  ||!Number.isSafeInteger(data.baseAmountMinor)||data.baseAmountMinor<data.amountMinor||(code?data.promotion?.code!==code:data.promotion!==null))throw Error('PROMO_INVALID');
+  ||!Number.isSafeInteger(data.baseAmountMinor)||data.baseAmountMinor<data.amountMinor||(code?data.promotion?.code!==code:data.promotion!==null&&(!/^[a-z0-9_-]{3,40}$/.test(data.promotion?.code)||!Number.isInteger(data.promotion?.percent)||data.promotion.percent<1||data.promotion.percent>99||data.amountMinor*100!==data.baseAmountMinor*(100-data.promotion.percent))))throw Error('PROMO_INVALID');
  return data;
 }
