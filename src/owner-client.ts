@@ -12,6 +12,7 @@ export async function ownerRequest<T = OwnerData>(body: unknown, signal?: AbortS
 export function ownerError(reason: unknown): string {
   if(!(reason instanceof HostClientError))return 'تعذر الاتصال. تحقق من الحالة قبل إعادة المحاولة.';
   const messages: Record<string,string>={
+    REVIEWS_NOT_CONFIGURED:'التقييمات غير متاحة حاليًا.',PROMO_NOT_CONFIGURED:'إدارة الكوبونات لم تُفعّل بعد.',PROMO_INVALID:'الكوبون غير متاح أو انتهت صلاحيته.',PROMO_UNSUPPORTED:'هذا النوع من الكوبونات يُدار من Whop مباشرة.',WHOP_PRODUCTION_ACCESS_DENIED:'صلاحية Whop غير متاحة. تحقق من صلاحيات مفتاح API.',
     DISCORD_AUTH_REQUIRED:'انتهت جلسة الدخول. سجّل دخولك مجددًا.', OWNER_REQUIRED:'هذه الصفحة متاحة لمالك المنصة فقط.',
     OWNER_REAUTH_REQUIRED:'يلزم تسجيل دخول حديث لتأكيد هويتك قبل هذا الإجراء.', RATE_LIMITED:'محاولات كثيرة. انتظر قليلًا ثم حاول مجددًا.',
     INVALID_OR_EXPIRED_CODE:'المفتاح غير صالح أو غير متاح للاستخدام.', ACCOUNT_RESTRICTED:'استخدام هذا الحساب مقيّد. تواصل مع الدعم.',

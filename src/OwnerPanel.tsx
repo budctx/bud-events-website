@@ -1,3 +1,5 @@
+import {ReviewManager} from './ReviewModal';
+import {PromoManager} from './PromoManager';
 import {BudNotice} from './BudUI';
 import {saveOwnerReturn,clearOwnerReturn} from './owner-return';
 import type {OwnerReturn} from './owner-return';
@@ -17,6 +19,8 @@ const sections=[
  ['overview','نظرة عامة وتنبيهات',LayoutDashboard,'ملخص المنصة وما يحتاج انتباهك.'],
  ['users','المستخدمون',Users,'الحسابات والأرصدة في مكان واحد.'],
  ['keys','المفاتيح والمنح',KeyRound,'أصدر المفاتيح وتابع استخدامها.'],
+ ['reviews','التقييمات',Gift,'راجع آراء المستخدمين وانشرها في الرئيسية.'],
+ ['promos','كوبونات الخصم',Gift,'أنشئ الخصومات وأدر روابطها من Whop.'],
  ['payments','المدفوعات',Receipt,'تابع الطلبات وحالة تسليمها.'],
  ['events','الفعاليات',CalendarDays,'تابع الفعاليات ومراحل تشغيلها.'],
  ['audit','سجل العمليات',FileClock,'سجل الإجراءات ومحاولات الوصول.'],
@@ -36,16 +40,17 @@ export default function OwnerPanel({onClose,ownerId,ownerName="المالك",ini
  const [qty,setQty]=useState('1'),[maxUses,setMaxUses]=useState('1'),[expires,setExpires]=useState(''),[target,setTarget]=useState(''),[note,setNote]=useState('');
  const [recoveryOrder,setRecoveryOrder]=useState(''),[recoveryPayment,setRecoveryPayment]=useState('');
  const [composer,setComposer]=useState<'code'|'grant'|'recovery'|null>(null),[listTab,setListTab]=useState('primary'),[userTab,setUserTab]=useState<'payments'|'history'|'events'>('payments');
+ const [promoCursor,setPromoCursor]=useState<string|null>(null);
  const [pending,setPending]=useState(()=>readOwnerPending(ownerId));
  const pendingRef=useRef<PendingOwnerOperation|null>(pending);
  const dialog=useRef<HTMLDialogElement>(null),generation=useRef(0),alive=useRef(true),locked=useRef(false),operation=useRef<string|null>(null);
  useEffect(()=>{alive.current=true;return()=>{alive.current=false;};},[]);
  useEffect(()=>{const controller=new AbortController();const run=++generation.current;setData(null);setError('');setLoading(true);
   if(section==='search'&&search.trim().length<2){setLoading(false);return()=>controller.abort();}
-  void (section==='partners'?ownerRequest<import('./PartnerManager').OwnerPartner[]>({action:'partners'},controller.signal).then(rows=>({rows} as unknown as OwnerData)):ownerRequest<OwnerData>({action:'view',section,search,offset},controller.signal)).then(v=>{if(run===generation.current&&!controller.signal.aborted){setData(v);if(section==='settings')setNote(String(v.rows?.find(r=>r.name==='operations_note')?.value??''));}}).catch(e=>{if(!controller.signal.aborted&&run===generation.current)setError(ownerError(e));}).finally(()=>{if(!controller.signal.aborted&&run===generation.current)setLoading(false);});
+  void (section==='reviews'?ownerRequest<OwnerData>({action:'reviews',offset},controller.signal):section==='promos'?ownerRequest<OwnerData>({action:'promos',after:promoCursor},controller.signal):section==='partners'?ownerRequest<import('./PartnerManager').OwnerPartner[]>({action:'partners'},controller.signal).then(rows=>({rows} as unknown as OwnerData)):ownerRequest<OwnerData>({action:'view',section,search,offset},controller.signal)).then(v=>{if(run===generation.current&&!controller.signal.aborted){setData(v);if(section==='settings')setNote(String(v.rows?.find(r=>r.name==='operations_note')?.value??''));}}).catch(e=>{if(!controller.signal.aborted&&run===generation.current)setError(ownerError(e));}).finally(()=>{if(!controller.signal.aborted&&run===generation.current)setLoading(false);});
   return()=>controller.abort();
- },[section,search,offset,revision]);
- const navigate=(next:string)=>{setSection(next);setSearch('');setQuery('');setOffset(0);setNotice('');setComposer(null);setListTab('primary');};
+ },[section,search,offset,revision,promoCursor]);
+ const navigate=(next:string)=>{setSection(next);setPromoCursor(null);setSearch('');setQuery('');setOffset(0);setNotice('');setComposer(null);setListTab('primary');};
  const restorePending=()=>{
   const saved=pendingRef.current??readOwnerPending(ownerId);if(!saved)return;
   pendingRef.current=saved;setPending(saved);setAction({kind:saved.kind,payload:saved.payload,title:saved.title});setReason(saved.reason);setChecked(true);setSecret('');setReauth(false);
@@ -103,6 +108,8 @@ export default function OwnerPanel({onClose,ownerId,ownerName="المالك",ini
     {section==='overview'&&<Overview data={data} onNavigate={navigate} onAck={a=>open({kind:'ack',payload:{fingerprint:a.fingerprint},title:'إقرار الاطلاع على التنبيه'})}/>}
     {section==='users'&&<OwnerTable kind="users" title="المستخدمون" rows={rowsOf(data.rows)} onUser={userOpen}/>}
     {section==='keys'&&<><div className="owner-tabs" role="tablist" onKeyDown={tabKeys} aria-label="سجلات المفاتيح"><button role="tab" id="owner-keys-tab" aria-controls="owner-key-records" aria-selected={listTab==='primary'} tabIndex={listTab==='primary'?0:-1} onClick={()=>setListTab('primary')}>المفاتيح</button><button role="tab" id="owner-history-tab" aria-controls="owner-key-records" aria-selected={listTab==='history'} tabIndex={listTab==='history'?0:-1} onClick={()=>setListTab('history')}>سجل الاستردادات والمنح</button></div><div id="owner-key-records" role="tabpanel" aria-labelledby={listTab==='primary'?'owner-keys-tab':'owner-history-tab'}><OwnerTable key={listTab} kind={listTab==='primary'?'keys':'history'} title={listTab==='primary'?'المفاتيح':'سجل الاستردادات والمنح'} rows={rowsOf(listTab==='primary'?data.rows:data.history)} onSuspend={listTab==='primary'?id=>open({kind:'suspendCode',payload:{id},title:'إيقاف الاستخدامات المستقبلية للمفتاح'}):undefined}/></div></>}
+    {section==='reviews'&&<ReviewManager rows={data.rows??[]} offset={offset} onNext={()=>setOffset(v=>v+50)} onBack={()=>setOffset(v=>Math.max(0,v-50))} onConfirm={open}/>}
+    {section==='promos'&&<PromoManager rows={(data.rows??[]) as import('./PromoManager').OwnerPromo[]} after={typeof data.after==='string'?data.after:null} onNext={()=>setPromoCursor(typeof data.after==='string'?data.after:null)} onConfirm={open}/>}
     {section==='payments'&&<OwnerTable kind="payments" title="طلبات الدفع" rows={rowsOf(data.rows)}/>}
     {section==='events'&&<OwnerTable kind="events" title="الفعاليات" rows={rowsOf(data.rows)}/>}
     {section==='audit'&&<><div className="owner-tabs" role="tablist" onKeyDown={tabKeys} aria-label="سجلات الإدارة"><button role="tab" id="owner-audit-tab" aria-controls="owner-audit-records" aria-selected={listTab==='primary'} tabIndex={listTab==='primary'?0:-1} onClick={()=>setListTab('primary')}>العمليات الإدارية</button><button role="tab" id="owner-access-tab" aria-controls="owner-audit-records" aria-selected={listTab==='access'} tabIndex={listTab==='access'?0:-1} onClick={()=>setListTab('access')}>محاولات الوصول</button></div><div id="owner-audit-records" role="tabpanel" aria-labelledby={listTab==='primary'?'owner-audit-tab':'owner-access-tab'}><OwnerTable key={listTab} kind={listTab==='primary'?'audit':'accessEvents'} title={listTab==='primary'?'العمليات الإدارية':'محاولات الوصول'} rows={rowsOf(listTab==='primary'?data.rows:data.accessEvents)}/></div></>}

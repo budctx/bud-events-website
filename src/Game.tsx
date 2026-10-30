@@ -1,3 +1,4 @@
+import {ReviewModal} from './ReviewModal';
 import {BudNotice} from './BudUI';
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
@@ -31,7 +32,7 @@ const banks = {
 
 };
 const practicePairs: PairId[] = banks.ar.questions.flatMap((_, question) => banks.ar.conditions.map((_, condition): PairId => [String(question), String(condition)]));
-type Props = { onExit ?: () => void; locale?: Locale; initialState?: ManualState; cards?: { question: string; condition: string }; serverNow?: number; onAction?: (command: ManualAction, key: string) => Promise<HostEvent>; onConflict?: (event: HostEvent) => void; onBrowserAction?:(command:ManualAction)=>HostEvent;localSaveError?:string };
+type Props = { reviewEventId?:string; onExit ?: () => void; locale?: Locale; initialState?: ManualState; cards?: { question: string; condition: string }; serverNow?: number; onAction?: (command: ManualAction, key: string) => Promise<HostEvent>; onConflict?: (event: HostEvent) => void; onBrowserAction?:(command:ManualAction)=>HostEvent;localSaveError?:string };
 function JudgmentIcon({ correct }: { correct: boolean }) { return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="9" />{correct ? <path d="m7 12 3 3 7-7" /> : <path d="m8 8 8 8m0-8-8 8" />}</svg>; }
 
 function GameDialog({ open, title, onClose, children, className = '', initialFocus = '[data-autofocus]', feedback }: { open: boolean; title: string; onClose: () => void; children: ReactNode; className?: string; initialFocus?: string; feedback?:ReactNode }) {
@@ -63,7 +64,7 @@ function GameDialog({ open, title, onClose, children, className = '', initialFoc
   }}><h2>{title}</h2>{children}{open&&feedback}</dialog>;
 }
 
-export default function Game({ onExit, locale = 'ar', initialState, cards, serverNow, onAction, onConflict, onBrowserAction, localSaveError }: Props) {
+export default function Game({ reviewEventId,onExit, locale = 'ar', initialState, cards, serverNow, onAction, onConflict, onBrowserAction, localSaveError }: Props) {
   const toast=useBudToast();
   const announce=(action:ManualAction,before:ManualState,next:ManualState)=>{
    if(['add-winner','save-winner'].includes(action.type)&&next.winners.length>before.winners.length)toast('أُضيف الفائز.','success');
@@ -84,6 +85,7 @@ export default function Game({ onExit, locale = 'ar', initialState, cards, serve
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   useEffect(()=>{if(!saving){setShowSync(false);return;}const timer=window.setTimeout(()=>setShowSync(true),700);return()=>window.clearTimeout(timer);},[saving]);
   const syncReveals=()=>setOptimisticReveals([pendingAction.current,...queuedReveals.current].flatMap(item=>item?.action.type==='reveal'?[item.action.card]:[]));
+  const [reviewOpen,setReviewOpen]=useState(false);
   const persisted=!!onAction||!!onBrowserAction;
   const dispatch = async (action: ManualAction, after?: (next: ManualState) => void): Promise<ManualState | null> => {
     if(onBrowserAction){const next=onBrowserAction(action);setWallNow(Date.now());announce(action,stateRef.current,next.state);stateRef.current=next.state;setState(next.state);after?.(next.state);return next.state;}
@@ -230,7 +232,7 @@ export default function Game({ onExit, locale = 'ar', initialState, cards, serve
         <div className="mg-draw-footer"><div className="mg-actions"><button className="mg-button" disabled={syncBlocked || state.prizes.some(prize => prize.revealed)} onClick={() => dispatch({ type: 'phase', phase: 'live' })}>{t.back}</button><button className="mg-button mg-primary" disabled={syncBlocked} onClick={() => setConfirmEnd(true)}>{t.finish}</button></div></div>
       </div>
     </section>}
-    {state.phase === 'closing' && <section className="mg-closing"><h2>{t.thanks}</h2><div className="mg-panel"><h3>{t.results}</h3>{state.winners.length === 0 ? <p>{t.empty}</p> : <ul className="mg-results">{state.winners.map(winner => <li key={winner.id}><strong dir="auto">{winner.name}</strong><span dir="auto">{state.prizes.find(prize => prize.winnerId === winner.id)?.name ?? t.unawarded}</span></li>)}</ul>}{unnamedPrizes.length > 0 && <div className="mg-unnamed-results"><h4>{ar ? 'جوائز فُتحت دون اسم' : 'Prizes opened without a recipient'}</h4><ul>{unnamedPrizes.map(prize => <li key={prize.id} dir="auto">{prize.name}</li>)}</ul></div>}<ButtonUtility label={t.copy} icon={Copy} onPress={()=>{void copyResults();}}/>{notice === t.copyError && <textarea readOnly value={summary} aria-label={t.results} />}</div>{!persisted && <button className="mg-button mg-primary" onClick={() => { dispatch({ type: 'reset' }); setPrizeText(''); setName(''); setWinnerId(''); setManagementReturnId(''); }}>{t.new}</button>}{persisted && <button className="mg-button mg-primary" onClick={onExit}>{ar ? 'الختام' : 'Back to my space'}</button>}</section>}
+    {state.phase === 'closing' && <section className="mg-closing"><h2>{t.thanks}</h2><div className="mg-panel"><h3>{t.results}</h3>{state.winners.length === 0 ? <p>{t.empty}</p> : <ul className="mg-results">{state.winners.map(winner => <li key={winner.id}><strong dir="auto">{winner.name}</strong><span dir="auto">{state.prizes.find(prize => prize.winnerId === winner.id)?.name ?? t.unawarded}</span></li>)}</ul>}{unnamedPrizes.length > 0 && <div className="mg-unnamed-results"><h4>{ar ? 'جوائز فُتحت دون اسم' : 'Prizes opened without a recipient'}</h4><ul>{unnamedPrizes.map(prize => <li key={prize.id} dir="auto">{prize.name}</li>)}</ul></div>}<ButtonUtility label={t.copy} icon={Copy} onPress={()=>{void copyResults();}}/>{notice === t.copyError && <textarea readOnly value={summary} aria-label={t.results} />}</div>{!persisted && <button className="mg-button mg-primary" onClick={() => { dispatch({ type: 'reset' }); setPrizeText(''); setName(''); setWinnerId(''); setManagementReturnId(''); }}>{t.new}</button>}{persisted && <button className="mg-button mg-primary" onClick={()=>reviewEventId?setReviewOpen(true):onExit?.()}>{ar ? 'الختام' : 'Back to my space'}</button>}</section>}
     {!persisted && <footer className="mg-disclosure">{t.practice}</footer>}
     <GameDialog feedback={remoteFeedback} open={state.pendingWinner} title={t.winnerTitle} onClose={closeWinner}><form onSubmit={event => { event.preventDefault(); if (!nameError) { void dispatch({ type: 'save-winner', name }, () => setName('')); } }}><label htmlFor="mg-winner-name">{t.winnerName}</label><input id="mg-winner-name" disabled={syncBlocked} autoFocus data-autofocus required autoComplete="off" maxLength={80} value={name} onChange={event => setName(event.target.value)} /><p className="mg-help">{t.nameHint}</p>{nameError === 'long' && <BudNotice tone="danger" resolveOnUnmount>{t.nameLong}</BudNotice>}<div className="mg-actions"><button className="mg-button mg-primary" type="submit" disabled={syncBlocked || !!nameError}>{t.save}</button><button className="mg-button" type="button" disabled={syncBlocked} onClick={closeWinner}>{t.cancel}</button></div></form></GameDialog>
     <GameDialog feedback={remoteFeedback} open={viewWinners} title={t.winners} onClose={manageClose} className="mg-management" initialFocus={addingWinner ? '#mg-add-name' : editingWinner ? '#mg-edit-name' : deletingWinner ? '[data-autofocus]' : managementReturnId ? `[data-winner-id="${managementReturnId}"] button` : '.mg-dialog-close'}>
@@ -256,6 +258,7 @@ export default function Game({ onExit, locale = 'ar', initialState, cards, serve
     <GameDialog feedback={remoteFeedback} open={!!result} title={ar ? 'لحظة الجائزة' : 'Your prize moment'} onClose={() => setResult(null)} className="mg-award-result">
       {result && <PrizeReveal name={result.name} winner={result.winner} locale={locale} celebration={true} onClose={() => setResult(null)} />}
     </GameDialog>
+    {reviewOpen&&reviewEventId&&<ReviewModal eventId={reviewEventId} onExit={()=>{setReviewOpen(false);onExit?.();}}/>}
     <GameDialog feedback={remoteFeedback} open={confirmEnd} title={t.finishTitle} onClose={() => setConfirmEnd(false)}><p>{t.finishNote}</p><div className="mg-actions"><button className="mg-button" autoFocus data-autofocus onClick={() => setConfirmEnd(false)}>{t.cancel}</button><button className="mg-button mg-primary" disabled={syncBlocked} onClick={() => { void dispatch({ type: 'phase', phase: 'closing' }, () => setConfirmEnd(false)); }}>{t.confirm}</button></div></GameDialog>
     </fieldset>
     <BudNotice tone="danger" persistent>{onAction?remoteError:''}</BudNotice>

@@ -1,3 +1,5 @@
+import {listPromos,mutatePromo} from './whop-promos.ts';
+import {productionPlanExpectation} from './whop-production.ts';
 import { createHmac, randomBytes } from 'node:crypto';
 import { resolveOwnerSession } from './auth.ts';
 import type { AuthEnv } from './auth.ts';
@@ -49,7 +51,7 @@ export async function handleOwner(request: Request, env: AuthEnv = envNow(), tra
     try { body=JSON.parse(await boundedProviderText(request.body,4096)); } catch { return liveResponse(400,'INVALID_REQUEST'); }
     if(!object(body) || typeof body.action!=='string') throw new WhopError('INVALID_REQUEST',400);
     // Read-only navigation must not consume the stricter purchase/redemption/mutation budget.
-    const scope=['profile','view','receipt','partners'].includes(body.action)?'host':'checkout';
+    const scope=['profile','view','receipt','partners','promos','reviews'].includes(body.action)?'host':'checkout';
     const limited = await enforceRateLimit(request,env,transport,scope); if(limited) return limited;
     const session = await resolveOwnerSession(request,env,transport);
     if (!session) {
@@ -61,6 +63,14 @@ export async function handleOwner(request: Request, env: AuthEnv = envNow(), tra
     if(hostLimit) { for(const c of refreshed.getSetCookie())hostLimit.headers.append('Set-Cookie',c);return hostLimit; }
     const isOwner = session.discordId !== null && await rpc('bud_owner_check',{p_actor:session.hostId,p_discord:session.discordId},secret,transport) === true;
     if(body.action==='profile' && exact(body,['action'])) return liveResponse(200,'OK',{owner:isOwner},refreshed);
+    if(body.action==='reviewSubmit') {
+      if(env.BUD_REVIEWS_ENABLED!=='true')throw new WhopError('REVIEWS_NOT_CONFIGURED');
+      if(!exact(body,['action','eventId','rating','comment','displayName','publishConsent'])||typeof body.eventId!=='string'||!uuid.test(body.eventId)
+       ||!integer(body.rating,5)||typeof body.comment!=='string'||body.comment.length>500||typeof body.displayName!=='string'
+       ||body.displayName.trim().length<1||body.displayName.trim().length>60||typeof body.publishConsent!=='boolean')throw new WhopError('INVALID_REQUEST',400);
+      const receipt=await rpc('bud_review_submit',{p_host:session.hostId,p_event:body.eventId,p_rating:body.rating,p_comment:body.comment.trim(),p_name:body.displayName.trim(),p_consent:body.publishConsent},secret,transport);
+      return liveResponse(200,'OK',receipt,refreshed);
+    }
     if(body.action==='redeem') {
       if(env.BUD_REDEEM_ENABLED!=='true') throw new WhopError('REDEEM_NOT_CONFIGURED');
       if(!exact(body,['action','code','operationId']) || typeof body.code!=='string' || !/^BUD-[A-Z2-7]{32}$/.test(body.code)
@@ -71,6 +81,17 @@ export async function handleOwner(request: Request, env: AuthEnv = envNow(), tra
     if(!isOwner) {
       await rpc('bud_owner_access_event',{p_actor:session.hostId,p_kind:['createCode','grant'].includes(body.action)?'issuance_denied':'owner_denied'},secret,transport);
       throw new WhopError('OWNER_REQUIRED',403);
+    }
+    if(body.action==='reviews') {
+      if(env.BUD_REVIEWS_ENABLED!=='true')throw new WhopError('REVIEWS_NOT_CONFIGURED');
+      if(!exact(body,['action','offset'])||!Number.isSafeInteger(body.offset)||Number(body.offset)<0||Number(body.offset)>100000)throw new WhopError('INVALID_REQUEST',400);
+      return liveResponse(200,'OK',await rpc('bud_reviews_owner',{p_actor:session.hostId,p_discord:session.discordId,p_offset:body.offset},secret,transport),refreshed);
+    }
+    if(body.action==='promos') {
+      const config=productionPlanExpectation(env);
+      if(env.BUD_PROMO_MANAGEMENT_ENABLED!=='true'||!config?.product)throw new WhopError('PROMO_NOT_CONFIGURED');
+      if(!exact(body,['action','after'])||(body.after!==null&&typeof body.after!=='string'))throw new WhopError('INVALID_REQUEST',400);
+      return liveResponse(200,'OK',await listPromos(config,body.after as string|null,transport),refreshed);
     }
     if(body.action==='partners'&&exact(body,['action'])) {
       const list=await rpc('bud_site_partners_owner',{p_actor:session.hostId,p_discord:session.discordId},secret,transport);
@@ -99,6 +120,23 @@ export async function handleOwner(request: Request, env: AuthEnv = envNow(), tra
     const age=Date.now()/1000-session.authenticatedAt;
     if(!Number.isFinite(age) || age<0 || age>300) throw new WhopError('OWNER_REAUTH_REQUIRED',403);
     const p=body.payload;
+    if(body.action==='reviewModerate') {
+      if(env.BUD_REVIEWS_ENABLED!=='true')throw new WhopError('REVIEWS_NOT_CONFIGURED');
+      if(!exact(p,['id','status'])||typeof p.id!=='string'||!uuid.test(p.id)||!['published','hidden'].includes(String(p.status)))throw new WhopError('INVALID_REQUEST',400);
+      return liveResponse(200,'OK',await rpc('bud_review_moderate',{p_actor:session.hostId,p_discord:session.discordId,p_operation:body.operationId,p_id:p.id,p_status:p.status,p_reason:body.reason.trim()},secret,transport),refreshed);
+    }
+
+    if(['promoCreate','promoPause','promoResume'].includes(body.action)) {
+      const config=productionPlanExpectation(env);
+      if(env.BUD_PROMO_MANAGEMENT_ENABLED!=='true'||!config?.product)throw new WhopError('PROMO_NOT_CONFIGURED');
+      const params={p_actor:session.hostId,p_discord:session.discordId,p_operation:body.operationId,p_kind:body.action,p_request:{...p,reason:body.reason.trim()}};
+      const prepared=await rpc('bud_owner_promo_operation',{...params,p_result:null},secret,transport);
+      if(object(prepared)&&prepared.replayed===true)return liveResponse(200,'OK',prepared,refreshed);
+      const row=await mutatePromo(body.action,p,body.operationId,config,transport);
+      const receipt=await rpc('bud_owner_promo_operation',{...params,p_result:{id:row.id,promotion:row}},secret,transport);
+      return liveResponse(200,'OK',receipt,refreshed);
+    }
+
     if(body.action==='inspectPayment'||body.action==='recoverPayment') {
       const config=whopProductionProcessingConfig(env);
       if(env.BUD_PAYMENT_RECOVERY_ENABLED!=='true'||!config)throw new WhopError('PAYMENT_RECOVERY_NOT_CONFIGURED');

@@ -1,3 +1,6 @@
+import {PublicReviews} from './ReviewModal';
+import {initialPromo,promoPrice} from './promo-client';
+import type {PublicPrice} from './promo-client';
 import './events-fit.css';
 import {BudNotice,BudSkeleton} from './BudUI';
 import {PolicyCenter} from './PolicyCenter';
@@ -84,6 +87,12 @@ export default function Platform({ onPlay }: PlatformProps) {
   });
   const [inspectWhop] = useState(() => new URLSearchParams(location.search).get('check') === 'whop');
   const locked = useRef(false);
+  const [promoCode]=useState(initialPromo);
+  const [price,setPrice]=useState<PublicPrice|null>(null),[promoLoading,setPromoLoading]=useState(true),[promoError,setPromoError]=useState('');
+  useEffect(()=>{const controller=new AbortController();setPromoLoading(true);
+    void promoPrice(promoCode,controller.signal).then(setPrice).catch(()=>{if(!controller.signal.aborted)setPromoError(promoCode?'الكوبون غير متاح حاليًا. لم يُطبّق أي خصم.':'تعذر تحميل السعر. حدّث الصفحة وحاول مجددًا.');}).finally(()=>{if(!controller.signal.aborted)setPromoLoading(false);});
+    return()=>controller.abort();
+  },[promoCode]);
   const purchaseKey = useRef<{key:string;locale:Locale} | null>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const t = copy.ar;
@@ -172,7 +181,7 @@ export default function Platform({ onPlay }: PlatformProps) {
     if (paymentHold || snapshot.dashboard?.paymentReview) return;
     if (!snapshot.session) { await signInHost({page:page==='policies'?'home':page, locale}); return; }
     purchaseKey.current ??= {key:newHostRequestKey(),locale};
-    try { await purchaseEvent(purchaseKey.current.key, purchaseKey.current.locale); }
+    try { await purchaseEvent(purchaseKey.current.key, purchaseKey.current.locale,price?.promotion?.code); }
     catch (reason) { if (reason instanceof HostClientError && reason.status === 503 && (reason.code.startsWith('SANDBOX_CHECKOUT_')
       || ['LIVE_CHECKOUT_NOT_CONFIGURED','LIVE_COMMERCE_DISABLED','COMMERCE_MODE_UNAVAILABLE'].includes(reason.code))) { notifyError(t.purchaseUnavailable); return; } throw reason; }
   },'purchase');
@@ -206,7 +215,7 @@ export default function Platform({ onPlay }: PlatformProps) {
     <main id="platform-content" className={page === 'home' && !panel ? 'platform-home-main' : 'platform-gallery-main'} ref={main} tabIndex={-1} key={page}>
       {page === 'policies' ? <PolicyCenter/> : panel === 'profile' && account.session ? <Suspense fallback={<BudSkeleton label="جارٍ تحميل البروفايل…"/>}><Profile key={account.session.id} session={account.session} credits={account.dashboard?.credits ?? null} onClose={closePanel} onOwner={() => openPanel('owner')} /></Suspense> : panel === 'history' && account.session ? <Suspense fallback={<BudSkeleton label="جارٍ تحميل السجل…"/>}><HostPortal onAuthLost={account.expire} view="history" locale={locale} onExit={closePanel} onPlay={event => onPlay(event, locale)} /></Suspense> : page === 'home' ? <>
         <section className="platform-hero" data-node-id="339:2099"><p className="platform-eyebrow">{t.eyebrow}</p><h1>{t.title}</h1><p className="platform-hero-description">{t.description}</p><div className="platform-hero-actions"><BudMagnetic><button className="platform-action platform-action-primary" data-testid="hero-explore" onPointerEnter={() => { void loadEventPreview(); }} onFocus={() => { void loadEventPreview(); }} onClick={() => navigate('events')}>{t.explore}<span aria-hidden="true">←</span></button></BudMagnetic></div><p className="platform-hero-hint">{t.browseHint}</p>{partners.length>0&&<div className="platform-partners-mobile"><BudLogoCarousel logos={partners}/></div>}</section>
-        <aside className="platform-proof" aria-label={locale === 'ar' ? 'المجتمع والشركاء' : 'Community and partners'} data-node-id="359:2272"><div className="platform-review-empty"><strong>{t.review}</strong><p>{t.reviewNote}</p></div><div className="platform-partners-empty">{partners.length>0?<><strong>شركاؤنا</strong><BudLogoCarousel logos={partners}/></>:t.partners}</div></aside>
+        <aside className="platform-proof" aria-label={locale === 'ar' ? 'المجتمع والشركاء' : 'Community and partners'} data-node-id="359:2272"><PublicReviews/><div className="platform-partners-empty">{partners.length>0?<><strong>شركاؤنا</strong><BudLogoCarousel logos={partners}/></>:t.partners}</div></aside>
       </> : <>
         <div className="platform-gallery-intro"><h1>{page === 'events' ? t.galleryTitle : t[page]}</h1><p>{page === 'events' ? t.galleryDescription : t.soonDescription}</p>{page === 'events' && <button className="platform-action platform-action-secondary platform-event-how" data-testid="event-how" onClick={() => setModal('how')}>{t.how}</button>}</div>
         {page === 'events' ? <Suspense fallback={<BudSkeleton label="جارٍ تحميل الفعاليات…"/>}><EventCarousel><article className="platform-product-card" data-node-id="383:11116"><Suspense fallback={<div className="event-preview" role="status" aria-label="جارٍ تحميل معاينة الفعالية…" />}><EventPreview key={locale} locale={locale} /></Suspense><div className="platform-product-information"><p className="platform-product-eyebrow">{t.productEyebrow}</p><h2><ComicEventTitle>{t.product}</ComicEventTitle></h2><p className="platform-product-description">{t.productDescription}</p><p className="platform-features">{t.features}</p><div className="platform-event-ownership">
@@ -214,7 +223,11 @@ export default function Platform({ onPlay }: PlatformProps) {
           <div className="platform-event-actions">
           {canResume && <button className="platform-action platform-action-primary" data-testid="event-resume" disabled={busy} onClick={() => void perform(async () => onPlay(await resumeHostEvent(ongoing!.eventId,account.session?.id,account.dashboard?.runtime==='browser-v1'), locale))}>عودة للفعالية</button>}
           {canSetup && <button aria-haspopup="dialog" aria-expanded={panel==='setup'} className={`platform-action ${canResume?'platform-action-secondary':'platform-action-primary'}`} data-testid="event-setup" disabled={busy} onClick={() => panel === 'setup' ? closePanel() : openPanel('setup')}>بدء فعالية</button>}
-          <PurchaseButton amountMinor={1800} originalAmountMinor={2000} secondary={canSetup||canResume} data-testid="product-card-qc" disabled={busy || paymentHold || account.dashboard?.paymentReview} loading={activeAction==='purchase'} onClick={() => void buy()}/>
+          <PurchaseButton amountMinor={price?.amountMinor??0} originalAmountMinor={price?.promotion?price.baseAmountMinor:undefined} secondary={canSetup||canResume} data-testid="product-card-qc" disabled={busy || promoLoading || !!promoError || paymentHold || account.dashboard?.paymentReview} loading={activeAction==='purchase'} priceLoading={!price} onClick={() => void buy()}/>
+          {price?.promotion&&<small className="bud-promo-applied" role="status">✓ تم تطبيق كوبون <bdi>{price.promotion.code}</bdi> — خصم {price.promotion.percent}%</small>}
+          {promoLoading&&<small role="status">جارٍ تحميل السعر…</small>}
+          {promoError&&<small role="alert">{promoError} <button type="button" onClick={()=>{try{sessionStorage.removeItem('bud-promo-code');}catch{}const url=new URL(location.href);url.searchParams.delete('promoCode');url.searchParams.delete('coupon');location.assign(url.href);}}>المتابعة بدون كوبون</button></small>}
+
           </div>
           {ongoing?.localMissing&&<BudNotice tone="warning" persistent>تقدم هذه الفعالية غير موجود في هذا المتصفح.</BudNotice>}
           </div></div></article></EventCarousel></Suspense> : page==='bots'?<Suspense fallback={<BudSkeleton label="جارٍ تحميل البوتات…"/>}><BotCatalog/></Suspense>:<article className="platform-product-card platform-coming-soon"><div><p className="platform-status"><BudBadge tone="warning" variant="outline">{t.soon}</BudBadge></p><h2>{t[page]}</h2><p>{t.soonDescription}</p><button className="platform-action platform-action-secondary" onClick={() => setModal('soon')}>{locale === 'ar' ? 'تفاصيل المنتج' : 'Product details'}</button></div></article>}

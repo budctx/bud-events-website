@@ -58,8 +58,8 @@ export async function signInHost(context?: LoginContext) {
 }
 export function newHostRequestKey() { return crypto.randomUUID(); }
 
-export async function purchaseEvent(idempotencyKey: string, locale: Locale = 'ar') {
-  const result = await request<{ url: string; environment?: string }>('/api/checkout', { idempotencyKey, locale });
+export async function purchaseEvent(idempotencyKey: string, locale: Locale = 'ar',promoCode?:string) {
+  const result = await request<{ url: string; environment?: string }>('/api/checkout', { idempotencyKey, locale,...(promoCode?{promoCode}:{}) });
   const destination = checkoutDestination(result.url, result.environment);
   if (!destination) throw new HostClientError('INVALID_REDIRECT', 503);
   location.assign(destination);

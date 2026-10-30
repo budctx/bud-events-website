@@ -1,0 +1,18 @@
+import {useState} from 'react';
+import {Copy,Pause,Play,Plus,Tag} from 'lucide-react';
+import {BudNotice} from './BudUI';
+export type OwnerPromo={id:string;code:string;percent:number;status:string;uses:number;stock:number;unlimited:boolean;expiresAt:string|null;onePerCustomer:boolean};
+type Action={kind:string;payload:Record<string,unknown>;title:string};
+export function PromoManager({rows,after,onNext,onConfirm}:{rows:OwnerPromo[];after:string|null;onNext:()=>void;onConfirm:(a:Action)=>void}){
+ const [code,setCode]=useState(''),[percent,setPercent]=useState('10'),[stock,setStock]=useState(''),[expires,setExpires]=useState(''),[once,setOnce]=useState(false),[message,setMessage]=useState('');
+ return <><article className="owner-card"><div className="owner-block-heading"><h3><Tag aria-hidden="true"/>كوبونات الخصم</h3></div><p className="owner-subtle">كوبونات Whop لفعالية سؤال وشرط. إدارة الخصومات المئوية؛ أنواع الخصم الأخرى تُدار من Whop.</p>
+ <form className="owner-form" onSubmit={e=>{e.preventDefault();onConfirm({kind:'promoCreate',title:'إنشاء كوبون خصم في Whop',payload:{code:code.toLowerCase(),percent:Number(percent),stock:stock?Number(stock):null,expiresAt:expires?new Date(expires).toISOString():null,onePerCustomer:once}});}}>
+ <label>رمز الكوبون<input required dir="ltr" value={code} pattern="[A-Za-z0-9_-]{3,40}" minLength={3} maxLength={40} onChange={e=>setCode(e.target.value)}/></label>
+ <label>نسبة الخصم %<input required type="number" min="1" max="99" value={percent} onChange={e=>setPercent(e.target.value)}/></label>
+ <label>حد الاستخدامات — اختياري<input type="number" min="1" max="100000" value={stock} onChange={e=>setStock(e.target.value)}/></label>
+ <label>انتهاء الصلاحية — اختياري<input type="datetime-local" value={expires} onChange={e=>setExpires(e.target.value)}/></label>
+ <label className="owner-check"><input type="checkbox" checked={once} onChange={e=>setOnce(e.target.checked)}/>مرة واحدة لكل عميل في Whop</label>
+ <button className="owner-button primary"><Plus aria-hidden="true"/>مراجعة الإنشاء</button></form></article>
+ {message&&<BudNotice tone="info">{message}</BudNotice>}
+ <article className="owner-card"><div className="owner-table-wrap"><table><thead><tr><th>الكوبون</th><th>الخصم</th><th>الحالة</th><th>الاستخدامات</th><th>الصلاحية</th><th>الإجراءات</th></tr></thead><tbody>{rows.map(row=><tr key={row.id}><td><bdi>{row.code}</bdi></td><td>{row.percent}%</td><td>{{active:'نشط',inactive:'متوقف',archived:'مؤرشف'}[row.status]??row.status}</td><td>{row.uses} / {row.unlimited?'غير محدود':row.stock}</td><td>{row.expiresAt?new Date(row.expiresAt).toLocaleDateString('ar-SA-u-nu-latn'):'بدون انتهاء'}</td><td><div className="owner-actions"><button className="owner-icon-button" title="نسخ رابط الخصم" aria-label={'نسخ رابط '+row.code} onClick={()=>{const url=new URL('/?screen=events&lang=ar',location.origin);url.searchParams.set('promoCode',row.code);void navigator.clipboard.writeText(url.href).then(()=>setMessage('نُسخ رابط الخصم.')).catch(()=>setMessage(url.href));}}><Copy aria-hidden="true"/></button>{row.status!=='archived'&&<button className="owner-icon-button" title={row.status==='active'?'إيقاف':'استئناف'} aria-label={(row.status==='active'?'إيقاف ':'استئناف ')+row.code} onClick={()=>onConfirm({kind:row.status==='active'?'promoPause':'promoResume',payload:{id:row.id},title:(row.status==='active'?'إيقاف ':'استئناف ')+row.code})}>{row.status==='active'?<Pause aria-hidden="true"/>:<Play aria-hidden="true"/>}</button>}</div></td></tr>)}</tbody></table></div>{rows.length===0&&<p>لا توجد كوبونات مئوية متاحة لهذا المنتج.</p>}{after&&<button className="owner-button" onClick={onNext}>التالي</button>}</article></>;
+}

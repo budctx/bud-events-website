@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+test.beforeEach(async({page})=>{await page.route('**/api/checkout?price=1',r=>r.fulfill({status:200,json:{code:'OK',data:{baseAmountMinor:2000,amountMinor:2000,currency:'sar',promotion:null}}}));});
 const host = '11111111-1111-4111-8111-111111111111', order = '22222222-2222-4222-8222-222222222222';
 for (const locale of ['ar','en'] as const) {
   test(`payment status follows server truth, refreshes balance and fits ${locale}`, async ({ page }) => {

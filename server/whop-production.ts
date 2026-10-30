@@ -1,6 +1,7 @@
 // Server-only provider preparation. No HTTP route or database fulfillment is activated by this module.
 import { boundedProviderText, verifyWhopEnvelope, WhopError } from './whop.ts';
 import type { CommerceEnv } from './whop.ts';
+import type {PromoSnapshot} from './whop-promos.ts';
 import { liveAudience } from './live-access.ts';
 
 const API = 'https://api.whop.com/api/v1';
@@ -46,14 +47,14 @@ export function classifyProductionRejection(data:unknown):{reason:string;field:s
 }
 export type ProductionConfig = ProductionPlanExpectation & { product: string; origin: string; pilotHostId: string; audience: 'pilot' | 'public'; secret: string; webhookVersion: string };
 export type ProductionOrder = { orderId: string; hostId: string; environment: 'production'; companyId: string; productId: string;
-  planId: string; currency: string; amountMinor: number; locale: 'ar' | 'en'; checkoutId: string | null; checkoutUrl: string | null };
+  planId: string; currency: string; amountMinor: number; locale: 'ar' | 'en'; checkoutId: string | null; checkoutUrl: string | null; promotion?:PromoSnapshot };
 
 function money(value: unknown): number | null {
   if (typeof value !== 'number' || !Number.isFinite(value)) return null;
   const match = /^(0|[1-9][0-9]{0,6})(?:\.([0-9]{1,2}))?$/.exec(String(value));
   return match ? Number(match[1]) * 100 + Number((match[2] ?? '').padEnd(2, '0')) : null;
 }
-/** Read-only expectations. Owner-approved current price comes from server configuration; display promotion is SAR 20 to SAR 18. */
+/** Read-only expectations. Owner-approved current price comes from server configuration; base plan price stays separate from each stored promotion. */
 export function productionPlanExpectation(env: CommerceEnv): ProductionPlanExpectation | null {
   if (!env.WHOP_PRODUCTION_API_KEY || !/^biz_[A-Za-z0-9]{5,80}$/.test(env.WHOP_PRODUCTION_COMPANY_ID ?? '')
     || !/^plan_[A-Za-z0-9]{5,80}$/.test(env.WHOP_PRODUCTION_PLAN_ID ?? '')
@@ -144,7 +145,12 @@ export async function inspectProductionPlan(config: ProductionPlanExpectation, t
   return { companyId: config.company, productId: product.id, planId: config.plan, currency: config.currency, amountMinor: config.amount };
 }
 export function productionOrderMatches(order: ProductionOrder, config: ProductionConfig, historicalPayment = false): boolean {
-  const amountMatches = order.amountMinor === config.amount || (historicalPayment && config.amount === 1800 && order.amountMinor === 300);
+  const promo=order.promotion;
+  const promoted=!!promo && /^promo_[A-Za-z0-9]{5,80}$/.test(promo.id) && /^[a-z0-9_-]{3,40}$/.test(promo.code)
+    && promo.baseAmountMinor===config.amount && Number.isInteger(promo.percent)&&promo.percent>=1&&promo.percent<=99
+    && Number.isSafeInteger(promo.discountMinor)&&promo.discountMinor>0&&promo.baseAmountMinor*promo.percent===promo.discountMinor*100
+    && order.amountMinor===promo.baseAmountMinor-promo.discountMinor;
+  const amountMatches = (promo ? promoted : order.amountMinor === config.amount) || (historicalPayment && [1800,2000].includes(config.amount) && order.amountMinor === 300);
   return uuid.test(order.orderId) && uuid.test(order.hostId) && (config.audience === 'public' || order.hostId === config.pilotHostId) && order.environment === 'production'
     && order.companyId === config.company && order.productId === config.product && order.planId === config.plan
     && order.currency === config.currency && amountMatches && (order.locale === 'ar' || order.locale === 'en');
@@ -199,6 +205,10 @@ export function assertProductionPaymentMatches(payment: Record<string, unknown>,
 export function assertProductionPaymentIdentity(payment: Record<string, unknown>, order: ProductionOrder, config: ProductionConfig): void {
   if (!productionOrderMatches(order, config, true) || !order.checkoutId || !order.checkoutUrl) throw new WhopError('PRODUCTION_PAYMENT_MISMATCH', 409);
   assertProductionCheckoutUrl(order.checkoutId, order.checkoutUrl);
+  if(order.promotion){
+    const promoId=typeof payment.promo_code_id==='string'?payment.promo_code_id:object(payment.promo_code)?payment.promo_code.id:null;
+    if(promoId!==order.promotion.id||money(payment.subtotal)!==order.promotion.baseAmountMinor)throw new WhopError('PRODUCTION_PAYMENT_MISMATCH',409);
+  }
   if (typeof payment.id !== 'string' || !/^pay_[A-Za-z0-9]{5,80}$/.test(payment.id) || payment.checkout_configuration_id !== order.checkoutId
     || !object(payment.company) || payment.company.id !== order.companyId || !object(payment.product) || payment.product.id !== order.productId
     || !object(payment.plan) || payment.plan.id !== order.planId || payment.currency !== order.currency || money(payment.total) !== order.amountMinor

@@ -29,5 +29,5 @@ export default function BrowserGame({initial,onExit,onHome}:{initial:BrowserRun;
   }catch(error){if(error instanceof BrowserEventError&&error.code==='LOCAL_EVENT_EXPIRED')setExpired(true);else setStorageError('تعذر قراءة بيانات الفعالية المحلية. لا توجد نسخة لاستعادتها من الخادم.');return current.current;}
  };
  if(access!=='ready'||expired)return <main className="host-portal" dir="rtl"><section className="host-panel host-access"><BudNotice tone="warning" persistent>{expired?'انتهت مدة التشغيل. نتائجك المحفوظة تبقى ضمن سجل هذا المتصفح.':access==='checking'?'':access==='locked'?'الفعالية مفتوحة في تبويب آخر. أغلق التبويب الآخر ثم أعد فتح الفعالية.':'هذا المتصفح لا يدعم تشغيل الفعالية بأمان. تقدم الفعالية محفوظ على جهازك فقط.'}</BudNotice><h1>{access==='checking'&&!expired?'جارٍ فتح الفعالية…':'تعذر فتح الفعالية'}</h1><button onClick={onHome}>عودة الى الصفحة الرئيسية</button></section></main>;
- return <Game key={run.eventId} locale="ar" initialState={run.state} cards={browserCards(run)} onBrowserAction={dispatch} localSaveError={storageError} onExit={onExit}/>;
+ return <Game reviewEventId={run.eventId} key={run.eventId} locale="ar" initialState={run.state} cards={browserCards(run)} onBrowserAction={dispatch} localSaveError={storageError} onExit={onExit}/>;
 }

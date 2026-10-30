@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+test.beforeEach(async({page})=>{await page.route('**/api/checkout?price=1',r=>r.fulfill({status:200,json:{code:'OK',data:{baseAmountMinor:2000,amountMinor:2000,currency:'sar',promotion:null}}}));});
 import { manualGameReducer } from '../../src/manual-game';
 import type { ManualState } from '../../src/manual-game';
 const initialState = { phase: 'live', config: { duration: 5, timerEnabled: false, attempts: 1 }, prizes: [{ id: 'prize-1', name: 'قسيمة', revealed: false, winnerId: null }], winners: [], nextWinnerNumber: 1, question: false, condition: false, attempt: 1, round: 0, deadline: null, remaining: 5, pendingWinner: false };
@@ -11,7 +12,7 @@ test('legacy host URL remains the contextual events gallery without a standalone
   await page.goto('/?screen=host&lang=ar');
   await expect(page.getByRole('heading', { name: 'فعاليات بُعد' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'بدء الفعالية', exact: true })).toHaveCount(0);
-  await expect(page.getByTestId('product-card-qc')).toHaveText('شراء مفتاح 20 18');
+  await expect(page.getByTestId('product-card-qc')).toHaveText('شراء مفتاح 20');
   await expect(page).toHaveURL(/screen=events/);
 });
 async function openHistory(page: import('@playwright/test').Page) {
