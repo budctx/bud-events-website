@@ -91,7 +91,7 @@ export async function handleOwner(request: Request, env: AuthEnv = envNow(), tra
       const config=productionPlanExpectation(env);
       if(env.BUD_PROMO_MANAGEMENT_ENABLED!=='true'||!config?.product)throw new WhopError('PROMO_NOT_CONFIGURED');
       if(!exact(body,['action','after'])||(body.after!==null&&typeof body.after!=='string'))throw new WhopError('INVALID_REQUEST',400);
-      return liveResponse(200,'OK',await listPromos(config,body.after as string|null,transport),refreshed);
+      return liveResponse(200,'OK',{...await listPromos(config,body.after as string|null,transport),checkoutEnabled:env.BUD_PROMO_CODES_ENABLED==='true',baseAmountMinor:config.amount},refreshed);
     }
     if(body.action==='partners'&&exact(body,['action'])) {
       const list=await rpc('bud_site_partners_owner',{p_actor:session.hostId,p_discord:session.discordId},secret,transport);

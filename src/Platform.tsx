@@ -1,4 +1,4 @@
-import {PublicReviews} from './ReviewModal';
+import {PublicReviews} from './PublicReviews';
 import {initialPromo,promoPrice} from './promo-client';
 import type {PublicPrice} from './promo-client';
 import './events-fit.css';
