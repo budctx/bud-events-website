@@ -21,6 +21,36 @@ export default function EventCarousel({children}:{children:ReactNode}){
   update();api.on('select',update);api.on('reInit',update);
   return()=>{api.off('select',update);api.off('reInit',update);};
  },[api]);
+ // Keep upcoming products on the approved first product's responsive dimensions.
+ useEffect(()=>{
+  const root=scope.current;
+  if(!root)return;
+  let frame=0;
+  const sync=()=>{
+   cancelAnimationFrame(frame);
+   frame=requestAnimationFrame(()=>{
+    const card=root.querySelector('.bud-events-slide:first-child>.platform-product-card');
+    const preview=card?.querySelector('.qc-demo');
+    const face=preview?.querySelector('.qc-demo-card');
+    if(!card||!preview||!face)return;
+    for(const [name,value] of [['--bud-event-panel-height',card.getBoundingClientRect().height],['--bud-event-preview-height',preview.getBoundingClientRect().height],['--bud-event-preview-width',preview.getBoundingClientRect().width],['--bud-event-face-width',face.getBoundingClientRect().width]] as const){
+     const next=`${value}px`;
+     if(root.style.getPropertyValue(name)!==next)root.style.setProperty(name,next);
+    }
+   });
+  };
+  const observer=new ResizeObserver(sync);
+  // Observe the slide as well: the sample is lazy-loaded after this effect.
+  const first=root.querySelector('.bud-events-slide:first-child');
+  if(first)observer.observe(first);
+  const mutation=new MutationObserver(()=>{
+   for(const el of root.querySelectorAll('.bud-events-slide:first-child :is(.platform-product-card,.qc-demo,.qc-demo-card)'))observer.observe(el);
+   sync();
+  });
+  mutation.observe(root,{childList:true,subtree:true});
+  sync();
+  return()=>{observer.disconnect();mutation.disconnect();cancelAnimationFrame(frame);};
+ },[]);
  const slides=[children,...upcomingEventCards()];
  return <div ref={scope} className="platform-event-catalog" data-testid="event-carousel">
   <DirectionProvider initialDirection="rtl" detectDirection={false}>

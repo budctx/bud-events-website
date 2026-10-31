@@ -155,6 +155,17 @@ for(const viewport of [{width:320,height:568},{width:375,height:667},{width:390,
  await expect(page.getByRole('timer')).toHaveText('0ث',{timeout:8000});await fits();
  for(const element of await page.locator('.qc-demo-card, .bud-promo-confirmation').all()){const b=await element.boundingBox();expect(b!.y).toBeGreaterThanOrEqual(cardBounds!.y+4);expect(b!.y+b!.height).toBeLessThanOrEqual(cardBounds!.y+cardBounds!.height-4);}
 
- for(const title of ['ميني قيمز','كروت الحظ']){await page.getByRole('button',{name:'عرض فعالية '+title,exact:true}).click();await expect(page.getByRole('heading',{name:title,exact:true})).toBeVisible();await fits();}
+ const reference=await page.locator('.bud-events-slide:not([inert])>article').evaluate(el=>{
+  const box=el.getBoundingClientRect(),preview=el.querySelector('.qc-demo')!.getBoundingClientRect();
+  return {width:box.width,height:box.height,previewWidth:preview.width,previewHeight:preview.height,titleSize:getComputedStyle(el.querySelector('h2')!).fontSize};
+ });
+ for(const title of ['ميني قيمز','كروت الحظ']){
+  await page.getByRole('button',{name:'عرض فعالية '+title,exact:true}).click();await expect(page.getByRole('heading',{name:title,exact:true})).toBeVisible();await fits();
+  const card=page.locator('.bud-events-slide:not([inert])>article');
+  await expect.poll(()=>card.evaluate(el=>el.getBoundingClientRect().height)).toBeCloseTo(reference.height,0);
+  const dimensions=await card.evaluate(el=>{const box=el.getBoundingClientRect(),preview=el.querySelector('.platform-upcoming-preview')!.getBoundingClientRect();return {width:box.width,previewWidth:preview.width,previewHeight:preview.height,titleSize:getComputedStyle(el.querySelector('h2')!).fontSize};});
+  expect(dimensions.width).toBeCloseTo(reference.width,0);expect(dimensions.previewWidth).toBeCloseTo(reference.previewWidth,0);expect(dimensions.previewHeight).toBeCloseTo(reference.previewHeight,0);expect(dimensions.titleSize).toBe(reference.titleSize);
+  await page.screenshot({path:info.outputPath('events-'+title+'.png'),animations:'disabled'});
+ }
  await page.getByRole('button',{name:'عرض فعالية سؤال وشرط',exact:true}).click();await page.getByTestId('event-how').click();await expect(page.getByRole('dialog',{name:'كيف ابدأ؟'})).toBeVisible();
 });
