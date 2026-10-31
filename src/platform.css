@@ -487,3 +487,16 @@ html:has(.platform){scrollbar-gutter:stable both-edges;overflow-x:clip}
 @media(max-width:360px){.platform{--platform-gutter:16px}}
 @media(min-width:500px) and (max-width:700px) and (max-height:500px){.platform{--platform-gutter:16px}}
 @media(min-width:701px) and (max-width:1000px) and (max-height:500px){.platform{--platform-gutter:24px}}
+
+/* Keep both home actions beside each other, including compact viewports. */
+.platform-home .platform-hero-actions { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); gap:12px; }
+.platform-home .platform-hero-actions>.bud-magnetic { width:100%; min-width:0; }
+.platform-home .platform-hero-actions .platform-action { width:100%; min-width:0; height:auto; min-height:52px; padding:10px 12px; display:inline-flex; align-items:center; justify-content:center; gap:12px; }
+.platform-discord-link { color:var(--platform-ink); text-decoration:none; }
+@media(max-width:1000px) {
+ .platform-home .platform-hero-actions { gap:10px; }
+ .platform-home .platform-hero-actions .platform-action { min-height:48px; padding:8px; font-size:13px; gap:8px; }
+}
+@media(max-height:500px) {
+ .platform-home .platform-hero-actions .platform-action { min-height:44px; }
+}
