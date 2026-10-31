@@ -506,8 +506,8 @@ for(const width of [390,1440])test(`policy centre deep links tabs search and acc
  await search.fill('zzzz');await expect(page.getByText('لا توجد نتائج مطابقة. جرّب كلمة أخرى.')).toBeVisible();
  await page.getByRole('tab',{name:'شروط الاستخدام'}).click();await expect(search).toHaveValue('');await expect(page).toHaveURL(/#terms$/);
  await page.reload();await expect(page.getByRole('tab',{name:'شروط الاستخدام'})).toHaveAttribute('aria-selected','true');
- await page.getByText('المفاتيح وتشغيل الفعاليات',{exact:true}).click();await expect(page.getByText(/يُستخدم مفتاح واحد/)).toBeVisible();
- await page.getByRole('tab',{name:'شروط الاستخدام'}).press('ArrowLeft');await expect(page.getByRole('tab',{name:'سياسة الخصوصية'})).toBeFocused();
+ await page.getByRole('button',{name:'سياسة الفعاليات'}).click();await expect(page.getByRole('tabpanel',{name:'شروط الاستخدام'})).toContainText('يُخصم رصيد تشغيل واحد');
+ await page.getByRole('tab',{name:'شروط الاستخدام'}).press('ArrowLeft');await expect(page.getByRole('tab',{name:'الاسترجاع والشكاوى'})).toBeFocused();
  await page.goBack();await expect(page.getByRole('tab',{name:'شروط الاستخدام'})).toHaveAttribute('aria-selected','true');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
  await expect(page.getByRole('link',{name:'تواصل عبر Discord'})).toHaveAttribute('href','https://discord.gg/9Tg4HHTmzm');
@@ -520,12 +520,12 @@ for(const width of [390,1440]) test(`Arabic policies, refunds and official certi
   await expect(page.getByRole('heading',{name:'مركز المساعدة والسياسات'})).toBeVisible();
   await expect(page.getByRole('tab',{name:'شروط الاستخدام'})).toHaveAttribute('aria-selected','true');
   await page.getByRole('button',{name:'سياسة الفعاليات'}).click();
-  await expect(page.locator('.bud-policy-panel')).toContainText('أربع ساعات');
+  await expect(page.getByRole('tabpanel',{name:'شروط الاستخدام'})).toContainText('أربع ساعات');
   await expect(page.locator('.bud-freelance-document')).toContainText('FL-650432038');
   await expect(page.getByRole('link',{name:/التحقق عبر منصة العمل الحر/})).toHaveAttribute('href','https://freelance.sa/ar/certificate-validation');
   await page.getByRole('tab',{name:'الاسترجاع والشكاوى'}).click();
   await expect(page).toHaveURL(/#refund$/);
   await page.getByRole('button',{name:'حق الفسخ النظامي'}).click();
-  await expect(page.locator('.bud-policy-panel')).toContainText('سبعة أيام');
+  await expect(page.getByRole('tabpanel',{name:'الاسترجاع والشكاوى'})).toContainText('سبعة أيام');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });
