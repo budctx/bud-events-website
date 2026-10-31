@@ -251,3 +251,17 @@
  .platform.platform-events-fit .qc-demo-timer{--countdown-size:24px}
  .platform.platform-events-fit .qc-demo-timer .event-countdown-value{font-size:11px}
 }
+/* Product-detail composition: preview left, RTL information right. */
+@media(min-width:701px){
+ .platform.platform-events-fit .bud-events-slide>.platform-product-card{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));direction:ltr;gap:clamp(20px,3vw,44px);align-items:center}
+ .platform.platform-events-fit .qc-demo,.platform.platform-events-fit .event-preview{grid-column:1;width:100%;min-width:0}
+ .platform.platform-events-fit .platform-product-information{grid-column:2;width:100%;direction:rtl;text-align:right;align-items:stretch;gap:12px}
+ .platform.platform-events-fit .platform-features{justify-content:flex-start}
+ .platform.platform-events-fit .platform-event-ownership{text-align:right}
+ .platform.platform-events-fit .platform-event-keys{width:fit-content;margin-inline:0 auto}
+ .platform.platform-events-fit .bud-promo-confirmation{margin-inline:0 auto}
+ .platform.platform-events-fit .platform-product-information h2{line-height:1.4}
+}
+@media(min-width:701px) and (max-height:650px){
+ .platform.platform-events-fit .platform-product-information{gap:4px}
+}
