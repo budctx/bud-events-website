@@ -289,3 +289,19 @@
  .platform.platform-events-fit .qc-demo-timer[data-active=false]{display:none}
  .platform.platform-events-fit .qc-demo:has(.qc-demo-timer[data-active=true]) .qc-demo-hint{visibility:hidden}
 }
+/* Let desktop content establish the product panel height and align both tops. */
+@media(min-width:1001px) and (min-height:651px){
+ .platform.platform-events-fit .bud-events-slide>.platform-product-card{height:auto;min-height:0;max-height:100%;padding:32px;align-items:start}
+ .platform.platform-events-fit .qc-demo .mg-card-content{font-size:clamp(22px,2vw,28px);line-height:1.55}
+ .platform.platform-events-fit .qc-demo .mg-face-title{font-size:11px;line-height:16px}
+ .platform.platform-events-fit .qc-demo .mg-face-footer{font-size:13px;line-height:18px}
+ .platform.platform-events-fit .platform-product-information h2{font-size:clamp(36px,4.8dvh,44px)}
+ .platform.platform-events-fit .platform-product-description{font-size:17px;line-height:1.75}
+ .platform.platform-events-fit .platform-event-actions .platform-action{font-size:16px}
+ .platform.platform-events-fit .bud-purchase-price{font-size:18px}
+ .platform.platform-events-fit .qc-demo{grid-template-columns:minmax(0,1fr) 40px minmax(0,1fr);gap:10px}
+ .platform.platform-events-fit .qc-demo-cards{grid-column:1/-1}
+ .platform.platform-events-fit .qc-demo-hint{grid-column:1/3;text-align:center;font-size:11px;line-height:18px}
+ .platform.platform-events-fit .qc-demo-reset{grid-column:3;justify-self:end}
+ .platform.platform-events-fit .qc-demo-timer{grid-column:2;grid-row:2}
+}
