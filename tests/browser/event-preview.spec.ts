@@ -101,12 +101,13 @@ test('sample and host use identical card faces, marks and flip styles at the sam
   await host.locator('.mg-cards').evaluate((el,w)=>{ (el as HTMLElement).style.width=`${w*2+16}px`; },width);
   const game=host.locator('.mg-card').first();await game.click();
   for(const selector of ['.mg-card-hidden','.mg-card-visible','.mg-corner-top','.mg-hidden-center b','.mg-card-content']) {
-    const properties=['backgroundColor','borderTopWidth','borderRadius','boxShadow','fontSize','width'];
+    const properties=['backgroundColor','borderTopWidth','borderRadius','boxShadow','fontSize','width'].filter(property=>selector!=='.mg-card-content'||!['fontSize','width'].includes(property));
     const actual=await sample.locator(selector).first().evaluate((el,props)=>props.map(p=>getComputedStyle(el).getPropertyValue(p.replace(/[A-Z]/g,m=>`-${m.toLowerCase()}`))),properties);
     const expected=await game.locator(selector).first().evaluate((el,props)=>props.map(p=>getComputedStyle(el).getPropertyValue(p.replace(/[A-Z]/g,m=>`-${m.toLowerCase()}`))),properties);
-    // Content width depends on the fixed sample text; all other visual properties share one source.
-    expect(actual.slice(0,selector==='.mg-card-content'?-1:undefined)).toEqual(expected.slice(0,selector==='.mg-card-content'?-1:undefined));
+    // Product-preview copy is intentionally larger; card surfaces, marks and flip styles remain shared.
+    expect(actual).toEqual(expected);
   }
+  expect(await sample.locator('.mg-card-content').evaluate(el=>parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(22);
   await expect(sample.locator('.mg-corner')).toHaveCount(4);
   await host.close();
 });
