@@ -5,7 +5,7 @@
 .bud-policy-points{padding-inline-start:24px;margin:0 0 12px;display:grid;gap:8px;color:#333;font-size:14px;line-height:1.9}
 .bud-policy-points li{padding-inline-start:2px}
 .bud-policy-body p{margin:0;font-size:14px;line-height:1.9}
-.bud-freelance-document{margin-top:24px;border:1.5px solid #333;border-radius:12px;background:#f6f0e2;padding:20px;display:grid;gap:12px}
+.bud-freelance-document{margin-top:24px;border:1.5px solid #333;border-radius:12px;background:#fdfdff;box-shadow:3px 3px 0 #fbb03b;padding:20px;display:grid;gap:12px}
 .bud-freelance-document h3{font-size:18px;line-height:1.5}
 .bud-freelance-document p{font-size:13px;line-height:1.9;color:#333}
 .bud-freelance-document-actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
