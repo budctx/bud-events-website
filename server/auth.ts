@@ -174,10 +174,10 @@ async function resolve(request: Request, settings: Config, transport: Transport)
   return { hostId: user.id, discordId: user.discordId, authenticatedAt: session.authenticatedAt ?? 0, displayName: user.displayName, avatarUrl: user.avatarUrl, headers: responseHeaders, access: session.access };
 }
 /** Protected APIs must forward returned Set-Cookie headers after a refresh. Never return tokens. */
-export async function resolveOwnerSession(request: Request, env: AuthEnv, transport: Transport = fetch): Promise<{ hostId: string; discordId: string | null; authenticatedAt: number; headers: Headers } | null> {
+export async function resolveOwnerSession(request: Request, env: AuthEnv, transport: Transport = fetch): Promise<{ hostId: string; discordId: string | null; authenticatedAt: number; displayName: string; avatarUrl: string | null; headers: Headers } | null> {
   const settings = config(env); if (!settings) return null;
   const session = await resolve(request, settings, transport);
-  return session ? { hostId: session.hostId, discordId: session.discordId, authenticatedAt: session.authenticatedAt, headers: session.headers } : null;
+  return session ? { hostId: session.hostId, discordId: session.discordId, authenticatedAt: session.authenticatedAt, displayName: session.displayName, avatarUrl: session.avatarUrl, headers: session.headers } : null;
 }
 export async function resolveSession(request: Request, env: AuthEnv, transport: Transport = fetch): Promise<{hostId: string; headers: Headers} | null> {
   const session = await resolveOwnerSession(request, env, transport);
