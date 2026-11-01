@@ -13,6 +13,9 @@ for(const size of sizes){
   await expect(page.getByTestId('nav-events')).not.toBeVisible();
   const art=page.locator('.platform-mobile-art'),cta=page.getByTestId('hero-explore');
   await expect(art).toBeVisible();await expect(cta).toBeVisible();
+  await expect(page.locator('.platform-partners-mobile')).toBeVisible();
+  await expect(page.locator('.platform-reviews-mobile')).toContainText('أعجبني تنظيم الفعالية');
+  await expect.poll(()=>page.locator('.platform-mobile-art .platform-scene img').evaluate((img:HTMLImageElement)=>img.complete&&img.naturalWidth>0)).toBe(true);
   const metrics=await page.evaluate(()=>{
    const rect=(q:string)=>{const r=document.querySelector(q)!.getBoundingClientRect();return {x:r.x,y:r.y,right:r.right,bottom:r.bottom,height:r.height}};
    return {cta:rect('[data-testid=hero-explore]'),art:rect('.platform-mobile-art'),partners:rect('.platform-partners-mobile'),reviews:rect('.platform-reviews-mobile'),footer:rect('.platform-footer'),width:document.documentElement.scrollWidth,viewport:innerWidth,height:document.documentElement.scrollHeight};
