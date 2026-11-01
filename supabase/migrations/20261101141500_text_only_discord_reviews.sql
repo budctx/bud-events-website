@@ -51,7 +51,7 @@ begin
  if p_offset is null or p_offset<0 or p_offset>100000 then raise exception 'BUD_INVALID_REQUEST';end if;
  return jsonb_build_object('rows',(select coalesce(jsonb_agg(x),'[]'::jsonb) from
  (select id,host_id,comment,display_name,avatar_url,status,featured_rank,created_at,updated_at
- from bud_platform.event_reviews order by created_at desc,id limit 50 offset p_offset)x));
+ from bud_platform.event_reviews order by featured_rank asc nulls last,updated_at desc,id limit 50 offset p_offset)x));
 end;
 $$;
 
