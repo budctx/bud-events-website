@@ -4,7 +4,7 @@ import {Seo} from './Seo';
 import {ReviewIdentity} from './ReviewIdentity';
 import {getHostSession,signInHost} from './host-client';
 import type {HostSession} from './host-client';
-import './reviews.css';
+import './review-page.css';
 
 type Stage='loading'|'login'|'editing'|'thanks'|'error';
 type ReviewResponse={code:string;data?:{comment?:string;received?:boolean}};
