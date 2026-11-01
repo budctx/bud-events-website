@@ -14,3 +14,17 @@
 .bud-freelance-document-actions a{display:inline-flex;text-decoration:underline;text-underline-offset:4px;font-weight:650}
 .bud-freelance-document-actions a:focus-visible{outline:3px solid #333;outline-offset:4px}
 @media(max-width:700px){.bud-policy-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}.bud-freelance-document{padding:16px}.bud-freelance-document-actions{align-items:start;flex-direction:column}}
+
+@media(max-width:700px){
+ .bud-policy-center{min-width:0}
+ .bud-policy-center>header{margin-bottom:18px}
+ .bud-policy-center h1{font-size:clamp(24px,6vw,30px)}
+ .bud-policy-layout{gap:14px;min-width:0}
+ .bud-policy-layout aside{gap:12px;min-width:0}
+ .bud-policy-tabs{display:flex;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-inline:contain;scroll-snap-type:x proximity;scrollbar-width:thin;padding:3px 4px 8px;gap:9px}
+ .bud-policy-tabs button{flex:0 0 auto;min-width:145px;min-height:48px;font-size:13px;padding:10px 12px;scroll-snap-align:start;white-space:normal}
+ .bud-policy-panel{padding:18px 14px;overflow-wrap:anywhere}
+ .bud-policy-search input{font-size:16px}
+ .bud-policy-control{min-height:48px}
+ .bud-policy-body{font-size:14px}
+}
