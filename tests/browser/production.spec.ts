@@ -595,3 +595,23 @@ for(const viewport of [{width:320,height:568},{width:390,height:844},{width:667,
  }
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });
+
+for(const viewport of [{width:320,height:568},{width:390,height:844},{width:430,height:932}])test('supporting pages responsive layout '+viewport.width,async({page})=>{
+ await page.setViewportSize(viewport);
+ await page.goto('/?screen=policies&lang=ar#privacy');
+ const tabbar=page.getByRole('tablist',{name:'أقسام المساعدة والسياسات'});
+ await expect(tabbar).toBeVisible();
+ await expect(tabbar.getByRole('tab',{name:'سياسة الخصوصية'})).toHaveAttribute('aria-selected','true');
+ expect(await tabbar.evaluate(el=>getComputedStyle(el).overflowX)).toBe('auto');
+ await page.goto('/?screen=bots&lang=ar');
+ const card=page.locator('.bud-bot-card').first();
+ await expect(card).toBeVisible();
+ expect(await card.locator('.bud-magic-content').evaluate(el=>getComputedStyle(el).flexDirection)).toBe('row');
+ await card.getByRole('button',{name:'تفاصيل الرومات المؤقتة'}).click();
+ await expect(page.getByRole('dialog',{name:'الرومات المؤقتة'})).toContainText('لم يُطرح');
+ await page.keyboard.press('Escape');
+ await page.goto('/?screen=designs&lang=ar');
+ await expect(page.locator('.platform-designs-empty')).toBeVisible();
+ await expect(page.getByRole('button',{name:'اختر فعاليتك',exact:true})).toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+});
