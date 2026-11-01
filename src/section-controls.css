@@ -54,3 +54,18 @@
  .bud-events-slide .platform-upcoming-face svg{width:52px;height:52px;}
  .bud-events-slide .platform-upcoming-event .platform-action{margin-top:auto;}
 }
+
+@media(max-width:700px){
+ .bud-bot-grid{gap:14px}
+ .bud-bot-card{min-width:0}
+ .bud-bot-card .bud-magic-content{display:flex;flex-direction:row;min-width:0}
+ .bud-bot-card .bud-bot-art{width:36%;min-width:100px;min-height:156px;flex:none;gap:8px;padding:8px}
+ .bud-bot-card .bud-bot-art svg{width:clamp(38px,12vw,54px);height:clamp(38px,12vw,54px)}
+ .bud-bot-card .bud-bot-art>span{font-size:16px}
+ .bud-bot-card .bud-bot-copy{padding:14px;gap:8px;min-width:0;flex:1}
+ .bud-bot-card .bud-bot-copy h2{font-size:clamp(16px,4.6vw,20px);line-height:1.4;overflow-wrap:anywhere}
+ .bud-bot-card .bud-bot-copy p{font-size:12px;line-height:1.6}
+ .bud-bot-card .bud-bot-copy button{min-height:44px;padding:9px 7px;font-size:12px}
+ .bud-bot-dialog{width:calc(100% - 24px);max-height:calc(100dvh - 24px)}
+ .bud-bot-dialog .bud-bot-copy{padding:20px}
+}
