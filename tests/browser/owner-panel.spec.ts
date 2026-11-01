@@ -27,7 +27,7 @@ for(const width of [390,1440])for(const panel of ['profile','history'] as const)
  await page.getByRole('menuitem',{name:panel==='profile'?'الملف الشخصي':'السجل',exact:true}).click();
  const heading=page.getByRole('heading',{name:panel==='profile'?'الملف الشخصي':'السجل',exact:true});
  await expect(heading).toBeVisible();await expect(policies).toHaveCount(0);
- await expect(page).toHaveURL(new RegExp(`screen=policies.*panel=${panel}.*#terms`));
+ await expect(page).toHaveURL(new RegExp(`/policies.*panel=${panel}.*#terms`));
  await page.reload();await expect(heading).toBeVisible();
  await page.goBack();await expect(policies).toBeVisible();
  await page.goForward();await expect(heading).toBeVisible();

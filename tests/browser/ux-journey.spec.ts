@@ -36,13 +36,13 @@ test('Jakob: browser back and forward restore the page and account panel',async(
   await setup(page);
   await page.goto('/?lang=ar');
   await page.getByTestId('nav-events').click();
-  await expect(page).toHaveURL(/screen=events/);
+  await expect(page).toHaveURL(/\/events(?:[?#]|$)/);
   await page.locator('.platform-account-trigger').click();
   await page.getByRole('menuitem',{name:'الملف الشخصي'}).click();
   await expect(page).toHaveURL(/panel=profile/);
   await expect(page.locator('.owner-profile')).toBeVisible();
   await page.goBack();
-  await expect(page).toHaveURL(/screen=events/);
+  await expect(page).toHaveURL(/\/events(?:[?#]|$)/);
   await expect(page).not.toHaveURL(/panel=profile/);
   await expect(page.getByTestId('product-card-qc')).toBeVisible();
   await page.goBack();

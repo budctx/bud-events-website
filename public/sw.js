@@ -9,7 +9,7 @@ self.addEventListener('message',event=>{
 self.addEventListener('fetch',event=>{
  const request=event.request,url=new URL(request.url);
  if(request.method!=='GET'||url.origin!==self.location.origin||url.pathname.startsWith('/api/'))return;
- if(request.mode==='navigate'&&url.pathname==='/'){
+ if(request.mode==='navigate'&&['/','/events','/bots','/designs','/policies'].includes(url.pathname.replace(/\/$/,'')||'/')){
   event.respondWith((async()=>{const cache=await caches.open(CACHE);try{const response=await fetch(request);if(response.ok&&response.headers.get('content-type')?.includes('text/html'))await cache.put('/',response.clone());return response;}catch{const cached=await cache.match('/');return cached??Response.error();}})());return;
  }
  if(url.pathname.startsWith('/assets/')&&!url.search){event.respondWith((async()=>{const cache=await caches.open(CACHE);const prior=await cache.match(request,{ignoreVary:true});if(prior)return prior;const response=await fetch(request);if(response.ok)await cache.put(request,response.clone());return response;})());}

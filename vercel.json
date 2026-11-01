@@ -81,5 +81,23 @@
       "destination": "https://budteam.net/",
       "permanent": false
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/events",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/bots",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/designs",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/policies",
+      "destination": "/index.html"
+    }
   ]
 }
