@@ -579,3 +579,19 @@ test('cached clean public paths remain navigable offline',async({page,context})=
  await expect(page).toHaveURL(/\/policies#terms$/);
  await context.setOffline(false);
 });
+
+
+for(const viewport of [{width:320,height:568},{width:390,height:844},{width:667,height:375}])test(`mobile event typography preserves card fit at ${viewport.width}x${viewport.height}`,async({page})=>{
+ await page.setViewportSize(viewport);
+ await page.goto('/?screen=events&lang=ar');
+ const preview=page.getByTestId('event-preview');
+ await expect(preview).toBeVisible();
+ const cardTitle=await preview.locator('.mg-face-title').first().evaluate(el=>parseFloat(getComputedStyle(el).fontSize));
+ const cardFooter=await preview.locator('.mg-face-footer').first().evaluate(el=>parseFloat(getComputedStyle(el).fontSize));
+ expect(cardTitle).toBeGreaterThanOrEqual(9);expect(cardFooter).toBeGreaterThanOrEqual(10);
+ if(viewport.height>=741){
+  const description=await page.locator('.platform-product-description').first().evaluate(el=>parseFloat(getComputedStyle(el).fontSize));
+  expect(description).toBeGreaterThanOrEqual(13);
+ }
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+});
