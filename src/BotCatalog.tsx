@@ -24,11 +24,11 @@ export default function BotCatalog(){
  const artwork=(bot:BotProduct)=><div className="bud-bot-art" aria-hidden="true"><bot.Icon size={68}/><span>بُعد</span></div>;
  return <LayoutGroup id={id}><div className="bud-bot-grid" aria-label="معرض بوتات بُعد">
  {bots.map(bot=><motion.article key={bot.id} layoutId={reduced?undefined:'bot-card-'+bot.id} transition={transition} className="bud-bot-card" onClick={()=>expand(bot)} data-testid={'bot-'+bot.id}>
- <MagicCard>{artwork(bot)}<div className="bud-bot-copy"><BudBadge tone="warning" variant="outline">قريبًا</BudBadge><motion.h2 layoutId={reduced?undefined:'bot-title-'+bot.id}>{bot.name}</motion.h2><p>تفاصيل بوت {bot.name} قريبًا.</p>
+ <MagicCard>{artwork(bot)}<div className="bud-bot-copy"><BudBadge tone="warning" variant="outline">قريبًا</BudBadge><motion.h2 layoutId={reduced?undefined:'bot-title-'+bot.id}>{bot.name}</motion.h2><p>لم يُطرح هذا البوت بعد.</p>
  <button ref={node=>{if(node)triggers.current.set(bot.id,node);else triggers.current.delete(bot.id);}} type="button" aria-label={'تفاصيل '+bot.name} aria-haspopup="dialog" aria-expanded={active?.id===bot.id} className="platform-action platform-action-secondary" onClick={()=>expand(bot)}>تفاصيل البوت <ArrowUpLeft size={18} aria-hidden="true"/></button></div></MagicCard>
  </motion.article>)}
  </div>
  <BudDialog open={!!active} onClose={()=>setActive(null)} titleId={id+'-title'} className="bud-bot-dialog">
- {active&&<motion.div layoutId={reduced?undefined:'bot-card-'+active.id} transition={transition} className="bud-bot-expanded"><div className="bud-bot-close"><ButtonUtility label="إغلاق تفاصيل البوتات" icon={X} onPress={()=>setActive(null)}/></div>{artwork(active)}<div className="bud-bot-copy"><BudBadge tone="warning" variant="outline">قريبًا</BudBadge><motion.h2 id={id+'-title'} layoutId={reduced?undefined:'bot-title-'+active.id}>{active.name}</motion.h2><p>تفاصيل بوت {active.name} قريبًا.</p><p>لم يُطرح هذا البوت للشراء أو الإضافة بعد. ستظهر التفاصيل المعتمدة هنا عند توفرها.</p></div></motion.div>}
+ {active&&<motion.div layoutId={reduced?undefined:'bot-card-'+active.id} transition={transition} className="bud-bot-expanded"><div className="bud-bot-close"><ButtonUtility label="إغلاق تفاصيل البوتات" icon={X} onPress={()=>setActive(null)}/></div>{artwork(active)}<div className="bud-bot-copy"><BudBadge tone="warning" variant="outline">قريبًا</BudBadge><motion.h2 id={id+'-title'} layoutId={reduced?undefined:'bot-title-'+active.id}>{active.name}</motion.h2><p>لم يُطرح هذا البوت للشراء أو الإضافة بعد. ستظهر تفاصيله هنا عند توفرها.</p></div></motion.div>}
  </BudDialog></LayoutGroup>;
 }
