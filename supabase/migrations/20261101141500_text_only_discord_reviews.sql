@@ -104,4 +104,6 @@ revoke all on function public.bud_review_submit_text(uuid,text,text,text),public
  public.bud_reviews_public_text(),public.bud_review_feature(uuid,text,uuid,uuid,integer,text) from public,anon,authenticated;
 grant execute on function public.bud_review_submit_text(uuid,text,text,text),public.bud_review_mine(uuid),
  public.bud_reviews_public_text(),public.bud_review_feature(uuid,text,uuid,uuid,integer,text) to service_role;
+-- Disable the superseded numeric-rating submit RPC after cutover to text-only reviews.
+revoke execute on function public.bud_review_submit(uuid,uuid,integer,text,text,boolean) from service_role;
 commit;
