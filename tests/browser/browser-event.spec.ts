@@ -114,14 +114,25 @@ test('event-start loader advances only when the server confirms each milestone',
  releaseContent();await expect(loader).not.toBeVisible();await expect(page.locator('.manual-game')).toBeVisible();await expect(page.locator('.mg-disclosure')).toHaveCount(0);expect(starts).toBe(1);
 });
 
-test('closing offers an optional review without uploading winners or publishing consent by default',async({page})=>{
+test('finished local event navigates to the unified review and thanks page without uploading local results',async({page})=>{
  await setup(page);await start(page);
  await page.evaluate(({owner,id})=>{const key=`bud-browser-event:v1:${owner}:${id}`;const run=JSON.parse(localStorage.getItem(key)!);run.state.phase='closing';localStorage.setItem(key,JSON.stringify(run));},{owner,id});
- const reviews:any[]=[];await page.route('**/api/owner',r=>{const body=r.request().postDataJSON();if(body.action==='reviewSubmit'){reviews.push(body);return r.fulfill(ok({received:true}));}return r.fulfill(ok({owner:false}));});
+ const requests:any[]=[];
+ await page.route('**/api/review',route=>{
+  const body=route.request().postDataJSON();requests.push(body);
+  if(body.action==='mine')return route.fulfill(ok({}));
+  if(body.action==='submit')return route.fulfill(ok({received:true}));
+  return route.fulfill({status:400,json:{code:'INVALID_REQUEST'}});
+ });
  await page.reload();await page.getByRole('button',{name:'الختام',exact:true}).click();
- const modal=page.getByRole('dialog',{name:'كيف كانت تجربتك؟'});await expect(modal).toBeVisible();await expect(modal.getByRole('checkbox')).not.toBeChecked();
- await expect(modal.getByRole('button',{name:'إرسال التقييم والختام'})).toBeDisabled();
- await modal.getByRole('radio',{name:'4 من 5'}).check();await modal.getByLabel('وش حبيت في التجربة؟').fill('فعالية ممتعة');
- await modal.getByRole('button',{name:'إرسال التقييم والختام'}).click();
- await expect(modal).not.toBeVisible();expect(reviews).toEqual([{action:'reviewSubmit',eventId:id,rating:4,comment:'فعالية ممتعة',displayName:'أحد مستخدمي بُعد',publishConsent:false}]);expect(JSON.stringify(reviews)).not.toContain('جائزة محلية خاصة');
+ await expect(page).toHaveURL(/\/review(?:[?#]|$)/);
+ await expect(page.getByRole('heading',{name:'شاركنا رأيك'})).toBeVisible();
+ await expect(page.getByText('حساب محلي')).toBeVisible();
+ await expect(page.getByRole('textbox',{name:'رأيك في بُعد'})).toBeVisible();
+ await page.getByRole('textbox',{name:'رأيك في بُعد'}).fill('فعالية ممتعة');
+ await page.getByRole('button',{name:'إرسال',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'شكرًا لك!'})).toBeVisible();
+ await expect(page.getByRole('link',{name:'العودة للرئيسية'})).toHaveAttribute('href','/');
+ expect(requests.filter(r=>r.action==='submit')).toEqual([{action:'submit',comment:'فعالية ممتعة'}]);
+ expect(JSON.stringify(requests)).not.toContain('جائزة محلية خاصة');
 });
