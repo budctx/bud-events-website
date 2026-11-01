@@ -9,7 +9,7 @@ import './review-page.css';
 type Stage='loading'|'login'|'editing'|'thanks'|'error';
 type ReviewResponse={code:string;data?:{comment?:string;received?:boolean}};
 async function reviewRequest(action:Record<string,unknown>):Promise<ReviewResponse>{
- const response=await fetch('/api/review',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify(action)});
+ const response=await fetch('/api/owner?flow=review',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify(action)});
  const data=await response.json().catch(()=>null);
  if(!response.ok||!data||data.code!=='OK')throw Error(data?.code??'SERVICE_UNAVAILABLE');
  return data;

@@ -7,7 +7,7 @@ export function ReviewManager({rows,onNext,onBack,offset,onRefresh}:{rows:Row[];
  const change=async(id:string,rank:number|null)=>{
   if(busy)return;setBusy(id);setError('');
   try{
-   const res=await fetch('/api/review',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},
+   const res=await fetch('/api/owner?flow=review',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({action:'feature',id,rank,operationId:crypto.randomUUID()})});
    const data=await res.json().catch(()=>null);
    if(!res.ok||data?.code!=='OK')throw Error();
