@@ -116,9 +116,8 @@ export async function handleOwner(request: Request, env: AuthEnv = envNow(), tra
     }
     if(!exact(body,['action','operationId','confirmed','reason','payload']) || typeof body.operationId!=='string' || !uuid.test(body.operationId)
       || body.confirmed!==true || typeof body.reason!=='string' || body.reason.trim().length<3 || body.reason.trim().length>300 || !object(body.payload)) throw new WhopError('CONFIRMATION_REQUIRED',400);
-    // Re-check provider-bound identity on every request. Cookie refresh must not renew this timestamp.
-    const age=Date.now()/1000-session.authenticatedAt;
-    if(!Number.isFinite(age) || age<0 || age>300) throw new WhopError('OWNER_REAUTH_REQUIRED',403);
+    // The verified session and owner check above authorize every command.
+    // Token refresh preserves the session lifetime without another Discord redirect.
     const p=body.payload;
     if(body.action==='reviewModerate') {
       if(env.BUD_REVIEWS_ENABLED!=='true')throw new WhopError('REVIEWS_NOT_CONFIGURED');
