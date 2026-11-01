@@ -169,6 +169,8 @@ export default function Platform({ onPlay }: PlatformProps) {
     if (page === next && !panel) return;
     history.pushState(null,'',routeUrl(next));
     setPanel(null); setPage(next);
+    // The mobile home now scrolls naturally; entering a new section starts at its top.
+    if(window.scrollY>0)window.scrollTo({top:0,behavior:'auto'});
     // The main node persists across sections. Focus now so a later frame cannot
     // steal focus after the user has already pressed Tab on the new section.
     main.current?.focus({ preventScroll: true });
