@@ -372,6 +372,13 @@ for(const width of [390,1440])test(`event setup opens in a viewport-safe modal a
  const scroll=await page.evaluate(()=>scrollY);await setup.click();
  const modal=page.getByRole('dialog',{name:'إعداد الفعالية',exact:true});await expect(modal).toBeVisible();
  await expect(page.locator('#platform-content .host-embedded')).toHaveCount(0);await expect(modal.getByLabel('اسم الفعالية')).toBeVisible();
+ await expect(modal.locator('.host-setup-field-group')).toHaveCount(3);
+ for(const heading of ['بيانات الفعالية','التوقيت','تجهيز الجوائز'])await expect(modal.getByRole('heading',{name:heading})).toBeVisible();
+ expect(await modal.locator('.host-start-actions').evaluate(el=>getComputedStyle(el).position)).toBe(width===390?'sticky':'static');
+ await modal.getByLabel('الجوائز',{exact:true}).fill(Array(51).fill('جائزة').join('\n'));
+ await expect(modal.locator('#host-start-hint')).toContainText('حتى 50');
+ await expect(modal.getByRole('button',{name:'بدء الفعالية',exact:true})).toBeDisabled();
+
  expect(await page.evaluate(()=>scrollY)).toBe(scroll);
  const box=await modal.boundingBox();expect(box).not.toBeNull();expect(box!.width).toBeLessThanOrEqual(width);expect(box!.height).toBeLessThanOrEqual(800);
  await modal.getByLabel('اسم الفعالية').fill('جلسة محفوظة');await modal.getByLabel('الجوائز',{exact:true}).fill('جائزة أولى');
