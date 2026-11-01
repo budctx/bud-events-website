@@ -44,10 +44,24 @@ test('issued plaintext appears only for fresh creation; redemption binds recipie
  const body=calls.at(-1).body;assert.equal(body.p_host,host);assert.match(body.p_digest,/^[a-f0-9]{64}$/);
  assert.equal((await handleOwner(req({action:'redeem',code:result.data.code,operationId:id,hostId:id},c),env,transport)).status,400);
 });
-test('old authentication cannot mutate and refreshing tokens cannot silently renew owner authentication',async t=>{
- const transport=mock(),c=await login(transport),now=Date.now();
- t.mock.method(Date,'now',()=>now+301000);
- const res=await handleOwner(req(grant,c),env,transport);assert.equal(res.status,403);assert.equal((await res.json()).code,'OWNER_REAUTH_REQUIRED');
+test('owner commands keep working after five minutes and access-token refresh within a valid session',async t=>{
+ const calls:string[]=[];const transport=mock(name=>{calls.push(name);return Response.json({replayed:false,id});});
+ const c=await login(transport),now=Date.now();let elapsed=301000;
+ t.mock.method(Date,'now',()=>now+elapsed);
+ assert.equal((await handleOwner(req(grant,c),env,transport)).status,200);
+ elapsed=3601000;
+ const refreshed=await handleOwner(req(grant,c),env,transport);
+ assert.equal(refreshed.status,200);assert.ok(refreshed.headers.getSetCookie().some(value=>value.startsWith('__Host-bud-session=')));
+ assert.deepEqual(calls,['bud_owner_command','bud_owner_command']);
+});
+test('expired or revoked sessions cannot issue owner commands',async t=>{
+ const calls:string[]=[];const base=mock(name=>{calls.push(name);return Response.json({replayed:false,id});});
+ const c=await login(base),now=Date.now();
+ const revoked:typeof fetch=async(input,init)=>String(input).endsWith('/auth/v1/user')?Response.json({},{status:401}):base(input,init);
+ assert.equal((await handleOwner(req(grant,c),env,revoked)).status,401);
+ t.mock.method(Date,'now',()=>now+604801000);
+ assert.equal((await handleOwner(req(grant,c),env,base)).status,401);
+ assert.ok(!calls.includes('bud_owner_command'));
 });
 test('owner view allowlist bounds search/pagination and sanitizes backend failures',async()=>{
  const calls:any[]=[];const transport=mock((name,body)=>{calls.push({name,body});return Response.json({message:'private-sql-and-secret'},{status:500});}),c=await login(transport);
@@ -55,7 +69,7 @@ test('owner view allowlist bounds search/pagination and sanitizes backend failur
  const result=await handleOwner(req({action:'view',section:'users',search:'',offset:0},c),env,transport);
  assert.equal(result.status,503);assert.doesNotMatch(await result.text(),/private-sql|secret/);assert.equal(calls[0].body.p_actor,host);
 });
-test('receipt lookup uses the verified owner and remains available after recent-auth mutation window expires',async t=>{
+test('receipt lookup remains bound to the verified owner after five minutes',async t=>{
  const calls:any[]=[];const transport=mock((name,body)=>{calls.push({name,body});return Response.json({found:true,kind:'grant',result:{id,replayed:true}});});
  const c=await login(transport),now=Date.now();t.mock.method(Date,'now',()=>now+301000);
  const response=await handleOwner(req({action:'receipt',operationId:id},c),env,transport);assert.equal(response.status,200);

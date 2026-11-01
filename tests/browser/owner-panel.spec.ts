@@ -18,6 +18,22 @@ async function setup(page:Page,owner=true){
  await page.getByRole('menuitem',{name:'الملف الشخصي'}).click();
  await expect(page.getByRole('heading',{name:'الملف الشخصي',exact:true})).toBeVisible();
 }
+for(const width of [390,1440])for(const panel of ['profile','history'] as const)test(`account ${panel} opens from policies and survives navigation at ${width}`,async({page})=>{
+ await page.setViewportSize({width,height:844});await setup(page);
+ await page.getByRole('button',{name:'الشروط',exact:true}).click();
+ const policies=page.getByRole('heading',{name:'مركز المساعدة والسياسات',exact:true});
+ await expect(policies).toBeVisible();
+ await page.locator('.platform-account-trigger').click();
+ await page.getByRole('menuitem',{name:panel==='profile'?'الملف الشخصي':'السجل',exact:true}).click();
+ const heading=page.getByRole('heading',{name:panel==='profile'?'الملف الشخصي':'السجل',exact:true});
+ await expect(heading).toBeVisible();await expect(policies).toHaveCount(0);
+ await expect(page).toHaveURL(new RegExp(`screen=policies.*panel=${panel}.*#terms`));
+ await page.reload();await expect(heading).toBeVisible();
+ await page.goBack();await expect(policies).toBeVisible();
+ await page.goForward();await expect(heading).toBeVisible();
+ await page.getByRole('button',{name:'عودة',exact:true}).click();
+ await expect(policies).toBeVisible();await expect(page).not.toHaveURL(/panel=/);
+});
 for(const size of [{width:1440,height:900},{width:390,height:844}])test(`owner panel includes all twelve sections and has no horizontal clipping ${size.width}`,async({page})=>{
  await page.setViewportSize(size);await setup(page);
  await page.getByRole('button',{name:'لوحة المالك',exact:true}).click();

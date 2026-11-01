@@ -96,7 +96,7 @@ for(const mode of ['mouse','keyboard','touch','reduced'] as const)test.describe(
   let calls=0,release!:()=>void;const gate=new Promise<void>(resolve=>{release=resolve;});
   await page.route('**/api/checkout',async route=>{calls++;await gate;await route.fulfill({status:503,json:{code:'LIVE_COMMERCE_DISABLED'}});});
   await page.goto('/?screen=events');const buy=page.getByTestId('product-card-qc');
-  await expect(buy).toBeEnabled();await expect(buy).toHaveText('شراء 20');await expect(buy).toHaveAccessibleName('شراء مفتاح فعالية سؤال وشرط مقابل 20 ريال سعودي');
+  await expect(buy).toBeEnabled();await expect(buy).toHaveText('شراء 20');await expect(buy).toHaveAccessibleName('شراء 20');await expect(buy).toHaveAccessibleDescription('ريال سعودي — مفتاح فعالية سؤال وشرط');
   const currency=buy.locator('img');await expect.poll(()=>currency.evaluate((img:HTMLImageElement)=>img.complete&&img.naturalWidth>0)).toBe(true);
   const symbol=await currency.boundingBox(),number=await buy.locator('bdi').boundingBox();expect(symbol!.x+symbol!.width).toBeLessThanOrEqual(number!.x+1);
   const before=await buy.boundingBox();await page.clock.install();await page.clock.pauseAt((await page.evaluate(()=>Date.now()))+1000);
