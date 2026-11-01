@@ -56,3 +56,36 @@
 .host-embedded .host-single > .host-panel { max-width:680px; width:100%; }
 
 .host-local-policy{padding:12px 14px;background:#fff7e8;border:1px solid #ead7b6;border-radius:8px;font-size:12px;line-height:1.9;margin-block:14px;color:#806333}
+
+
+/* Grouped setup fields based on established accessible wizard patterns, without
+   splitting the existing one-step form or changing its saved local draft. */
+.host-embedded .host-setup-field-group{
+ display:grid;gap:10px;padding:14px;
+ border:1px solid #e6e6e6;border-radius:12px;background:#fdfdff;
+ min-width:0;
+}
+.host-embedded .host-setup-field-group h3{
+ font-size:14px;line-height:1.7;font-weight:700;color:#333;
+ margin:0;padding-bottom:6px;border-bottom:1px solid #eee7db;
+}
+.host-embedded .host-setup-field-group label{font-size:13px}
+.host-embedded .host-start-actions{display:grid;gap:10px;min-width:0}
+.host-embedded .host-start-hint{
+ margin:0;padding:10px 12px;border:1px solid #e4c890;
+ border-radius:9px;background:#fff7e8;color:#6d4913;
+ line-height:1.8;font-size:12px;overflow-wrap:anywhere;
+}
+.host-embedded .host-start-actions .host-primary{
+ width:100%;min-height:48px;background:#fbb03b;
+}
+@media(max-width:760px){
+ .bud-event-setup-modal .host-setup-field-group{padding:12px;gap:8px}
+ .bud-event-setup-modal .host-start-actions{
+   position:sticky;bottom:0;z-index:3;padding:12px 0 max(8px,env(safe-area-inset-bottom));
+   border-top:1px solid #e6e6e6;
+   background:linear-gradient(to bottom,#fffdfbe8,#fffdfb 24%);
+ }
+ .bud-event-setup-modal .host-start-actions .host-primary{font-size:14px}
+ .bud-event-setup-modal .host-setup-field-group textarea{min-height:110px}
+}
