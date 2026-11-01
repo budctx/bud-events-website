@@ -11,7 +11,7 @@ export async function handlePublicReviews(request:Request,env:AuthEnv=(globalThi
  try{
   const res=await transport('https://cepmvqqrjcvhyzszqand.supabase.co/rest/v1/rpc/bud_reviews_public_text',{method:'POST',redirect:'error',signal:AbortSignal.timeout(8000),headers:{apikey:secret,Authorization:'Bearer '+secret,'Content-Type':'application/json'},body:'{}'});
   const rows:unknown=JSON.parse(await boundedProviderText(res.body,32000));
-  if(!res.ok||!Array.isArray(rows)||rows.length>12)throw Error();
+  if(!res.ok||!Array.isArray(rows)||rows.length>5)throw Error();
   const safe=rows.map((row:unknown):PublicReview=>{
    if(!row||typeof row!=='object')throw Error();
    const v=row as Record<string,unknown>;
