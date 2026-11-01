@@ -314,3 +314,22 @@
 @media(min-width:1001px) and (min-height:651px){
  .platform.platform-events-fit .bud-events-slide>.platform-upcoming-event{height:var(--bud-event-panel-height,auto)}
 }
+
+
+/* Phase 1: keep the agreed fit-viewport layout while improving legibility.
+   Short-phone geometry stays fixed; only internal type scales are adjusted. */
+@media(max-width:700px){
+ .platform.platform-events-fit .qc-demo .mg-face-title{font-size:9px;line-height:11px}
+ .platform.platform-events-fit .qc-demo .mg-face-footer{font-size:10px;line-height:12px}
+ .platform.platform-events-fit .qc-demo .mg-hidden-center{font-size:11px}
+ .platform.platform-events-fit .bud-carousel-status{font-size:11px}
+}
+@media(max-width:700px) and (min-height:741px){
+ .platform.platform-events-fit .platform-product-eyebrow{font-size:12px;line-height:18px}
+ .platform.platform-events-fit .platform-product-description{font-size:13px;line-height:20px}
+ .platform.platform-events-fit .platform-features .bud-badge{font-size:11px;line-height:18px}
+ .platform.platform-events-fit .qc-demo-hint{font-size:12px;line-height:18px}
+ .platform.platform-events-fit .qc-demo-reset{min-height:40px;font-size:12px}
+ .platform.platform-events-fit .platform-event-actions .platform-action{font-size:14px}
+ .platform.platform-events-fit .platform-event-keys{font-size:12px}
+}
