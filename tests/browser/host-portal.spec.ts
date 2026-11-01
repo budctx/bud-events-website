@@ -283,7 +283,12 @@ test('long Discord names preserve the home viewport and account menu at mobile a
     await page.evaluate(()=>document.fonts.ready);
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBeTruthy();
     await expect(page.getByTestId('hero-explore')).toBeInViewport({ratio:1});
-    await expect(page.locator('.platform-footer')).toBeInViewport({ratio:1});
+    if(size.width>700)await expect(page.locator('.platform-footer')).toBeInViewport({ratio:1});
+    else{
+      const action=await page.getByTestId('hero-explore').boundingBox();
+      const footer=await page.locator('.platform-footer').boundingBox();
+      expect(footer!.y).toBeGreaterThan(action!.y+action!.height);
+    }
     await account.focus(); await page.keyboard.press('ArrowDown');
     await expect(page.getByRole('menu')).toBeInViewport({ratio:1});
     await expect(page.getByRole('menu')).toHaveCSS('direction','rtl');

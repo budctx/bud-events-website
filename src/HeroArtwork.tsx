@@ -3,8 +3,8 @@ export function HeroArtwork() {
   return <div className="platform-art" aria-hidden="true">
     <div className="platform-scene">
       <picture>
-        <source media="(max-width:700px) and (min-height:501px), (max-width:700px) and (orientation:portrait)" srcSet="/assets/home-portal-mobile-v2.webp" type="image/webp" />
-        <source media="(max-width:700px) and (min-height:501px), (max-width:700px) and (orientation:portrait)" srcSet="/assets/home-portal-mobile-v2.png" type="image/png" />
+        <source media="(max-width:700px)" srcSet="/assets/home-portal-mobile-v2.webp" type="image/webp" />
+        <source media="(max-width:700px)" srcSet="/assets/home-portal-mobile-v2.png" type="image/png" />
         <source srcSet="/assets/home-portal-desktop-v2.webp" type="image/webp" />
         <img src="/assets/home-portal-desktop-v2.png" width="1536" height="1024" fetchPriority="high" decoding="async" alt="" />
       </picture>

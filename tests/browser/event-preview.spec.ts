@@ -1,4 +1,11 @@
 import { test, expect } from '@playwright/test';
+async function navigate(page:import('@playwright/test').Page,id:string,method:'click'|'tap'='click'){
+ const toggle=page.getByRole('button',{name:'فتح قائمة التنقل'});
+ if(await toggle.isVisible())await toggle.click();
+ const link=page.getByTestId('nav-'+id);
+ if(method==='tap')await link.tap();else await link.click();
+}
+
 test.beforeEach(async({page})=>{await page.route('**/api/checkout?price=1',r=>r.fulfill({status:200,json:{code:'OK',data:{baseAmountMinor:2000,amountMinor:2000,currency:'sar',promotion:null}}}));});
 import { readdirSync, readFileSync } from 'node:fs';
 
@@ -8,7 +15,7 @@ for(const locale of ['ar','en']) for(const size of [{width:1440,height:900},{wid
   test(`production fixed cards and five-second countdown ${locale} ${size.width}`,async({page},info)=>{
     const ar=true; await page.setViewportSize(size);
     await page.clock.install();
-    await page.goto(`/?lang=${locale}`); await page.getByTestId('nav-events').click();
+    await page.goto(`/?lang=${locale}`); await navigate(page,'events');
     const preview=page.getByTestId('event-preview');
     await expect(preview).toBeVisible();
     await expect(page.getByRole('timer')).toHaveCount(0);
@@ -77,13 +84,13 @@ test('preview keyboard, reduced motion, locale reset and unmount cleanup',async(
   await expect(page.getByRole('timer')).toHaveText('5ث');
   await expect(page.locator('.mg-flip-inner').first()).toHaveCSS('transition-duration','0s');
   await expect(page.getByTestId('locale-toggle')).toHaveCount(0);
-  await page.getByTestId('nav-home').click();
-  await page.getByTestId('nav-events').click();
+  await navigate(page,'home');
+  await navigate(page,'events');
   await expect(page.getByRole('timer')).toHaveCount(0);
   await page.getByRole('button',{name:'اكشف سؤال',exact:true}).click();
   await page.getByRole('button',{name:'اكشف شرط',exact:true}).click();
-  await page.getByTestId('nav-home').click();await page.clock.runFor(6000);
-  await page.getByTestId('nav-events').click();
+  await navigate(page,'home');await page.clock.runFor(6000);
+  await navigate(page,'events');
   await expect(page.getByRole('timer')).toHaveCount(0);
   await expect(page.getByRole('button',{name:'اكشف سؤال',exact:true})).toBeEnabled();
 });

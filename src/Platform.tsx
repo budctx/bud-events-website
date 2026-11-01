@@ -12,6 +12,7 @@ import {readOwnerReturn,clearOwnerReturn} from './owner-return';
 import type {OwnerReturn} from './owner-return';
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import './platform.css';
+import {Menu, X} from 'lucide-react';
 import { HeroArtwork } from './HeroArtwork';
 import { InterfaceIcon } from './InterfaceControls';
 import { Seo } from './Seo';
@@ -66,6 +67,22 @@ export default function Platform({ onPlay }: PlatformProps) {
   },[]);
   const [page, setPage] = useState<Page>(pageFromURL);
   const [modal, setModal] = useState<Modal>(null);
+  const [mobileMenuOpen,setMobileMenuOpen] = useState(false);
+  const [mobileHome,setMobileHome]=useState(()=>window.matchMedia('(max-width:700px)').matches);
+  useEffect(()=>{
+    const media=window.matchMedia('(max-width:700px)');
+    const update=()=>{setMobileHome(media.matches);setMobileMenuOpen(false);};
+    media.addEventListener('change',update);
+    return()=>media.removeEventListener('change',update);
+  },[]);
+  const headerRef=useRef<HTMLElement>(null);
+  useEffect(()=>{
+    if(!mobileMenuOpen)return;
+    const outside=(event:PointerEvent)=>{if(event.target instanceof Node&&!headerRef.current?.contains(event.target))setMobileMenuOpen(false);};
+    const escape=(event:KeyboardEvent)=>{if(event.key==='Escape'){setMobileMenuOpen(false);document.querySelector<HTMLButtonElement>('.platform-mobile-menu-toggle')?.focus();}};
+    document.addEventListener('pointerdown',outside);document.addEventListener('keydown',escape);
+    return()=>{document.removeEventListener('pointerdown',outside);document.removeEventListener('keydown',escape);};
+  },[mobileMenuOpen]);
   const [busy, setBusy] = useState(false);
   const [activeAction,setActiveAction] = useState<'login' | 'purchase' | null>(null);
   const [panel, setPanel] = useState<'history' | 'setup' | 'profile' | 'owner' | null>(panelFromURL);
@@ -133,7 +150,7 @@ export default function Platform({ onPlay }: PlatformProps) {
       setPage(pageFromURL());
       setPanel(panelFromURL());
       setModal(null);
-
+      setMobileMenuOpen(false);
     };
     window.addEventListener('popstate',onBackOrForward);
     return () => window.removeEventListener('popstate',onBackOrForward);
@@ -148,9 +165,12 @@ export default function Platform({ onPlay }: PlatformProps) {
     setPaymentHold(false);
   }, [account.session?.id]);
   const navigate = (next: Page) => {
+    setMobileMenuOpen(false);
     if (page === next && !panel) return;
     history.pushState(null,'',routeUrl(next));
     setPanel(null); setPage(next);
+    // The mobile home now scrolls naturally; entering a new section starts at its top.
+    if(window.scrollY>0)window.scrollTo({top:0,behavior:'auto'});
     // The main node persists across sections. Focus now so a later frame cannot
     // steal focus after the user has already pressed Tab on the new section.
     main.current?.focus({ preventScroll: true });
@@ -198,12 +218,13 @@ export default function Platform({ onPlay }: PlatformProps) {
 
   return <div className={`platform platform-${page}${page==='events'&&(!panel||panel==='setup')?' platform-events-fit':''}`} dir={locale === 'ar' ? 'rtl' : 'ltr'} data-testid="platform-root">
     <Seo locale={locale} screen={page} /><a className="skip-link" href="#platform-content">{locale === 'ar' ? 'تجاوز إلى المحتوى' : 'Skip to content'}</a>
-    {page === 'home' && !panel && <HeroArtwork />}
-    <header className="platform-header" data-node-id="339:2072">
+    {page === 'home' && !panel && !mobileHome && <HeroArtwork />}
+    <header ref={headerRef} className="platform-header" data-node-id="339:2072">
       <div className="platform-header-tools">{account.session ? <AccountMenu session={account.session} locale={locale} credits={account.dashboard?.credits ?? null} busy={busy} onSupport={() => {setPanel(null); history.pushState(null,'','/policies#support');setPage('policies');window.dispatchEvent(new HashChangeEvent('hashchange')); }} onProfile={() => openPanel('profile')} onRedeem={() => setRedeemOpen(true)} onHistory={() => openPanel('history')} onLogout={() => void perform(async () => {setPanel(null); setRedeemOpen(false); await account.logout();toast('تم تسجيل الخروج.','success');})} /> : <button type="button" className="platform-login" disabled={busy} aria-busy={activeAction==='login'} aria-label={locale === 'ar' ? 'سجّل دخولك عبر Discord' : 'Sign in with Discord'} onClick={() => void login()}><img src="/assets/discord-symbol-white.svg" width="24" height="18" alt="" />{activeAction==='login'?'جارٍ فتح Discord…':t.login}</button>}</div>
       <div className="platform-brand-navigation">
-        <nav className="platform-navigation" aria-label={locale === 'ar' ? 'التنقل الرئيسي' : 'Main navigation'}>{(['home', 'events', 'bots', 'designs'] as const).map(item => <button type="button" key={item} data-testid={`nav-${item}`} aria-label={`${t[item]}${item === 'bots' || item === 'designs' ? ` · ${t.soon}` : ''}`} aria-current={page === item ? 'page' : undefined} className={item === 'bots' || item === 'designs' ? 'platform-future-link' : ''} onPointerEnter={item === 'events' ? () => { void loadEventPreview(); } : undefined} onFocus={item === 'events' ? () => { void loadEventPreview(); } : undefined} onClick={() => navigate(item)}><span className="platform-nav-icon"><InterfaceIcon kind={item} /></span><span className="platform-nav-label">{t[item]}{(item === 'bots' || item === 'designs') && <small> · {t.soon}</small>}</span></button>)}</nav>
+        <nav id="platform-main-navigation" data-mobile-open={mobileMenuOpen} className="platform-navigation" aria-label={locale === 'ar' ? 'التنقل الرئيسي' : 'Main navigation'}>{(['home', 'events', 'bots', 'designs'] as const).map(item => <button type="button" key={item} data-testid={`nav-${item}`} aria-label={`${t[item]}${item === 'bots' || item === 'designs' ? ` · ${t.soon}` : ''}`} aria-current={page === item ? 'page' : undefined} className={item === 'bots' || item === 'designs' ? 'platform-future-link' : ''} onPointerEnter={item === 'events' ? () => { void loadEventPreview(); } : undefined} onFocus={item === 'events' ? () => { void loadEventPreview(); } : undefined} onClick={() => navigate(item)}><span className="platform-nav-icon"><InterfaceIcon kind={item} /></span><span className="platform-nav-label">{t[item]}{(item === 'bots' || item === 'designs') && <small> · {t.soon}</small>}</span></button>)}</nav>
         <button className="platform-brand" aria-label={locale === 'ar' ? 'بُعد — الرئيسية' : 'BU’D — Home'} onClick={() => navigate('home')}><Mark /><span>بُعد</span></button>
+         <button type="button" className="platform-mobile-menu-toggle" aria-label={mobileMenuOpen?'إغلاق قائمة التنقل':'فتح قائمة التنقل'} aria-controls="platform-main-navigation" aria-expanded={mobileMenuOpen} onClick={()=>setMobileMenuOpen(open=>!open)}>{mobileMenuOpen?<X aria-hidden="true" size={21}/>:<Menu aria-hidden="true" size={21}/>}</button>
       </div>
     </header>
     {page === 'events' && inspectWhop && account.session && <Suspense fallback={<BudSkeleton label="جارٍ تحميل الفحص…"/>}><WhopPreflight key={account.session.id} locale={locale} onAuthLost={account.expire} /></Suspense>}
@@ -211,7 +232,12 @@ export default function Platform({ onPlay }: PlatformProps) {
       {account.session&&<Suspense fallback={null}><RedeemDialog key={account.session.id} open={redeemOpen} onClose={()=>setRedeemOpen(false)} onRefresh={()=>void account.refresh()}/></Suspense>}
     <main id="platform-content" className={page === 'home' && !panel ? 'platform-home-main' : 'platform-gallery-main'} ref={main} tabIndex={-1} key={page}>
       {panel === 'profile' && account.session ? <Suspense fallback={<BudSkeleton label="جارٍ تحميل البروفايل…"/>}><Profile key={account.session.id} session={account.session} credits={account.dashboard?.credits ?? null} onClose={closePanel} onOwner={() => openPanel('owner')} /></Suspense> : panel === 'history' && account.session ? <Suspense fallback={<BudSkeleton label="جارٍ تحميل السجل…"/>}><HostPortal onAuthLost={account.expire} view="history" locale={locale} onExit={closePanel} onPlay={event => onPlay(event, locale)} /></Suspense> : page === 'policies' ? <PolicyCenter/> : page === 'home' ? <>
-        <section className="platform-hero" data-node-id="339:2099"><p className="platform-eyebrow">{t.eyebrow}</p><h1>{t.title}</h1><p className="platform-hero-description">{t.description}</p><div className="platform-hero-actions"><BudMagnetic><button className="platform-action platform-action-primary" data-testid="hero-explore" onPointerEnter={() => { void loadEventPreview(); }} onFocus={() => { void loadEventPreview(); }} onClick={() => navigate('events')}>{t.explore}<span aria-hidden="true">←</span></button></BudMagnetic></div><p className="platform-hero-hint">{t.browseHint}</p>{partners.length>0&&<div className="platform-partners-mobile"><BudLogoCarousel logos={partners}/></div>}<div className="platform-reviews-mobile"><PublicReviews/></div></section>
+        <section className="platform-hero" data-node-id="339:2099"><p className="platform-eyebrow">{t.eyebrow}</p><h1>{t.title}</h1><p className="platform-hero-description">{t.description}</p><div className="platform-hero-actions"><BudMagnetic><button className="platform-action platform-action-primary" data-testid="hero-explore" onPointerEnter={() => { void loadEventPreview(); }} onFocus={() => { void loadEventPreview(); }} onClick={() => navigate('events')}>{t.explore}<span aria-hidden="true">←</span></button></BudMagnetic></div><p className="platform-hero-hint">{t.browseHint}</p></section>
+         <div className="platform-mobile-art" aria-hidden="true">{mobileHome&&<HeroArtwork/>}</div>
+         <section className="platform-mobile-community" aria-label="شركاء بُعد وآراء المجتمع">
+           {partners.length>0&&<div className="platform-partners-mobile"><h2>شركاؤنا</h2><BudLogoCarousel logos={partners}/></div>}
+           <div className="platform-reviews-mobile"><PublicReviews/></div>
+         </section>
         <aside className="platform-proof" aria-label={locale === 'ar' ? 'المجتمع والشركاء' : 'Community and partners'} data-node-id="359:2272"><PublicReviews/><div className="platform-partners-empty">{partners.length>0?<><strong>شركاؤنا</strong><BudLogoCarousel logos={partners}/></>:t.partners}</div></aside>
       </> : <>
         <div className="platform-gallery-intro"><h1>{page === 'events' ? t.galleryTitle : t[page]}</h1><p>{page === 'events' ? t.galleryDescription : t.soonDescription}</p>{page === 'events' && <button className="platform-action platform-action-secondary platform-event-how" data-testid="event-how" onClick={() => setModal('how')}>{t.how}</button>}</div>

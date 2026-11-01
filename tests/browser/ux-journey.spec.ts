@@ -1,4 +1,11 @@
 import { test, expect } from '@playwright/test';
+async function navigate(page:import('@playwright/test').Page,id:string,method:'click'|'tap'='click'){
+ const toggle=page.getByRole('button',{name:'فتح قائمة التنقل'});
+ if(await toggle.isVisible())await toggle.click();
+ const link=page.getByTestId('nav-'+id);
+ if(method==='tap')await link.tap();else await link.click();
+}
+
 test.beforeEach(async({page})=>{await page.route('**/api/checkout?price=1',r=>r.fulfill({status:200,json:{code:'OK',data:{baseAmountMinor:2000,amountMinor:2000,currency:'sar',promotion:null}}}));});
 
 const ok = (data: unknown) => ({status:200,json:{code:'OK',data}});
@@ -35,7 +42,7 @@ test('Hick: when an event is active, resume is the primary action; without slots
 test('Jakob: browser back and forward restore the page and account panel',async({page})=>{
   await setup(page);
   await page.goto('/?lang=ar');
-  await page.getByTestId('nav-events').click();
+  await navigate(page,'events');
   await expect(page).toHaveURL(/\/events(?:[?#]|$)/);
   await page.locator('.platform-account-trigger').click();
   await page.getByRole('menuitem',{name:'الملف الشخصي'}).click();
