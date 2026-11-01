@@ -43,3 +43,5 @@
 @media(max-width:900px){.owner-partners-grid{grid-template-columns:1fr}}
 
 .owner-partner-field{display:grid;gap:6px;font-size:12px;line-height:1.8;font-weight:500}.owner-partner-input-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}.owner-partner-field>input{width:100%;min-height:42px;padding:9px 10px;border-radius:8px;border:1px solid #d7d7dc;background:#fff;font:inherit}
+
+.owner-field-error{color:#a32121;font-size:12px;line-height:1.7}.owner-partner-fields [aria-invalid="true"]{border-color:#a32121}

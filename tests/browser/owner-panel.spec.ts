@@ -79,7 +79,7 @@ test('lost redeem response retries the same operation, then refreshes wallet',as
 });
 test('owner mutation requires reason and confirmation; one-time code is removed when closing',async({page})=>{
  await setup(page);await page.getByRole('button',{name:'لوحة المالك',exact:true}).click();await page.getByRole('navigation',{name:'أقسام لوحة المالك'}).getByRole('button',{name:'المفاتيح والمنح'}).click();
- await page.getByRole('button',{name:'مفتاح جديد',exact:true}).click();await page.getByLabel('انتهاء الصلاحية').fill('2027-01-01T12:00');await page.getByRole('button',{name:'مراجعة إنشاء المفتاح'}).click();
+ await page.getByRole('button',{name:'مفتاح جديد',exact:true}).click();await expect(page.getByLabel('انتهاء الصلاحية')).toHaveCount(0);await expect(page.getByText('صلاحية المفتاح 3 أشهر من تاريخ إنشائه، وتُحدد تلقائيًا.')).toBeVisible();await page.getByRole('button',{name:'مراجعة إنشاء المفتاح'}).click();
  await expect(page.getByRole('button',{name:'تأكيد التنفيذ'})).toBeDisabled();await page.getByLabel('سبب الإجراء').fill('هدية للمجتمع');await page.getByRole('checkbox').check();await page.getByRole('button',{name:'تأكيد التنفيذ'}).click();
  await expect(page.locator('output.owner-secret')).toHaveText('BUD-ABCDEFGHIJKLMNOPQRSTUVWXYZ234567');await page.getByRole('dialog').getByRole('button',{name:'إغلاق',exact:true}).click();await expect(page.locator('output.owner-secret')).toHaveCount(0);
  expect(await page.evaluate(()=>JSON.stringify({...sessionStorage}))).not.toContain('BUD-ABCDEFGHIJKLMNOPQRSTUVWXYZ234567');
