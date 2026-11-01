@@ -367,6 +367,7 @@ test('Arabic header keeps brand on left and account entry on right across pages 
       expect(mark!.x+mark!.width).toBeLessThan(access!.x);
       expect(access!.x+access!.width).toBeLessThanOrEqual(size.width+1);
       expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBeTruthy();
+      if(size.width<=700)await page.getByRole('button',{name:'فتح قائمة التنقل'}).click();
       await expect(page.getByTestId('nav-events')).toBeVisible();
       if ((size.width===320||size.width===1440)&&screen==='home') {
         await page.screenshot({path:info.outputPath(`header-guest-${size.width}.png`),animations:'disabled'});

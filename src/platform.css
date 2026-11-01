@@ -592,3 +592,12 @@ html:has(.platform){scrollbar-gutter:stable both-edges;overflow-x:clip}
   .platform-home .platform-hero{padding-top:12px}
   .platform-home .platform-mobile-art{height:clamp(240px,65vw,340px)}
 }
+
+/* Compact first viewport on short phones while keeping natural page scrolling. */
+@media(max-width:700px) and (max-height:700px){
+ .platform-home .platform-hero{padding-top:10px}
+ .platform-home .platform-hero h1{font-size:clamp(28px,8vw,34px);line-height:1.2;margin-block:7px 9px}
+ .platform-home .platform-hero-description{font-size:12px;line-height:1.5}
+ .platform-home .platform-hero-actions{margin-top:12px}
+ .platform-home .platform-hero-hint{display:none}
+}
