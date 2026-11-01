@@ -118,7 +118,7 @@ test('finished local event navigates to the unified review and thanks page witho
  await setup(page);await start(page);
  await page.evaluate(({owner,id})=>{const key=`bud-browser-event:v1:${owner}:${id}`;const run=JSON.parse(localStorage.getItem(key)!);run.state.phase='closing';localStorage.setItem(key,JSON.stringify(run));},{owner,id});
  const requests:any[]=[];
- await page.route('**/api/review',route=>{
+ await page.route('**/api/owner?flow=review',route=>{
   const body=route.request().postDataJSON();requests.push(body);
   if(body.action==='mine')return route.fulfill(ok({}));
   if(body.action==='submit')return route.fulfill(ok({received:true}));

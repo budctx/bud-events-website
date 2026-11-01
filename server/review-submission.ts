@@ -11,7 +11,7 @@ export async function handleReview(request:Request,env:AuthEnv=environment(),tra
  if(request.method!=='POST')return liveResponse(405,'METHOD_NOT_ALLOWED');
  const secret=liveBackend(env);
  if(!secret||env.BUD_REVIEWS_ENABLED!=='true'||env.BUD_AUTH_ENABLED!=='true'||!env.BUD_APP_ORIGIN)return liveResponse(503,'REVIEWS_NOT_CONFIGURED');
- if(new URL(request.url).origin!==env.BUD_APP_ORIGIN||request.headers.get('origin')!==env.BUD_APP_ORIGIN||new URL(request.url).search)return liveResponse(403,'ORIGIN_DENIED');
+ if(new URL(request.url).origin!==env.BUD_APP_ORIGIN||request.headers.get('origin')!==env.BUD_APP_ORIGIN||(new URL(request.url).searchParams.size!==1||new URL(request.url).searchParams.get('flow')!=='review'))return liveResponse(403,'ORIGIN_DENIED');
  if(request.headers.get('content-type')?.split(';')[0].trim().toLowerCase()!=='application/json')return liveResponse(415,'JSON_REQUIRED');
  let body:unknown;
  try{body=JSON.parse(await boundedProviderText(request.body,4096));}
