@@ -77,7 +77,7 @@
  line-height:1.8;font-size:12px;overflow-wrap:anywhere;
 }
 .host-embedded .host-start-actions .host-primary{
- width:100%;min-height:48px;background:#fbb03b;
+ width:100%;min-height:48px;
 }
 @media(max-width:760px){
  .bud-event-setup-modal .host-setup-field-group{padding:12px;gap:8px}
