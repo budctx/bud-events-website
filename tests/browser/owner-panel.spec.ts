@@ -2,7 +2,7 @@ import {test,expect} from '@playwright/test';
 import type {Page} from '@playwright/test';
 const id='11111111-1111-4111-8111-111111111111';
 const ok=(data:unknown)=>({status:200,json:{code:'OK',data}});
-async function ownerNav(page:Page){const toggle=page.getByRole('button',{name:'فتح أقسام الإدارة'});if(await toggle.isVisible())await toggle.click();return page.getByRole('navigation',{name:'أقسام لوحة المالك'});}
+async function ownerNav(page:Page){await expect(page.locator('.owner-shell')).toBeVisible();const toggle=page.getByRole('button',{name:'فتح أقسام الإدارة'});if(await toggle.isVisible())await toggle.click();const nav=page.getByRole('navigation',{name:'أقسام لوحة المالك'});await expect(nav).toBeVisible();return nav;}
 async function setup(page:Page,owner=true){
  await page.route('**/api/auth?action=session',r=>r.fulfill(ok({id,displayName:'حساب الاختبار'})));
  await page.route('**/api/host',r=>r.fulfill(ok({credits:2,events:[],products:[],contentVersions:[]})));
