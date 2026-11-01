@@ -1,4 +1,11 @@
 import {test,expect} from '@playwright/test';
+async function navigate(page:import('@playwright/test').Page,id:string,method:'click'|'tap'='click'){
+ const toggle=page.getByRole('button',{name:'فتح قائمة التنقل'});
+ if(await toggle.isVisible())await toggle.click();
+ const link=page.getByTestId('nav-'+id);
+ if(method==='tap')await link.tap();else await link.click();
+}
+
 test.beforeEach(async({page})=>{await page.route('**/api/checkout?price=1',r=>r.fulfill({status:200,json:{code:'OK',data:{baseAmountMinor:2000,amountMinor:2000,currency:'sar',promotion:null}}}));});
 
 // The public home is a viewport composition: the illustration must retain its
@@ -121,7 +128,7 @@ for(const viewport of [
   });
   const expected=await measure();
   for(const section of ['events','bots','designs','home']){
-   await page.getByTestId('nav-'+section).click();
+   await navigate(page,section);
    await expect(page.getByTestId('nav-'+section)).toHaveAttribute('aria-current','page');
    const actual=await measure();
    expect(actual.header).toEqual(expected.header);expect(actual.brand).toEqual(expected.brand);

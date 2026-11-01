@@ -1,4 +1,11 @@
 import { test, expect } from '@playwright/test';
+async function navigate(page:import('@playwright/test').Page,id:string,method:'click'|'tap'='click'){
+ const toggle=page.getByRole('button',{name:'فتح قائمة التنقل'});
+ if(await toggle.isVisible())await toggle.click();
+ const link=page.getByTestId('nav-'+id);
+ if(method==='tap')await link.tap();else await link.click();
+}
+
 test.beforeEach(async({page})=>{await page.route('**/api/checkout?price=1',r=>r.fulfill({status:200,json:{code:'OK',data:{baseAmountMinor:2000,amountMinor:2000,currency:'sar',promotion:null}}}));});
 import { readFileSync } from 'node:fs';
 
@@ -18,7 +25,7 @@ test('public controls stay responsive while account and partners load in the bac
   await page.goto('/?lang=ar');
   await expect(page.locator('.platform-login')).toBeEnabled();
   await expect(page.getByTestId('hero-explore')).toBeEnabled();
-  await page.getByTestId('nav-events').click();
+  await navigate(page,'events');
   await expect(page.getByTestId('product-card-qc')).toBeEnabled();
   releaseSession();releasePartners();
 });
@@ -51,6 +58,7 @@ for (const locale of ['ar','en']) for (const size of sizes) {
     await page.goto(`/?lang=${locale}`);
     await expect(page.getByTestId('platform-root')).toBeVisible();
     await expect(page.locator('html')).toHaveAttribute('dir','rtl');
+    if(size.width<=700)await page.getByRole('button',{name:'فتح قائمة التنقل'}).click();
     await expect(page.getByTestId('nav-events')).toBeVisible();
     await expect(page.getByTestId('nav-designs')).toBeVisible();
     await expect.poll(() => page.locator('.platform-art img').evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBeTruthy();
@@ -64,14 +72,14 @@ for (const locale of ['ar','en']) for (const size of sizes) {
         return el.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2));
       })).toBeTruthy();
     }
-    await expect(page.locator('.platform-art-logo')).toHaveCount(2);
+    await expect(page.locator('.platform-art-logo:visible')).toHaveCount(2);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth+1)).toBeTruthy();
     await page.screenshot({path:info.outputPath(`home-${locale}-${size.width}.png`),fullPage:true,animations:'disabled'});
-    await page.getByTestId('nav-events').click();
+    await navigate(page,'events');
     await expect(page.getByTestId('product-card-qc')).toHaveText('شراء 20');
     await expect(page.getByTestId('product-dialog')).toHaveCount(0);
     await page.screenshot({path:info.outputPath(`events-${locale}-${size.width}.png`),fullPage:true,animations:'disabled'});
-    await page.getByTestId('nav-bots').click();
+    await navigate(page,'bots');
     await expect(page.getByTestId('platform-root')).toContainText('قريبًا');
     expect(errors).toEqual([]);
   });
@@ -150,7 +158,7 @@ test('game fills short viewport without clipping controls',async({page})=>{
 
 test('event explanation preserves the dotted secondary button asset',async({page})=>{
   await page.goto('/?lang=ar');
-  await page.getByTestId('nav-events').click();
+  await navigate(page,'events');
   const secondary=page.getByTestId('event-how');
   await expect(secondary).toBeVisible();
   const image=await secondary.evaluate(el=>getComputedStyle(el).backgroundImage);
@@ -191,12 +199,17 @@ for (const locale of ['ar', 'en']) test(`Arabic homepage fits mobile viewport fo
     await page.goto(`/?lang=${locale}`);
     await page.evaluate(() => document.fonts.ready);
     await expect(page.getByTestId('hero-explore')).toBeInViewport({ratio:1});
-    await expect(page.locator('.platform-footer')).toBeInViewport({ratio:1});
-    expect(await page.evaluate(() => document.querySelector('.platform-footer')!.getBoundingClientRect().top - document.querySelector('[data-testid=hero-explore]')!.getBoundingClientRect().bottom)).toBeGreaterThan(8);
-    expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1)).toBeTruthy();
-    await expect(page.locator('.platform-nav-icon').first()).not.toBeVisible();
-    await expect(page.locator('.platform-nav-label').first()).toBeVisible();
-    await page.getByTestId('nav-events').tap();
+    const stage=page.locator('.platform-mobile-art');
+    if(size.width<=700){
+      await expect(stage).toBeVisible();
+      const action=await page.getByTestId('hero-explore').boundingBox(),art=await stage.boundingBox(),footer=await page.locator('.platform-footer').boundingBox();
+      expect(art!.y).toBeGreaterThanOrEqual(action!.y+action!.height+8);
+      expect(footer!.y).toBeGreaterThanOrEqual(art!.y+art!.height);
+      await expect(page.getByRole('button',{name:'فتح قائمة التنقل'})).toBeVisible();
+      await expect(page.getByTestId('nav-events')).not.toBeVisible();
+    }
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBeTruthy();
+    await navigate(page,'events','tap');
     await expect(page.getByTestId('event-how')).toBeVisible();
   }
   await context.close();
@@ -416,7 +429,7 @@ test('login error toast survives section navigation and repeats on a new attempt
  let calls=0;await page.route('**/api/auth?action=signin',r=>{calls++;return r.fulfill({status:503,json:{code:'AUTH_NOT_CONFIGURED'}});});
  await page.goto('/');await page.getByRole('button',{name:'سجّل دخولك عبر Discord'}).click();
  await expect(page.locator('.bud-toast[data-tone=danger]')).toContainText('تعذر إتمام الطلب');
- await page.getByTestId('nav-events').click();
+ await navigate(page,'events');
  await expect(page.locator('.bud-toast[data-tone=danger]')).toBeVisible();
  await page.getByRole('button',{name:'سجّل دخولك عبر Discord'}).click();
  await expect(page.locator('.bud-toast[data-tone=danger]')).toHaveCount(2);expect(calls).toBe(2);
@@ -435,7 +448,7 @@ test.describe('touch button presentation',()=>{
   await expect(page.getByRole('tooltip')).toHaveCount(0);
   await close.tap();await expect(dialog).not.toBeVisible();
   expect(await details.evaluate(el=>getComputedStyle(el).outlineStyle)).toBe('none');
-  await page.getByTestId('nav-events').tap();
+  await navigate(page,'events','tap');
   expect(await page.getByTestId('nav-events').evaluate(el=>getComputedStyle(el).outlineStyle)).toBe('none');
   await page.getByTestId('nav-home').press('Tab');
   await expect(page.getByTestId('nav-events')).toBeFocused();
@@ -452,7 +465,7 @@ for(const width of [390,1440])test(`events catalogue contains two disabled upcom
   await expect(card.getByRole('button',{name:'قريبًا',exact:true})).toBeDisabled();await expect(card.getByRole('button',{name:/اشتر|إعداد/})).toHaveCount(0);
  }
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
- await page.getByTestId('nav-bots').click();await expect(page.locator('.bud-bot-card')).toHaveCount(8);
+ await navigate(page,'bots');await expect(page.locator('.bud-bot-card')).toHaveCount(8);
  for(const name of ['الرومات المؤقتة','التيكت','قيف اواي','الالعاب','اللفلات','تجمعات','الحماية','اشتراكات']){
   const trigger=page.getByRole('button',{name:'تفاصيل '+name,exact:true});await trigger.click();
   const dialog=page.getByRole('dialog',{name,exact:true});await expect(dialog).toBeVisible();await expect(dialog).toContainText('قريبًا');
@@ -467,7 +480,7 @@ for(const width of [390,1440])test(`selected catalogues: four-column bots and RT
  await expect(page.locator('.bud-bot-card')).toHaveCount(8);
  const rows=await page.locator('.bud-bot-card').evaluateAll(cards=>cards.map(card=>Math.round(card.getBoundingClientRect().top)));
  expect(rows.filter(y=>y===rows[0])).toHaveLength(width===1440?4:1);
- await page.getByTestId('nav-events').click();
+ await navigate(page,'events');
  const previous=page.getByRole('button',{name:'الفعالية السابقة',exact:true}),next=page.getByRole('button',{name:'الفعالية التالية',exact:true});
  await expect(previous).toBeDisabled();await expect(next).toBeEnabled();
  await next.click();await expect(page.getByTestId('event-coming-mini-games')).toBeInViewport();
