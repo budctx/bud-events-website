@@ -1,3 +1,4 @@
+import {publicRoute,readPublicPage} from './routes';
 import {PublicReviews} from './PublicReviews';
 import {initialPromo,promoPrice} from './promo-client';
 import type {PublicPrice} from './promo-client';
@@ -48,8 +49,7 @@ function Mark({ className = '' }: { className?: string }) {
 }
 
 function pageFromURL(): Page {
-  const screen = new URLSearchParams(location.search).get('screen');
-  return screen === 'policies' || screen === 'bots' || screen === 'designs' ? screen : ['events', 'host', 'game','local'].includes(screen ?? '') ? 'events' : 'home';
+  return readPublicPage(new URL(location.href));
 }
 function panelFromURL(): 'history' | 'setup' | 'profile' | 'owner' | null {
   const value = new URLSearchParams(location.search).get('panel');
@@ -118,18 +118,15 @@ export default function Platform({ onPlay }: PlatformProps) {
     return () => { if (node.open) node.close(); document.body.style.overflow = previousOverflow; previous?.focus(); };
   }, [modal]);
   const routeUrl = (nextPage: Page, nextPanel: typeof panel = null) => {
-    const query = new URLSearchParams();
-    if (nextPage !== 'home') query.set('screen', nextPage);
-    query.set('lang', locale);
-    if (nextPage === 'events' && paymentOrder) query.set('order', paymentOrder);
-    if (nextPage === 'events' && inspectWhop) query.set('check', 'whop');
-    if (nextPanel) query.set('panel', nextPanel);
-    return `${location.pathname}?${query}${nextPage==='policies'?location.hash:''}`;
+    const source = new URL(location.href);
+    if (!paymentOrder) source.searchParams.delete('order');
+    if (!inspectWhop) source.searchParams.delete('check');
+    return publicRoute(nextPage,source,nextPanel);
   };
   // Normalize deep links without adding an unwanted history entry; user navigation pushes entries.
   useEffect(() => {
     const expected = routeUrl(page,panel);
-    if (`${location.pathname}${location.search}` !== expected) history.replaceState(null,'',expected);
+    if (`${location.pathname}${location.search}${location.hash}` !== expected) history.replaceState(null,'',expected);
   }, [page,panel,locale,paymentOrder,inspectWhop]);
   useEffect(() => {
     const onBackOrForward = () => {
@@ -203,7 +200,7 @@ export default function Platform({ onPlay }: PlatformProps) {
     <Seo locale={locale} screen={page} /><a className="skip-link" href="#platform-content">{locale === 'ar' ? 'تجاوز إلى المحتوى' : 'Skip to content'}</a>
     {page === 'home' && !panel && <HeroArtwork />}
     <header className="platform-header" data-node-id="339:2072">
-      <div className="platform-header-tools">{account.session ? <AccountMenu session={account.session} locale={locale} credits={account.dashboard?.credits ?? null} busy={busy} onSupport={() => {setPanel(null); history.pushState(null,'',`${location.pathname}?screen=policies&lang=ar#support`);setPage('policies');window.dispatchEvent(new HashChangeEvent('hashchange')); }} onProfile={() => openPanel('profile')} onRedeem={() => setRedeemOpen(true)} onHistory={() => openPanel('history')} onLogout={() => void perform(async () => {setPanel(null); setRedeemOpen(false); await account.logout();toast('تم تسجيل الخروج.','success');})} /> : <button type="button" className="platform-login" disabled={busy} aria-busy={activeAction==='login'} aria-label={locale === 'ar' ? 'سجّل دخولك عبر Discord' : 'Sign in with Discord'} onClick={() => void login()}><img src="/assets/discord-symbol-white.svg" width="24" height="18" alt="" />{activeAction==='login'?'جارٍ فتح Discord…':t.login}</button>}</div>
+      <div className="platform-header-tools">{account.session ? <AccountMenu session={account.session} locale={locale} credits={account.dashboard?.credits ?? null} busy={busy} onSupport={() => {setPanel(null); history.pushState(null,'','/policies#support');setPage('policies');window.dispatchEvent(new HashChangeEvent('hashchange')); }} onProfile={() => openPanel('profile')} onRedeem={() => setRedeemOpen(true)} onHistory={() => openPanel('history')} onLogout={() => void perform(async () => {setPanel(null); setRedeemOpen(false); await account.logout();toast('تم تسجيل الخروج.','success');})} /> : <button type="button" className="platform-login" disabled={busy} aria-busy={activeAction==='login'} aria-label={locale === 'ar' ? 'سجّل دخولك عبر Discord' : 'Sign in with Discord'} onClick={() => void login()}><img src="/assets/discord-symbol-white.svg" width="24" height="18" alt="" />{activeAction==='login'?'جارٍ فتح Discord…':t.login}</button>}</div>
       <div className="platform-brand-navigation">
         <nav className="platform-navigation" aria-label={locale === 'ar' ? 'التنقل الرئيسي' : 'Main navigation'}>{(['home', 'events', 'bots', 'designs'] as const).map(item => <button type="button" key={item} data-testid={`nav-${item}`} aria-label={`${t[item]}${item === 'bots' || item === 'designs' ? ` · ${t.soon}` : ''}`} aria-current={page === item ? 'page' : undefined} className={item === 'bots' || item === 'designs' ? 'platform-future-link' : ''} onPointerEnter={item === 'events' ? () => { void loadEventPreview(); } : undefined} onFocus={item === 'events' ? () => { void loadEventPreview(); } : undefined} onClick={() => navigate(item)}><span className="platform-nav-icon"><InterfaceIcon kind={item} /></span><span className="platform-nav-label">{t[item]}{(item === 'bots' || item === 'designs') && <small> · {t.soon}</small>}</span></button>)}</nav>
         <button className="platform-brand" aria-label={locale === 'ar' ? 'بُعد — الرئيسية' : 'BU’D — Home'} onClick={() => navigate('home')}><Mark /><span>بُعد</span></button>
@@ -235,7 +232,7 @@ export default function Platform({ onPlay }: PlatformProps) {
       </>}
     </main>
     {page==='events'&&panel==='setup'&&account.session&&<Suspense fallback={<BudSkeleton label="جارٍ فتح إعداد الفعالية…"/>}><EventSetupModal key={account.session.id} locale={locale} onAuthLost={account.expire} onClose={closePanel} onPlay={event=>onPlay(event,locale)}/></Suspense>}
-    <footer className="platform-footer"><small>© {locale === 'ar' ? 'بُعد' : 'BU’D'} 2026</small><div className="platform-footer-links">{(['privacy', 'terms', 'support'] as const).map(item => <button key={item} onClick={() => {setPanel(null);history.pushState(null,'',`${location.pathname}?screen=policies&lang=ar#${item}`);setPage('policies');window.dispatchEvent(new HashChangeEvent('hashchange'));}}>{t[item]}</button>)}</div></footer>
+    <footer className="platform-footer"><small>© {locale === 'ar' ? 'بُعد' : 'BU’D'} 2026</small><div className="platform-footer-links">{(['privacy', 'terms', 'support'] as const).map(item => <button key={item} onClick={() => {setPanel(null);history.pushState(null,'',`/policies#${item}`);setPage('policies');window.dispatchEvent(new HashChangeEvent('hashchange'));}}>{t[item]}</button>)}</div></footer>
 
     <dialog ref={dialog} className="platform-dialog" data-testid="platform-dialog" aria-labelledby="platform-dialog-title" onKeyDown={event => {
       if (event.key !== 'Tab') return;

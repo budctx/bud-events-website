@@ -22,8 +22,8 @@ export default function App() {
   const [missing,setMissing]=useState(()=>new URLSearchParams(location.search).get('screen')==='local'&&!restored);
   const [event, setEvent] = useState<HostEvent | null>(restored);
   const currentEvent = useRef<HostEvent | null>(restored);
-  const leaveHost = () => { setScreen('platform'); setEvent(null); currentEvent.current = null; history.replaceState(null, '', `${location.pathname}?screen=events&lang=${locale}`); };
-  const leaveHome = () => { setScreen('platform'); setEvent(null); currentEvent.current = null; history.replaceState(null, '', `${location.pathname}?screen=home&lang=${locale}`); };
+  const leaveHost = () => { setScreen('platform'); setEvent(null); currentEvent.current = null; history.replaceState(null, '', '/events'); };
+  const leaveHome = () => { setScreen('platform'); setEvent(null); currentEvent.current = null; history.replaceState(null, '', '/'); };
   useEffect(() => { document.documentElement.lang = locale; document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr'; document.documentElement.dataset.theme = 'light'; }, [locale]);
   const fallback = <BudSkeleton label="جارٍ التحميل…"/>;
   if(missing)return <main className="host-portal" dir="rtl"><section className="host-panel host-access"><BudNotice tone="danger" persistent>الحفظ المحلي غير موجود. استخدم المتصفح الذي بدأت فيه الفعالية. حذف بيانات الموقع أو تغيير الجهاز يفقدك التقدم؛ لا توجد نسخة على الخادم.</BudNotice><h1>تعذر فتح الفعالية</h1><button onClick={()=>{setMissing(false);leaveHost();}}>العودة إلى بُعد</button></section></main>;
@@ -33,5 +33,5 @@ export default function App() {
     try { const next = await dispatchHostAction(currentEvent.current, command, key); currentEvent.current = next; setEvent(next); return next; }
     catch (reason) { if (reason instanceof HostClientError && reason.status === 409) { const fresh = await resumeHostEvent(currentEvent.current.eventId); currentEvent.current = fresh; setEvent(fresh); throw new HostClientError(reason.code, 409, fresh); } throw reason; }
   } : undefined} onConflict={next => { currentEvent.current = next; setEvent(next); }} onExit={leaveHost} /></Suspense>;
-  return <Platform onPlay={(next) => { currentEvent.current = next; setEvent(next);if(next.storage==='browser-v1'&&'content' in next){selectBrowserRun(next as BrowserRun);history.replaceState(null,'',`${location.pathname}?screen=local&event=${next.eventId}`);} setScreen('game'); }} />;
+  return <Platform onPlay={(next) => { currentEvent.current = next; setEvent(next);if(next.storage==='browser-v1'&&'content' in next){selectBrowserRun(next as BrowserRun);history.replaceState(null,'',`/?screen=local&event=${next.eventId}`);} setScreen('game'); }} />;
 }

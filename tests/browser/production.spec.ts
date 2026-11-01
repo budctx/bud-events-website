@@ -529,3 +529,28 @@ for(const width of [390,1440]) test(`Arabic policies, refunds and official certi
   await expect(page.getByRole('tabpanel',{name:'الاسترجاع والشكاوى'})).toContainText('سبعة أيام');
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });
+
+test('clean public links normalize old URLs and survive direct reload and history',async({page})=>{
+ await page.goto('/?screen=events&lang=en');
+ await expect(page).toHaveURL(/\/events$/);
+ await expect(page.getByTestId('event-carousel')).toBeVisible();
+ await page.reload();await expect(page.getByTestId('event-carousel')).toBeVisible();
+ await page.getByRole('button',{name:'الشروط',exact:true}).click();
+ await expect(page).toHaveURL(/\/policies#terms$/);
+ await page.reload();await expect(page.getByRole('tab',{name:'شروط الاستخدام'})).toHaveAttribute('aria-selected','true');
+ await page.goBack();await expect(page).toHaveURL(/\/events$/);
+ await page.goForward();await expect(page).toHaveURL(/\/policies#terms$/);
+ await expect(page.locator('link[rel=canonical]')).toHaveAttribute('href','https://budteam.net/policies');
+});
+
+test('cached clean public paths remain navigable offline',async({page,context})=>{
+ await page.goto('http://127.0.0.1:4175/events');
+ await expect(page.getByTestId('event-carousel')).toBeVisible();
+ await page.evaluate(async()=>{await navigator.serviceWorker.ready;if(!navigator.serviceWorker.controller)await new Promise<void>(resolve=>navigator.serviceWorker.addEventListener('controllerchange',()=>resolve(),{once:true}));});
+ await page.getByRole('button',{name:'الشروط',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'مركز المساعدة والسياسات',exact:true})).toBeVisible();
+ await context.setOffline(true);await page.reload();
+ await expect(page.getByRole('heading',{name:'مركز المساعدة والسياسات',exact:true})).toBeVisible();
+ await expect(page).toHaveURL(/\/policies#terms$/);
+ await context.setOffline(false);
+});
