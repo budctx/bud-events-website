@@ -604,3 +604,11 @@ html:has(.platform){scrollbar-gutter:stable both-edges;overflow-x:clip}
 
 /* Shared footer dimensions remain identical across home and other sections. */
 @media(max-width:700px){.platform-home .platform-footer{min-height:38px;padding:0}}
+
+.platform-designs-empty{display:grid;justify-items:center;align-content:center;gap:16px;width:min(100%,620px);min-height:clamp(300px,56dvh,530px);padding:28px;background:#fdfdff;border:1px solid #e6e6e6;border-radius:18px;margin:auto;text-align:center}
+.platform-designs-empty-mark{width:80px;height:80px;display:grid;place-items:center;border-radius:18px;background:#fff3d5;border:1.5px solid #e7bb69}
+.platform-designs-empty-mark svg{height:40px;width:40px;color:#996516}
+.platform-designs-empty h2{font-size:clamp(24px,5vw,35px);margin:0}
+.platform-designs-empty p{font-size:14px;line-height:1.9;max-width:38ch;margin:0}
+.platform-designs-empty .platform-action{min-height:48px;padding:12px 24px}
+@media(max-width:700px){.platform-designs-empty{min-height:45dvh;padding:28px 20px}.platform-designs-empty-mark{width:66px;height:66px}}
