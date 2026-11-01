@@ -76,6 +76,11 @@ test('callback validates encrypted state, expiry, nonce and PKCE binding', async
   const encoded = btoa(String.fromCharCode(...challenge)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   assert.equal(valid.authorize.searchParams.get('code_challenge'), encoded);
 });
+test('review OAuth callback returns to the fixed first-party review route',async()=>{
+ const result=await login(transportFor(),{page:'review',locale:'ar'});
+ assert.equal(result.complete.status,303);
+ assert.equal(result.complete.headers.get('location'),origin+'/review?lang=ar');
+});
 test('session returns verified identity only, never tokens or editable user metadata', async () => {
   const { complete, cookie } = await login();
   assert.equal(complete.status, 303); assert.equal(complete.headers.get('location'), origin + '/?lang=ar');

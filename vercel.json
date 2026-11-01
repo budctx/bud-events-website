@@ -96,6 +96,10 @@
       "destination": "/index.html"
     },
     {
+      "source": "/review",
+      "destination": "/index.html"
+    },
+    {
       "source": "/policies",
       "destination": "/index.html"
     }
