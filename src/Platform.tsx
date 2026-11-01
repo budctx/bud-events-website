@@ -249,7 +249,7 @@ export default function Platform({ onPlay }: PlatformProps) {
       </div>
       <div className="platform-mobile-sheet-foot">ننقل تجربتك إلى بُعد آخر</div>
     </dialog>
-    {page === 'events'} && inspectWhop && account.session && <Suspense fallback={<BudSkeleton label="جارٍ تحميل الفحص…"/>}><WhopPreflight key={account.session.id} locale={locale} onAuthLost={account.expire} /></Suspense>}
+    {page === 'events' && inspectWhop && account.session && <Suspense fallback={<BudSkeleton label="جارٍ تحميل الفحص…"/>}><WhopPreflight key={account.session.id} locale={locale} onAuthLost={account.expire} /></Suspense>}
     {paymentOrder && account.session && <Suspense fallback={null}><PaymentStatus key={account.session.id + paymentOrder} orderId={paymentOrder} locale={locale} onAuthLost={account.expire} onState={onReceiptState} /></Suspense>}
       {account.session&&<Suspense fallback={null}><RedeemDialog key={account.session.id} open={redeemOpen} onClose={()=>setRedeemOpen(false)} onRefresh={()=>void account.refresh()}/></Suspense>}
     <main id="platform-content" className={page === 'home' && !panel ? 'platform-home-main' : 'platform-gallery-main'} ref={main} tabIndex={-1} key={page}>
