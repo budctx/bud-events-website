@@ -1,0 +1,23 @@
+
+.bud-review-page{min-height:100dvh;display:flex;flex-direction:column;background:#F6F0E2;color:#333;font-family:inherit}
+.bud-review-page-header{padding:18px clamp(20px,4vw,52px)}
+.bud-review-page-header a{display:inline-flex;align-items:center;gap:10px;color:inherit;text-decoration:none;font-size:20px;font-weight:700}
+.bud-review-page-main{flex:1;display:grid;place-items:center;padding:20px}
+.bud-review-page-card{width:min(100%,460px);box-sizing:border-box;background:#FDFDFF;border:1px solid #E6E6E6;border-radius:18px;box-shadow:7px 8px 0 #333;padding:clamp(20px,5vw,36px);display:grid;gap:18px}
+.bud-review-page-heading{text-align:center;display:grid;justify-items:center;gap:8px}
+.bud-review-page-heading svg{color:#ae6f12}
+.bud-review-page-heading h1,.bud-review-thanks h1{font-size:clamp(23px,5vw,30px);margin:0}
+.bud-review-page-heading p,.bud-review-thanks p{margin:0;line-height:1.8}
+.bud-review-page-card form{display:grid;gap:13px}
+.bud-review-page-card form label{font-weight:600}
+.bud-review-page-card textarea{background:#fff;width:100%;box-sizing:border-box;min-height:125px;resize:vertical;border:1px solid #a8a49d;border-radius:10px;padding:12px;font:inherit;line-height:1.8}
+.bud-review-page-card textarea:focus-visible{outline:3px solid #FBB03B;outline-offset:2px}
+.bud-review-action{display:block;box-sizing:border-box;width:100%;border:2px solid #333;background:#FBB03B;color:#333;text-align:center;padding:12px 18px;border-radius:10px;font:inherit;font-weight:700;text-decoration:none;cursor:pointer}
+.bud-review-action:disabled{opacity:.6;cursor:not-allowed}
+.bud-review-action:focus-visible{outline:3px solid #333;outline-offset:3px}
+.bud-review-page-footer{padding:16px clamp(20px,4vw,52px);display:flex;justify-content:space-between;gap:12px;font-size:12px}
+.bud-review-page-footer a{color:inherit}
+.bud-review-inline-error{color:#a12b22;font-size:13px;margin:0}
+.bud-review-thanks{text-align:center;justify-items:center}
+.bud-review-thanks-icon{display:grid;place-items:center;background:#FBB03B;border:2px solid #333;width:58px;height:58px;border-radius:50%;font-size:30px}
+@media(max-width:500px){.bud-review-page-main{padding:12px 18px 24px}.bud-review-page-card{box-shadow:4px 5px 0 #333}.bud-review-page-footer{flex-wrap:wrap}}
