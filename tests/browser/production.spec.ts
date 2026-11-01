@@ -450,6 +450,7 @@ test.describe('touch button presentation',()=>{
   expect(await details.evaluate(el=>getComputedStyle(el).outlineStyle)).toBe('none');
   await navigate(page,'events','tap');
   expect(await page.getByTestId('nav-events').evaluate(el=>getComputedStyle(el).outlineStyle)).toBe('none');
+  await page.getByRole('button',{name:'فتح قائمة التنقل'}).tap();
   await page.getByTestId('nav-home').press('Tab');
   await expect(page.getByTestId('nav-events')).toBeFocused();
   expect(await page.getByTestId('nav-events').evaluate(el=>getComputedStyle(el).outlineStyle)).toBe('solid');
