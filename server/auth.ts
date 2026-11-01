@@ -8,7 +8,7 @@ const FLOW = '__Host-bud-oauth';
 const WEEK = 604800;
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const encoder = new TextEncoder();
-const pages = ['home', 'events', 'bots', 'designs'] as const;
+const pages = ['home', 'events', 'bots', 'designs', 'review'] as const;
 type ReturnPage = typeof pages[number];
 type ReturnLocale = 'ar' | 'en';
 function returnPage(value: unknown): ReturnPage { return pages.includes(value as ReturnPage) ? value as ReturnPage : 'home'; }
@@ -225,7 +225,8 @@ export async function handleAuth(request: Request, env: AuthEnv = environment(),
       if (!session || !user) return result(401, 'DISCORD_AUTH_REQUIRED', undefined, responseHeaders);
       responseHeaders.append('Set-Cookie', cookie(SESSION, await seal({ ...session, hostId: user.id, authenticatedAt: Math.floor(Date.now() / 1000) }, SESSION, settings), WEEK));
       const destination = new URL('/', settings.origin); const page = returnPage(flow.page);
-      if (page !== 'home') destination.searchParams.set('screen', page);
+      if (page === 'review') destination.pathname = '/review';
+      else if (page !== 'home') destination.searchParams.set('screen', page);
       destination.searchParams.set('lang', returnLocale(flow.locale));
       const finalHeaders = headers(); finalHeaders.set('Location', destination.href);
       for (const value of responseHeaders.getSetCookie()) finalHeaders.append('Set-Cookie', value);

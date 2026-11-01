@@ -49,7 +49,7 @@ export async function startBrowserHostEvent(ownerId:string,payload:StartHostEven
 }
 export const closeBrowserHostRun=(eventId:string)=>request('/api/host',{action:'localFinish',eventId});
 export const signOutHost = () => {clearBrowserPointer();return request<{ signedOut: boolean }>('/api/auth?action=logout', {});};
-export type LoginContext = { page: 'home' | 'events' | 'bots' | 'designs'; locale: Locale };
+export type LoginContext = { page: 'home' | 'events' | 'bots' | 'designs' | 'review'; locale: Locale };
 export async function signInHost(context?: LoginContext) {
   const result = await request<{ url: string }>('/api/auth?action=signin', context ?? {});
   const destination = new URL(result.url, location.origin);
