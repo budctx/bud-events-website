@@ -11,7 +11,7 @@ export async function ownerFixture(){
   create table auth.identities(user_id uuid,provider text,identity_data jsonb);
   insert into auth.users(id) values('${owner}'),('${user}'),('${other}');
   insert into auth.identities values('${owner}','discord','{"full_name":"المالك","sub":"${discord}"}'),('${user}','discord','{"full_name":"مستخدم","sub":"223456789012345678"}'),('${other}','discord','{"full_name":"آخر","sub":"323456789012345678"}');`);
- for(const name of ['20261022215208_host_persistence_foundation.sql','20261023173930_production_commerce_foundation.sql','20261023193330_live_payment_queue_and_event_consumption.sql','20261023202259_live_payment_operations_and_receipts.sql','20261026042029_owner_panel_and_bonus_ledger.sql','20261027123500_owner_payment_states.sql'])await db.exec(await readFile(new URL('../supabase/migrations/'+name,import.meta.url),'utf8'));
+ for(const name of ['20261022215208_host_persistence_foundation.sql','20261023173930_production_commerce_foundation.sql','20261023193330_live_payment_queue_and_event_consumption.sql','20261023202259_live_payment_operations_and_receipts.sql','20261026042029_owner_panel_and_bonus_ledger.sql','20261027123500_owner_payment_states.sql','20261101082718_fixed_key_lifetime.sql'])await db.exec(await readFile(new URL('../supabase/migrations/'+name,import.meta.url),'utf8'));
  await db.query('insert into bud_platform.platform_owners values($1,$2)',[owner,discord]);
  await db.exec('set role service_role');
  return db;
@@ -49,7 +49,14 @@ test('owner-only views, atomic source ledger and redemption receipts preserve pu
   const key2=await command(9,'createCode',{...body,digest:'c'.repeat(64),maxUses:5});
   await command(10,'suspendCode',{id:key2.id,reason:'إيقاف التجربة'});
   await assert.rejects(redeem(other,11,'c'.repeat(64)),/BUD_INVALID_CODE/);
-  await assert.rejects(command(12,'createCode',{...body,digest:'d'.repeat(64),expiresAt:'2020-01-01'}),/BUD_INVALID_REQUEST/);
+  const forced=await command(12,'createCode',{...body,digest:'d'.repeat(64),expiresAt:'2020-01-01'});
+  const expiry=await db.query<{valid:boolean}>("select expires_at = ((created_at at time zone 'UTC') + interval '3 months') at time zone 'UTC' as valid from bud_platform.redeem_codes where id=$1",[forced.id]);assert.equal(expiry.rows[0].valid,true);
+
+  const automatic={digest:'9'.repeat(64),qty:1,maxUses:1,reason:'صلاحية تلقائية'};
+  const automaticKey=await command(97,'createCode',automatic);
+  assert.equal((await command(97,'createCode',automatic)).replayed,true);
+  const fixed=await db.query<{valid:boolean}>("select expires_at = ((created_at at time zone 'UTC') + interval '3 months') at time zone 'UTC' as valid from bud_platform.redeem_codes where id=$1",[automaticKey.id]);assert.equal(fixed.rows[0].valid,true);
+  const months=await db.query<{feb:string}>("select to_char(timestamp '2026-11-30 12:00' + interval '3 months','YYYY-MM-DD') as feb");assert.equal(months.rows[0].feb,'2027-02-28');
   const keys=await value('select public.bud_owner_view($1,$2,$3) v',[owner,discord,'keys']);assert.doesNotMatch(JSON.stringify(keys),/digest|aaaaaaaa/);
   for(const section of ['overview','payments','events','audit','health','settings','search','user']){
    const view=await value('select public.bud_owner_view($1,$2,$3,$4,0) v',[owner,discord,section,section==='search'?'مستخدم':section==='user'?user:'']);assert.ok(view);

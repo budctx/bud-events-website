@@ -36,9 +36,9 @@ test('owner endpoint denies anonymous, cross-origin, disabled, non-owner and cli
 test('issued plaintext appears only for fresh creation; redemption binds recipient to verified session and hashes code',async()=>{
  let replay=false;const calls:any[]=[];
  const transport=mock((name,body)=>{calls.push({name,body});return name==='bud_bonus_redeem'?Response.json({receipt:id,credits:1}):Response.json({id,replayed:replay});});
- const c=await login(transport),request={action:'createCode',operationId:id,confirmed:true,reason:'هدية اختبار',payload:{qty:1,maxUses:1,expiresAt:new Date(Date.now()+3600000).toISOString()}};
+ const c=await login(transport),request={action:'createCode',operationId:id,confirmed:true,reason:'هدية اختبار',payload:{qty:1,maxUses:1}};
  const first=await handleOwner(req(request,c),env,transport);const result=await first.json();assert.equal(first.status,200);assert.match(result.data.code,/^BUD-[A-Z2-7]{32}$/);
- assert.equal(first.headers.get('cache-control'),'no-store');assert.doesNotMatch(JSON.stringify(calls),/BUD-[A-Z2-7]{32}/);
+ assert.equal(first.headers.get('cache-control'),'no-store');assert.equal(calls[0].body.p_body.expiresAt,undefined);assert.doesNotMatch(JSON.stringify(calls),/BUD-[A-Z2-7]{32}/);
  replay=true;const next=await(await handleOwner(req(request,c),env,transport)).json();assert.equal(next.data.code,undefined);
  const redemption=await handleOwner(req({action:'redeem',code:result.data.code,operationId:id},c),env,transport);assert.equal(redemption.status,200);
  const body=calls.at(-1).body;assert.equal(body.p_host,host);assert.match(body.p_digest,/^[a-f0-9]{64}$/);

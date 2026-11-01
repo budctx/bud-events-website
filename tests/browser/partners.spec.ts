@@ -5,7 +5,7 @@ test('partner carousel is published-only and owner can manage entries through co
  const rows:{id:string;name:string;logoUrl:string;websiteUrl:string;sortOrder:number;visible:boolean}[]=[];
  let publicCalls=0;
  await page.route('**/api/owner?public=partners',route=>{publicCalls++;return route.fulfill(ok(rows.filter(x=>x.visible)));});
- await page.route('https://cdn.example.com/logo.png',route=>route.fulfill({status:200,contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="100" height="50"><rect width="100" height="50" fill="#fbb03b"/></svg>'}));
+ await page.route('https://www.image2url.com/r2/default/images/1793361580646-eea85d21-ee87-4f1e-8fac-dca697d07307.png',route=>route.fulfill({status:200,contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="100" height="50"><rect width="100" height="50" fill="#fbb03b"/></svg>'}));
  await page.route('**/api/auth?action=session',route=>route.fulfill(ok({id,displayName:'مالك بُعد'})));
  await page.route('**/api/host',route=>route.fulfill(ok({credits:2,events:[],products:[],contentVersions:[]})));
  let seq=0;const seen:string[]=[];
@@ -30,8 +30,17 @@ test('partner carousel is published-only and owner can manage entries through co
  await page.getByRole('button',{name:'لوحة المالك'}).click();
  await page.getByRole('navigation',{name:'أقسام لوحة المالك'}).getByRole('button',{name:/الشركاء/}).click();
  await expect(page.getByRole('heading',{name:'إضافة شريك'})).toBeVisible();
+ await page.getByRole('button',{name:'مراجعة الحفظ'}).click();
+ await expect(page.getByLabel('اسم الشريك')).toBeFocused();
+ await expect(page.getByText('أدخل رابط صورة الشعار.',{exact:true})).toBeVisible();
  await page.getByLabel('اسم الشريك').fill('شريك بُعد');
- await page.getByLabel(/رابط الشعار/).fill('https://cdn.example.com/logo.png');
+ await page.getByLabel(/رابط الشعار/).fill('https://example.com/logo.svg');
+ await expect(page.getByLabel(/رابط الشعار/)).toHaveAttribute('aria-invalid','true');
+ await page.getByLabel('رابط موقع الشريك (اختياري)').fill('http://example.com');
+ await expect(page.getByText('يجب أن يبدأ الرابط بـ https://.',{exact:true})).toBeVisible();
+ await page.getByLabel('رابط موقع الشريك (اختياري)').fill('');
+ await page.getByLabel(/رابط الشعار/).fill('[شعار الشريك](https://www.image2url.com/r2/default/images/1793361580646-eea85d21-ee87-4f1e-8fac-dca697d07307.png)');
+ await expect(page.getByLabel(/رابط الشعار/)).toHaveValue('https://www.image2url.com/r2/default/images/1793361580646-eea85d21-ee87-4f1e-8fac-dca697d07307.png');
  await page.getByRole('button',{name:'مراجعة الحفظ'}).click();
  await expect(page.getByRole('dialog').getByRole('heading',{name:'إضافة شريك جديد'})).toBeVisible();
  await page.getByRole('dialog').getByLabel('سبب الإجراء').fill('شريك تم اعتماده');

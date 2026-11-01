@@ -177,7 +177,8 @@ export async function handleOwner(request: Request, env: AuthEnv = envNow(), tra
         if(env.BUD_REDEEM_ENABLED!=='true') throw new WhopError('REDEEM_NOT_CONFIGURED');
         const qtyLimit=Number(env.BUD_OWNER_MAX_GRANT_SLOTS),usesLimit=Number(env.BUD_OWNER_MAX_CODE_USES);
         if(!integer(qtyLimit,100)||!integer(usesLimit,10000)) throw new WhopError('OWNER_POLICY_NOT_CONFIGURED');
-        if(!exact(p,['qty','maxUses','expiresAt'])||!integer(p.qty,qtyLimit)||!integer(p.maxUses,usesLimit)||typeof p.expiresAt!=='string'||!Number.isFinite(Date.parse(p.expiresAt))||Date.parse(p.expiresAt)<=Date.now()) throw new WhopError('INVALID_REQUEST',400);
+        // Legacy expiry fields are accepted for pending receipts; the database sets new-key expiry.
+        if(!exact(p,['qty','maxUses','expiresAt'])||!integer(p.qty,qtyLimit)||!integer(p.maxUses,usesLimit)) throw new WhopError('INVALID_REQUEST',400);
         const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
         rawCode='BUD-'+[...randomBytes(32)].map(v=>alphabet[v&31]).join('');
         params={...p,digest:codeDigest(rawCode,env)}; break;
