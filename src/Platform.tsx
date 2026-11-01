@@ -12,7 +12,7 @@ import {readOwnerReturn,clearOwnerReturn} from './owner-return';
 import type {OwnerReturn} from './owner-return';
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import './platform.css';
-import {Menu, X} from 'lucide-react';
+import {Menu, Palette, X} from 'lucide-react';
 import { HeroArtwork } from './HeroArtwork';
 import { InterfaceIcon } from './InterfaceControls';
 import { Seo } from './Seo';
@@ -254,7 +254,7 @@ export default function Platform({ onPlay }: PlatformProps) {
           {promoError&&<small role="alert">{promoError} <button type="button" onClick={()=>{try{sessionStorage.removeItem('bud-promo-code');}catch{}const url=new URL(location.href);url.searchParams.delete('promoCode');url.searchParams.delete('coupon');location.assign(url.href);}}>المتابعة بدون كوبون</button></small>}
 
           {ongoing?.localMissing&&<BudNotice tone="warning" persistent>تقدم هذه الفعالية غير موجود في هذا المتصفح.</BudNotice>}
-          </div></div></article></EventCarousel></Suspense> : page==='bots'?<Suspense fallback={<BudSkeleton label="جارٍ تحميل البوتات…"/>}><BotCatalog/></Suspense>:<article className="platform-product-card platform-coming-soon"><div><p className="platform-status"><BudBadge tone="warning" variant="outline">{t.soon}</BudBadge></p><h2>{t[page]}</h2><p>{t.soonDescription}</p><button className="platform-action platform-action-secondary" onClick={() => setModal('soon')}>{locale === 'ar' ? 'تفاصيل المنتج' : 'Product details'}</button></div></article>}
+          </div></div></article></EventCarousel></Suspense> : page==='bots'?<Suspense fallback={<BudSkeleton label="جارٍ تحميل البوتات…"/>}><BotCatalog/></Suspense>:page==='designs'?<section className="platform-designs-empty" aria-labelledby="platform-designs-title"><div className="platform-designs-empty-mark" aria-hidden="true"><Palette/></div><BudBadge tone="warning" variant="outline">{t.soon}</BudBadge><h2 id="platform-designs-title">{t.designs}</h2><p>{t.soonDescription}</p><button className="platform-action platform-action-primary" onClick={()=>navigate('events')}>{t.explore}</button></section>:<article className="platform-product-card platform-coming-soon"><div><p className="platform-status"><BudBadge tone="warning" variant="outline">{t.soon}</BudBadge></p><h2>{t[page]}</h2><p>{t.soonDescription}</p><button className="platform-action platform-action-secondary" onClick={() => setModal('soon')}>{locale === 'ar' ? 'تفاصيل المنتج' : 'Product details'}</button></div></article>}
       </>}
     </main>
     {page==='events'&&panel==='setup'&&account.session&&<Suspense fallback={<BudSkeleton label="جارٍ فتح إعداد الفعالية…"/>}><EventSetupModal key={account.session.id} locale={locale} onAuthLost={account.expire} onClose={closePanel} onPlay={event=>onPlay(event,locale)}/></Suspense>}
