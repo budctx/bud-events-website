@@ -107,3 +107,23 @@ test('owner reauthentication returns to partners and retries the same operation 
  await page.getByRole('dialog').getByRole('button',{name:'إغلاق',exact:true}).click();
  await expect(page.getByRole('heading',{name:'الشركاء',exact:true})).toBeVisible();
 });
+
+
+test('published partner logos remain visible on short mobile screens',async({page})=>{
+ const logo='https://cdn.example.com/partner-mobile-logo.png';
+ await page.route('**/api/owner?public=partners',route=>route.fulfill(ok([{id,name:'Skye',logoUrl:logo,websiteUrl:'https://discord.gg/skyee'}])));
+ await page.route(logo,route=>route.fulfill({status:200,contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l4sAAAAASUVORK5CYII=','base64')}));
+ await page.setViewportSize({width:390,height:667});
+ await page.goto('/');
+ const mobileCarousel=page.locator('.platform-partners-mobile');
+ const mobileLogo=mobileCarousel.getByRole('img',{name:'Skye'});
+ await expect(mobileCarousel).toBeVisible();
+ await expect(mobileLogo).toBeVisible();
+ await expect.poll(()=>mobileLogo.evaluate((img:HTMLImageElement)=>img.naturalWidth)).toBeGreaterThan(0);
+ for(const viewport of [{width:360,height:640},{width:320,height:568}]){
+  await page.setViewportSize(viewport);
+  await expect(mobileCarousel).toBeVisible();
+  await expect(mobileLogo).toBeVisible();
+  expect(await mobileCarousel.evaluate((el:HTMLElement)=>getComputedStyle(el).display)).not.toBe('none');
+ }
+});

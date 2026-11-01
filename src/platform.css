@@ -403,12 +403,15 @@
 .platform-hero-actions>.bud-magnetic{max-width:100%}
 @media(max-width:700px){
  .platform-hero-actions>.bud-magnetic{width:100%}
- .platform-partners-mobile{display:none}
-}
-@media(max-width:700px) and (min-height:760px){
+ /* The proof panel is hidden on phones; the hero carousel must stay visible at every phone height. */
  .platform-partners-mobile{display:block;margin-top:10px;max-width:100%;overflow:hidden}
  .platform-partners-mobile .bud-logo-item{min-height:24px;width:78px}
  .platform-partners-mobile .bud-logo-item img{max-height:26px}
+}
+@media(max-width:700px) and (max-height:700px){
+ .platform-partners-mobile{margin-top:6px}
+ .platform-partners-mobile .bud-logo-item{min-height:22px}
+ .platform-partners-mobile .bud-logo-item img{max-height:22px}
 }
 
 
