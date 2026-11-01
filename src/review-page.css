@@ -21,3 +21,16 @@
 .bud-review-thanks{text-align:center;justify-items:center}
 .bud-review-thanks-icon{display:grid;place-items:center;background:#FBB03B;border:2px solid #333;width:58px;height:58px;border-radius:50%;font-size:30px}
 @media(max-width:500px){.bud-review-page-main{padding:12px 18px 24px}.bud-review-page-card{box-shadow:4px 5px 0 #333}.bud-review-page-footer{flex-wrap:wrap}}
+
+.bud-review-previous{margin:0;padding:11px 13px;border:1px solid #d6bf89;background:#fff8e7;border-radius:9px;font-size:13px;line-height:1.8;color:#594324}
+.bud-review-count{display:block;justify-self:end;font-size:12px;color:#64605b;font-variant-numeric:tabular-nums;margin-top:-5px}
+.bud-review-inline-error{display:grid;gap:8px}
+.bud-review-inline-error button{justify-self:start;min-height:44px;border:1px solid #9e372d;border-radius:8px;padding:8px 14px;background:#fff;color:#8c251c;font:inherit;cursor:pointer}
+@media(max-width:500px){
+ .bud-review-page-header{padding:12px 20px}
+ .bud-review-page-main{align-items:center;padding:20px 18px 30px}
+ .bud-review-page-card{max-width:100%;padding:22px 19px;gap:16px}
+ .bud-review-page-card textarea{font-size:16px;min-height:145px}
+ .bud-review-action{min-height:48px}
+ .bud-review-page-footer{font-size:12px;justify-content:space-between;gap:16px}
+}
