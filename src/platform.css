@@ -601,3 +601,6 @@ html:has(.platform){scrollbar-gutter:stable both-edges;overflow-x:clip}
  .platform-home .platform-hero-actions{margin-top:12px}
  .platform-home .platform-hero-hint{display:none}
 }
+
+/* Shared footer dimensions remain identical across home and other sections. */
+@media(max-width:700px){.platform-home .platform-footer{min-height:38px;padding:0}}

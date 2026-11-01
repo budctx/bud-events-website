@@ -63,14 +63,24 @@ for (const locale of ['ar','en']) for (const size of sizes) {
     await expect(page.getByTestId('nav-designs')).toBeVisible();
     await expect.poll(() => page.locator('.platform-art img').evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0)).toBeTruthy();
     await page.locator('.platform-art img').evaluate((el: HTMLImageElement) => el.decode());
-    for (const selector of ['.platform-login', '[data-testid="nav-events"]', '[data-testid="hero-explore"]']) {
-      const control = page.locator(selector);
-      const box = await control.boundingBox();
-      expect(box?.height).toBeGreaterThanOrEqual(44);
-      expect(await control.evaluate(el => {
-        const r = el.getBoundingClientRect();
-        return el.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2));
-      })).toBeTruthy();
+    const expectHit=async(selector:string)=>{
+      const control=page.locator(selector);
+      const box=await control.boundingBox();
+      expect(box?.height,selector).toBeGreaterThanOrEqual(44);
+      expect(await control.evaluate(el=>{
+        const r=el.getBoundingClientRect();
+        return el.contains(document.elementFromPoint(r.left+r.width/2,r.top+r.height/2));
+      }),selector).toBeTruthy();
+    };
+    if(size.width<=700){
+      // Check content with the navigation closed; an open menu intentionally overlays the page.
+      await page.getByRole('button',{name:'إغلاق قائمة التنقل'}).click();
+      await expectHit('.platform-login');
+      await expectHit('[data-testid="hero-explore"]');
+      await page.getByRole('button',{name:'فتح قائمة التنقل'}).click();
+      await expectHit('[data-testid="nav-events"]');
+    }else{
+      for(const selector of ['.platform-login','[data-testid="nav-events"]','[data-testid="hero-explore"]'])await expectHit(selector);
     }
     await expect(page.locator('.platform-art-logo:visible')).toHaveCount(2);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth+1)).toBeTruthy();
