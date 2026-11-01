@@ -2,6 +2,7 @@ import {test,expect} from '@playwright/test';
 import type {Page} from '@playwright/test';
 const id='11111111-1111-4111-8111-111111111111';
 const ok=(data:unknown)=>({status:200,json:{code:'OK',data}});
+async function ownerNav(page:Page){const toggle=page.getByRole('button',{name:'فتح أقسام الإدارة'});if(await toggle.isVisible())await toggle.click();return page.getByRole('navigation',{name:'أقسام لوحة المالك'});}
 async function setup(page:Page,owner=true){
  await page.route('**/api/auth?action=session',r=>r.fulfill(ok({id,displayName:'حساب الاختبار'})));
  await page.route('**/api/host',r=>r.fulfill(ok({credits:2,events:[],products:[],contentVersions:[]})));
@@ -37,13 +38,13 @@ for(const width of [390,1440])for(const panel of ['profile','history'] as const)
 for(const size of [{width:1440,height:900},{width:390,height:844}])test(`owner panel includes all twelve sections and has no horizontal clipping ${size.width}`,async({page})=>{
  await page.setViewportSize(size);await setup(page);
  await page.getByRole('button',{name:'لوحة المالك',exact:true}).click();
- const nav=page.getByRole('navigation',{name:'أقسام لوحة المالك'});await expect(nav.getByRole('button')).toHaveCount(12);
+ const nav=(await ownerNav(page));await expect(nav.getByRole('button')).toHaveCount(12);
  await expect(page.getByRole('heading',{name:'نظرة عامة وتنبيهات'})).toBeVisible();
- await nav.getByRole('button',{name:'المستخدمون',exact:true}).click();await expect(page.getByRole('button',{name:'فتح ملف المستخدم'})).toBeVisible();
- await nav.getByRole('button',{name:'صحة النظام',exact:true}).click();await expect(page.getByText('غير معروف',{exact:true}).first()).toBeVisible();
- await nav.getByRole('button',{name:'المفاتيح والمنح',exact:true}).click();await page.getByRole('button',{name:'مفتاح جديد',exact:true}).click();await expect(page.getByRole('heading',{name:'إنشاء مفتاح هدية أو حملة'})).toBeVisible();
+ await (await ownerNav(page)).getByRole('button',{name:'المستخدمون',exact:true}).click();await expect(page.getByRole('button',{name:'فتح ملف المستخدم'})).toBeVisible();
+ await (await ownerNav(page)).getByRole('button',{name:'صحة النظام',exact:true}).click();await expect(page.getByText('غير معروف',{exact:true}).first()).toBeVisible();
+ await (await ownerNav(page)).getByRole('button',{name:'المفاتيح والمنح',exact:true}).click();await page.getByRole('button',{name:'مفتاح جديد',exact:true}).click();await expect(page.getByRole('heading',{name:'إنشاء مفتاح هدية أو حملة'})).toBeVisible();
  const geometry=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));expect(geometry.scroll).toBeLessThanOrEqual(geometry.width);
- await page.getByRole('navigation',{name:'أقسام لوحة المالك'}).getByRole('button',{name:'نظرة عامة',exact:true}).click();await expect(page.locator('.owner-metric')).toHaveCount(4);await page.evaluate(()=>{const label=document.createElement('small');label.textContent='بيانات اختبار — معاينة التصميم';label.style.cssText='position:fixed;bottom:6px;left:10px;z-index:90;background:#fdfdff;color:#71717a;border:1px solid #e5e5e8;border-radius:4px;padding:3px 8px;font-size:10px';document.body.append(label);});await page.screenshot({path:`docs/evidence/owner-panel-${size.width}.png`,fullPage:true});
+ await (await ownerNav(page)).getByRole('button',{name:'نظرة عامة',exact:true}).click();await expect(page.locator('.owner-metric')).toHaveCount(4);await page.evaluate(()=>{const label=document.createElement('small');label.textContent='بيانات اختبار — معاينة التصميم';label.style.cssText='position:fixed;bottom:6px;left:10px;z-index:90;background:#fdfdff;color:#71717a;border:1px solid #e5e5e8;border-radius:4px;padding:3px 8px;font-size:10px';document.body.append(label);});await page.screenshot({path:`docs/evidence/owner-panel-${size.width}.png`,fullPage:true});
 });
 test('owner payments do not label checkout drafts as paid and overview separates incomplete orders',async({page})=>{
  await setup(page);
@@ -56,7 +57,7 @@ test('owner payments do not label checkout drafts as paid and overview separates
  await page.getByRole('button',{name:'لوحة المالك',exact:true}).click();
  await expect(page.getByText('طلبات غير مكتملة')).toBeVisible();
  await expect(page.getByText('1 لم يبدأ الدفع • 1 الدفع غير مؤكد')).toBeVisible();
- await page.getByRole('navigation',{name:'أقسام لوحة المالك'}).getByRole('button',{name:'المدفوعات'}).click();
+ await (await ownerNav(page)).getByRole('button',{name:'المدفوعات'}).click();
  await expect(page.getByText('لم يبدأ الدفع',{exact:true})).toBeVisible();
  await expect(page.getByText('الدفع غير مؤكد',{exact:true})).toBeVisible();
  await expect(page.getByText('بانتظار التسليم',{exact:true})).toHaveCount(0);
@@ -78,7 +79,7 @@ test('lost redeem response retries the same operation, then refreshes wallet',as
  await expect(page.locator('.bud-toast[data-tone=success]')).toContainText('تم استرداد المفتاح');expect(requests).toHaveLength(2);expect(requests[0]).toEqual(requests[1]);
 });
 test('owner mutation requires reason and confirmation; one-time code is removed when closing',async({page})=>{
- await setup(page);await page.getByRole('button',{name:'لوحة المالك',exact:true}).click();await page.getByRole('navigation',{name:'أقسام لوحة المالك'}).getByRole('button',{name:'المفاتيح والمنح'}).click();
+ await setup(page);await page.getByRole('button',{name:'لوحة المالك',exact:true}).click();await (await ownerNav(page)).getByRole('button',{name:'المفاتيح والمنح'}).click();
  await page.getByRole('button',{name:'مفتاح جديد',exact:true}).click();await expect(page.getByLabel('انتهاء الصلاحية')).toHaveCount(0);await expect(page.getByText('صلاحية المفتاح 3 أشهر من تاريخ إنشائه، وتُحدد تلقائيًا.')).toBeVisible();await page.getByRole('button',{name:'مراجعة إنشاء المفتاح'}).click();
  await expect(page.getByRole('button',{name:'تأكيد التنفيذ'})).toBeDisabled();await page.getByLabel('سبب الإجراء').fill('هدية للمجتمع');await page.getByRole('checkbox').check();await page.getByRole('button',{name:'تأكيد التنفيذ'}).click();
  await expect(page.locator('output.owner-secret')).toHaveText('BUD-ABCDEFGHIJKLMNOPQRSTUVWXYZ234567');await page.getByRole('dialog').getByRole('button',{name:'إغلاق',exact:true}).click();await expect(page.locator('output.owner-secret')).toHaveCount(0);
@@ -93,7 +94,7 @@ test('uncertain administrative grant remains the same operation after closing th
   if(body.action==='receipt')return r.fulfill(ok({found:committed,kind:'grant',result:{id,replayed:true}}));
   requests.push(body);committed=true;return r.abort('connectionfailed');
  });
- await page.getByRole('button',{name:'لوحة المالك',exact:true}).click();await page.getByRole('navigation',{name:'أقسام لوحة المالك'}).getByRole('button',{name:'المفاتيح والمنح'}).click();
+ await page.getByRole('button',{name:'لوحة المالك',exact:true}).click();await (await ownerNav(page)).getByRole('button',{name:'المفاتيح والمنح'}).click();
  await page.getByRole('button',{name:'منحة إدارية',exact:true}).click();await page.getByLabel('معرّف الحساب الموثق').fill(id);await page.getByRole('button',{name:'مراجعة المنحة'}).click();
  await page.getByLabel('سبب الإجراء').fill('منحة يجب ألا تتكرر');await page.getByRole('checkbox').check();await page.getByRole('button',{name:'تأكيد التنفيذ'}).click();
  await expect(page.getByLabel('سبب الإجراء')).toBeDisabled();
@@ -117,7 +118,7 @@ test('an absent grant receipt retries the original frozen payload rather than op
   if(body.action==='receipt')return r.fulfill(ok({found:false}));
   requests.push(body);return requests.length===1?r.abort('connectionfailed'):r.fulfill(ok({id,replayed:false}));
  });
- await page.getByRole('button',{name:'لوحة المالك',exact:true}).click();await page.getByRole('navigation',{name:'أقسام لوحة المالك'}).getByRole('button',{name:'المفاتيح والمنح'}).click();
+ await page.getByRole('button',{name:'لوحة المالك',exact:true}).click();await (await ownerNav(page)).getByRole('button',{name:'المفاتيح والمنح'}).click();
  await page.getByRole('button',{name:'منحة إدارية',exact:true}).click();await page.getByLabel('معرّف الحساب الموثق').fill(id);await page.getByRole('button',{name:'مراجعة المنحة'}).click();await page.getByLabel('سبب الإجراء').fill('الطلب الأصلي');await page.getByRole('checkbox').check();await page.getByRole('button',{name:'تأكيد التنفيذ'}).click();
  await expect(page.getByLabel('سبب الإجراء')).toBeDisabled();await page.getByRole('dialog').getByRole('button',{name:'إغلاق',exact:true}).click();
  await page.getByRole('button',{name:'مراجعة المنحة'}).click();await expect(page.getByLabel('سبب الإجراء')).toHaveValue('الطلب الأصلي');await page.getByRole('button',{name:'تأكيد التنفيذ'}).click();
@@ -126,7 +127,7 @@ test('an absent grant receipt retries the original frozen payload rather than op
 test('unavailable tab storage blocks administrative dispatch before a mutation is sent',async({page})=>{
  await setup(page);let mutations=0;
  await page.route('**/api/owner',r=>{const body=r.request().postDataJSON();if(body.action==='profile')return r.fulfill(ok({owner:true}));if(body.action==='view')return r.fulfill(ok({rows:[]}));mutations++;return r.fulfill(ok({id,replayed:false}));});
- await page.getByRole('button',{name:'لوحة المالك',exact:true}).click();await page.getByRole('navigation',{name:'أقسام لوحة المالك'}).getByRole('button',{name:'المفاتيح والمنح'}).click();
+ await page.getByRole('button',{name:'لوحة المالك',exact:true}).click();await (await ownerNav(page)).getByRole('button',{name:'المفاتيح والمنح'}).click();
  await page.evaluate(()=>{Object.defineProperty(window,'sessionStorage',{value:{getItem:()=>null,setItem:()=>{throw Error('fixture disabled storage');},removeItem:()=>{}}});});
  await page.getByRole('button',{name:'منحة إدارية',exact:true}).click();await page.getByLabel('معرّف الحساب الموثق').fill(id);await page.getByRole('button',{name:'مراجعة المنحة'}).click();await page.getByLabel('سبب الإجراء').fill('لا يرسل دون مرجع');await page.getByRole('checkbox').check();await page.getByRole('button',{name:'تأكيد التنفيذ'}).click();
  await expect(page.getByRole('dialog').getByRole('alert')).toContainText('لم يُرسل الطلب');expect(mutations).toBe(0);
@@ -147,7 +148,7 @@ test('dashboard tables keep details out of the list, format SAR and preserve ful
  await setup(page);
  await page.route('**/api/owner',r=>{const body=r.request().postDataJSON();if(body.action==='profile')return r.fulfill(ok({owner:true}));return r.fulfill(ok({rows:[{id,host_id:id,amount_minor:300,currency:'sar',state:'pending',created_at:'2026-10-26T08:00:00Z'}]}));});
  await page.getByRole('button',{name:'لوحة المالك',exact:true}).click();
- await page.getByRole('navigation',{name:'أقسام لوحة المالك'}).getByRole('button',{name:'المدفوعات',exact:true}).click();
+ await (await ownerNav(page)).getByRole('button',{name:'المدفوعات',exact:true}).click();
  await expect(page.getByRole('table')).toBeVisible();await expect(page.getByRole('cell',{name:'بانتظار التسليم'})).toBeVisible();
  await expect(page.getByRole('cell',{name:/3/})).toHaveCount(1);
  await expect(page.getByLabel('مرجع طلب بُعد')).toHaveCount(0);
@@ -158,7 +159,30 @@ test('dashboard tables keep details out of the list, format SAR and preserve ful
 test('keys and grant histories use separate tables and secondary history remains reachable',async({page})=>{
  await setup(page);
  await page.route('**/api/owner',r=>{const body=r.request().postDataJSON();if(body.action==='profile')return r.fulfill(ok({owner:true}));return r.fulfill(ok({rows:[],history:[{id,host_id:id,source:'admin_grant',qty:2,created_at:'2026-10-26T08:00:00Z'}],mayHaveMore:true}));});
- await page.getByRole('button',{name:'لوحة المالك',exact:true}).click();await page.getByRole('navigation',{name:'أقسام لوحة المالك'}).getByRole('button',{name:'المفاتيح والمنح',exact:true}).click();
+ await page.getByRole('button',{name:'لوحة المالك',exact:true}).click();await (await ownerNav(page)).getByRole('button',{name:'المفاتيح والمنح',exact:true}).click();
  await expect(page.getByLabel('انتهاء الصلاحية')).toHaveCount(0);await expect(page.getByLabel('معرّف الحساب الموثق')).toHaveCount(0);
  await page.getByRole('tab',{name:'المفاتيح',exact:true}).focus();await page.keyboard.press('ArrowLeft');await expect(page.getByRole('tab',{name:'سجل الاستردادات والمنح'})).toBeFocused();await expect(page.getByRole('cell',{name:'منحة إدارية'})).toBeVisible();await expect(page.getByRole('button',{name:'التالي',exact:true})).toBeEnabled();
+});
+
+for(const width of [320,390,430])test('owner mobile drawer, record labels and profile identity '+width,async({page})=>{
+ await page.setViewportSize({width,height:740});await setup(page);
+ await expect(page.locator('.owner-profile-credit')).toContainText('2');
+ await expect(page.locator('.owner-profile-identity')).toContainText('حساب الاختبار');
+ await page.getByRole('button',{name:'لوحة المالك',exact:true}).click();
+ const toggle=page.getByRole('button',{name:'فتح أقسام الإدارة'});
+ await expect(toggle).toBeVisible();
+ await expect(page.getByRole('navigation',{name:'أقسام لوحة المالك'})).not.toBeVisible();
+ await toggle.click();
+ await expect(page.getByRole('navigation',{name:'أقسام لوحة المالك'})).toBeVisible();
+ await page.keyboard.press('Escape');
+ await expect(page.getByRole('navigation',{name:'أقسام لوحة المالك'})).not.toBeVisible();
+ await expect(toggle).toBeFocused();
+ await toggle.click();
+ await page.getByRole('navigation',{name:'أقسام لوحة المالك'}).getByRole('button',{name:'المستخدمون',exact:true}).click();
+ await expect(page.getByRole('navigation',{name:'أقسام لوحة المالك'})).not.toBeVisible();
+ const record=page.locator('.owner-table-scroll tbody tr').first();
+ await expect(record.locator('td[data-label="المستخدم"]')).toBeVisible();
+ expect(await record.locator('td[data-label="المستخدم"]').evaluate(el=>getComputedStyle(el).display)).toBe('grid');
+ await expect(record.getByRole('button',{name:'فتح ملف المستخدم'})).toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });

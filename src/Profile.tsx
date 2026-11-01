@@ -1,6 +1,6 @@
 import {BudNotice,BudSkeleton} from './BudUI';
 import {ButtonUtility} from './ButtonUtility';
-import {ArrowRight} from 'lucide-react';
+import {ArrowRight,Wallet,ShieldCheck} from 'lucide-react';
 import {useEffect,useState} from 'react';
 import {HostClientError} from './host-client';
 import type {HostSession} from './host-client';
@@ -12,7 +12,7 @@ export default function Profile({session,credits,onClose,onOwner}:{session:HostS
  useEffect(()=>{const controller=new AbortController();setOwner(false);setPermission('loading');void ownerRequest<{owner:boolean}>({action:'profile'},controller.signal).then(v=>{if(!controller.signal.aborted){setOwner(v.owner===true);setPermission('ready');}}).catch(reason=>{if(!controller.signal.aborted)setPermission(reason instanceof HostClientError&&reason.code==='OWNER_PANEL_NOT_CONFIGURED'?'disabled':'unavailable');});return()=>controller.abort();},[session.id,permissionRevision]);
  return <section className="owner-profile" aria-labelledby="profile-title" dir="rtl">
   <div className="owner-page-heading"><div><p className="owner-eyebrow">حسابك في بُعد</p><h1 id="profile-title">الملف الشخصي</h1></div><ButtonUtility label="عودة" icon={ArrowRight} onPress={onClose}/></div>
-  <article className="owner-card"><h2>{session.displayName}</h2><p>رصيد التشغيل <strong>{credits===null?'غير متاح':credits}</strong></p>
+  <article className="owner-card owner-profile-card"><div className="owner-profile-identity">{session.avatarUrl?<img src={session.avatarUrl} alt="" width="64" height="64" referrerPolicy="no-referrer" className="owner-profile-avatar"/>:<span className="owner-profile-avatar owner-profile-fallback" aria-hidden="true">{session.displayName.slice(0,1)||'؟'}</span>}<div><h2 dir="auto">{session.displayName}</h2><p><ShieldCheck aria-hidden="true"/> حساب Discord</p></div></div><div className="owner-profile-credit" aria-label="رصيد التشغيل المتاح"><Wallet aria-hidden="true"/><div><span>مرات التشغيل المتاحة</span><strong>{credits===null?'غير متاح':new Intl.NumberFormat('ar-SA-u-nu-latn').format(credits)}</strong></div></div>
    {owner&&<div className="owner-actions"><button className="owner-button" onClick={onOwner}>لوحة المالك</button></div>}
    {permission==='disabled'&&<BudNotice tone="warning">لوحة المالك غير مفعّلة حاليًا.</BudNotice>}{permission==='loading'&&<BudSkeleton label="جارٍ التحقق من صلاحيات الحساب…" lines={1}/>}{permission==='unavailable'&&<div><BudNotice tone="danger" resolveOnUnmount>تعذر التحقق من صلاحيات الحساب.</BudNotice><button className="owner-button" onClick={()=>setPermissionRevision(v=>v+1)}>إعادة التحقق من الصلاحيات</button></div>}
   </article>

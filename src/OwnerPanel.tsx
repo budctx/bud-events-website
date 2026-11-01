@@ -10,7 +10,7 @@ import type {OwnerData} from './owner-client';
 import {clearOwnerPending,readOwnerPending,saveOwnerPending} from './owner-pending';
 import type {PendingOwnerOperation} from './owner-pending';
 import {clearPublicPartnersCache} from './partners-client';
-import {Activity,ArrowRight,CalendarDays,ChevronLeft,FileClock,Gift,Handshake,KeyRound,LayoutDashboard,Plus,Receipt,RefreshCw,Search,Settings2,ShieldCheck,Users,X} from 'lucide-react';
+import {Activity,ArrowRight,CalendarDays,ChevronLeft,FileClock,Gift,Handshake,KeyRound,LayoutDashboard,Menu,Plus,Receipt,RefreshCw,Search,Settings2,ShieldCheck,Users,X} from 'lucide-react';
 import {Empty,Health,Overview,OwnerTable,SearchResults,UserSummary,rowsOf} from './OwnerViews';
 import {PartnerManager} from './PartnerManager';
 import {BudSkeleton} from './BudUI';
@@ -41,6 +41,8 @@ export default function OwnerPanel({onClose,ownerId,ownerName="المالك",ini
  const [recoveryOrder,setRecoveryOrder]=useState(''),[recoveryPayment,setRecoveryPayment]=useState('');
  const [composer,setComposer]=useState<'code'|'grant'|'recovery'|null>(null),[listTab,setListTab]=useState('primary'),[userTab,setUserTab]=useState<'payments'|'history'|'events'>('payments');
  const [promoCursor,setPromoCursor]=useState<string|null>(null);
+ const [mobileNavOpen,setMobileNavOpen]=useState(false);
+ const mobileNavButton=useRef<HTMLButtonElement>(null);
  const [pending,setPending]=useState(()=>readOwnerPending(ownerId));
  const pendingRef=useRef<PendingOwnerOperation|null>(pending);
  const dialog=useRef<HTMLDialogElement>(null),generation=useRef(0),alive=useRef(true),locked=useRef(false),operation=useRef<string|null>(null);
@@ -50,7 +52,8 @@ export default function OwnerPanel({onClose,ownerId,ownerName="المالك",ini
   void (section==='reviews'?ownerRequest<OwnerData>({action:'reviews',offset},controller.signal):section==='promos'?ownerRequest<OwnerData>({action:'promos',after:promoCursor},controller.signal):section==='partners'?ownerRequest<import('./PartnerManager').OwnerPartner[]>({action:'partners'},controller.signal).then(rows=>({rows} as unknown as OwnerData)):ownerRequest<OwnerData>({action:'view',section,search,offset},controller.signal)).then(v=>{if(run===generation.current&&!controller.signal.aborted){setData(v);if(section==='settings')setNote(String(v.rows?.find(r=>r.name==='operations_note')?.value??''));}}).catch(e=>{if(!controller.signal.aborted&&run===generation.current)setError(ownerError(e));}).finally(()=>{if(!controller.signal.aborted&&run===generation.current)setLoading(false);});
   return()=>controller.abort();
  },[section,search,offset,revision,promoCursor]);
- const navigate=(next:string)=>{setSection(next);setPromoCursor(null);setSearch('');setQuery('');setOffset(0);setNotice('');setComposer(null);setListTab('primary');};
+ useEffect(()=>{if(!mobileNavOpen)return;const close=(event:KeyboardEvent)=>{if(event.key==='Escape'){setMobileNavOpen(false);mobileNavButton.current?.focus();}};document.addEventListener('keydown',close);return()=>document.removeEventListener('keydown',close);},[mobileNavOpen]);
+ const navigate=(next:string)=>{setMobileNavOpen(false);setSection(next);setPromoCursor(null);setSearch('');setQuery('');setOffset(0);setNotice('');setComposer(null);setListTab('primary');};
  const restorePending=()=>{
   const saved=pendingRef.current??readOwnerPending(ownerId);if(!saved)return;
   pendingRef.current=saved;setPending(saved);setAction({kind:saved.kind,payload:saved.payload,title:saved.title});setReason(saved.reason);setChecked(true);setSecret('');setReauth(false);
@@ -89,8 +92,9 @@ export default function OwnerPanel({onClose,ownerId,ownerName="المالك",ini
  return <section className="owner-shell" dir="rtl" aria-label="لوحة المالك">
   <a className="owner-skip" href="#owner-workspace">تجاوز إلى محتوى اللوحة</a>
   <aside className="owner-sidebar">
-   <div className="owner-brand"><span><img src="/assets/bud-emblem.svg" alt="" width="27" height="22"/></span><div><h1>لوحة المالك</h1><p>إدارة بُعد</p></div><span className="owner-admin-tag">إدارة</span></div>
-   <nav aria-label="أقسام لوحة المالك">{sections.map(([id,title,Icon])=><div key={id}>{(id==='overview'||id==='audit')&&<p className="owner-nav-group">{id==='overview'?'المنصة':'الإدارة'}</p>}<button aria-current={section===id||id==='users'&&section==='user'?'page':undefined} onClick={()=>navigate(id)}><Icon aria-hidden="true"/><span>{id==='overview'?'نظرة عامة':title}</span>{id==='overview'&&<span className="owner-nav-active-dot" aria-hidden="true"/>}</button></div>)}</nav>
+   <div className="owner-brand"><button ref={mobileNavButton} type="button" className="owner-mobile-nav-toggle" aria-label={mobileNavOpen?'إغلاق أقسام الإدارة':'فتح أقسام الإدارة'} aria-controls="owner-main-navigation" aria-expanded={mobileNavOpen} onClick={()=>setMobileNavOpen(v=>!v)}>{mobileNavOpen?<X aria-hidden="true"/>:<Menu aria-hidden="true"/>}</button><span><img src="/assets/bud-emblem.svg" alt="" width="27" height="22"/></span><div><h1>لوحة المالك</h1><p>إدارة بُعد</p></div><span className="owner-admin-tag">إدارة</span></div>
+   {mobileNavOpen&&<button type="button" className="owner-mobile-nav-backdrop" aria-label="إغلاق قائمة أقسام الإدارة" onClick={()=>{setMobileNavOpen(false);mobileNavButton.current?.focus();}}/>}
+   <nav id="owner-main-navigation" data-mobile-open={mobileNavOpen} aria-label="أقسام لوحة المالك">{sections.map(([id,title,Icon])=><div key={id}>{(id==='overview'||id==='audit')&&<p className="owner-nav-group">{id==='overview'?'المنصة':'الإدارة'}</p>}<button aria-current={section===id||id==='users'&&section==='user'?'page':undefined} onClick={()=>navigate(id)}><Icon aria-hidden="true"/><span>{id==='overview'?'نظرة عامة':title}</span>{id==='overview'&&<span className="owner-nav-active-dot" aria-hidden="true"/>}</button></div>)}</nav>
    <div className="owner-sidebar-account"><span className="owner-avatar">{ownerName.slice(0,1)}</span><div><strong>{ownerName}</strong><small>مالك المنصة</small></div><ShieldCheck aria-hidden="true"/></div>
   </aside>
   <div className="owner-workspace" id="owner-workspace" tabIndex={-1}>
