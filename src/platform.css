@@ -800,3 +800,21 @@ html:has(.platform){scrollbar-gutter:stable both-edges;overflow-x:clip}
     animation:none!important;will-change:auto;
   }
 }
+
+
+/* Homepage social proof: partners first, compact reviews second, consistent logo tiles. */
+@media (min-width:701px){
+ .platform-home .platform-proof{width:min(440px,100%);display:flex;flex-direction:column;align-items:stretch;gap:14px}
+ .platform-home .platform-partners-empty{order:0;margin:0;min-height:0;text-align:start;line-height:1.5}
+ .platform-home .platform-partners-empty:has(.bud-logo-carousel){gap:8px}
+ .platform-home .platform-reviews-desktop{order:1;min-width:0;width:100%}
+ .platform-home .platform-reviews-desktop .platform-review-empty{height:72px;min-height:72px;padding:11px 18px}
+ .platform-home .platform-partners-empty .bud-logo-item{width:88px;min-width:88px;height:52px;display:flex;align-items:center;justify-content:center}
+ .platform-home .platform-partners-empty .bud-logo-item img{max-width:100%;max-height:44px;object-fit:contain}
+}
+@media (max-width:700px){
+ .platform-home .platform-partners-mobile .bud-logo-item{height:52px;display:flex;align-items:center;justify-content:center}
+ .platform-home .platform-partners-mobile .bud-logo-item img{max-height:40px;max-width:100%;object-fit:contain}
+ .platform-home .platform-reviews-mobile{max-width:440px;margin-inline:auto}
+ .platform-home .platform-reviews-mobile .platform-review-empty{height:72px;min-height:72px;padding:11px 16px}
+}
