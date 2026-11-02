@@ -12,7 +12,7 @@ import {readOwnerReturn,clearOwnerReturn} from './owner-return';
 import type {OwnerReturn} from './owner-return';
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import './platform.css';
-import {Menu, Palette, X} from 'lucide-react';
+import {LifeBuoy, Menu, Palette, X} from 'lucide-react';
 import { HeroArtwork } from './HeroArtwork';
 import { InterfaceIcon } from './InterfaceControls';
 import { Seo } from './Seo';
@@ -75,14 +75,25 @@ export default function Platform({ onPlay }: PlatformProps) {
     media.addEventListener('change',update);
     return()=>media.removeEventListener('change',update);
   },[]);
-  const headerRef=useRef<HTMLElement>(null);
+  const mobileSheetRef=useRef<HTMLDialogElement>(null);
+  const mobileToggleRef=useRef<HTMLButtonElement>(null);
+  const restoreMenuFocus=useRef(true);
   useEffect(()=>{
-    if(!mobileMenuOpen)return;
-    const outside=(event:PointerEvent)=>{if(event.target instanceof Node&&!headerRef.current?.contains(event.target))setMobileMenuOpen(false);};
-    const escape=(event:KeyboardEvent)=>{if(event.key==='Escape'){setMobileMenuOpen(false);document.querySelector<HTMLButtonElement>('.platform-mobile-menu-toggle')?.focus();}};
-    document.addEventListener('pointerdown',outside);document.addEventListener('keydown',escape);
-    return()=>{document.removeEventListener('pointerdown',outside);document.removeEventListener('keydown',escape);};
-  },[mobileMenuOpen]);
+    if(!mobileMenuOpen||!mobileHome)return;
+    const sheet=mobileSheetRef.current;if(!sheet)return;
+    const previousBodyOverflow=document.body.style.overflow;
+    const previousRootOverflow=document.documentElement.style.overflow;
+    document.body.style.overflow='hidden';
+    document.documentElement.style.overflow='hidden';
+    if(!sheet.open)sheet.showModal();
+    return()=>{
+      if(sheet.open)sheet.close();
+      document.body.style.overflow=previousBodyOverflow;
+      document.documentElement.style.overflow=previousRootOverflow;
+      if(restoreMenuFocus.current)mobileToggleRef.current?.focus({preventScroll:true});
+      restoreMenuFocus.current=true;
+    };
+  },[mobileMenuOpen,mobileHome]);
   const [busy, setBusy] = useState(false);
   const [activeAction,setActiveAction] = useState<'login' | 'purchase' | null>(null);
   const [panel, setPanel] = useState<'history' | 'setup' | 'profile' | 'owner' | null>(panelFromURL);
@@ -165,6 +176,7 @@ export default function Platform({ onPlay }: PlatformProps) {
     setPaymentHold(false);
   }, [account.session?.id]);
   const navigate = (next: Page) => {
+    restoreMenuFocus.current=false;
     setMobileMenuOpen(false);
     if (page === next && !panel) return;
     history.pushState(null,'',routeUrl(next));
@@ -214,19 +226,36 @@ export default function Platform({ onPlay }: PlatformProps) {
   const canSetup = !!account.session && !!account.dashboard && account.dashboard.credits > 0 && !paymentHold && !account.dashboard.paymentReview;
   const canResume = !!ongoing && !ongoing.localMissing && !!account.session;
 
+  const mainNavigation = (<nav id="platform-main-navigation" data-mobile-open={mobileMenuOpen} className="platform-navigation" aria-label={locale === 'ar' ? 'التنقل الرئيسي' : 'Main navigation'}>{(['home', 'events', 'bots', 'designs'] as const).map(item => <button type="button" key={item} data-testid={`nav-${item}`} aria-label={`${t[item]}${item === 'bots' || item === 'designs' ? ` · ${t.soon}` : ''}`} aria-current={page === item ? 'page' : undefined} className={item === 'bots' || item === 'designs' ? 'platform-future-link' : ''} onPointerEnter={item === 'events' ? () => { void loadEventPreview(); } : undefined} onFocus={item === 'events' ? () => { void loadEventPreview(); } : undefined} onClick={() => navigate(item)}><span className="platform-nav-icon"><InterfaceIcon kind={item} /></span><span className="platform-nav-label">{t[item]}{(item === 'bots' || item === 'designs') && <small> · {t.soon}</small>}</span></button>)}</nav>);
   if(panel==='owner'&&account.session)return <Suspense fallback={<BudSkeleton label="جارٍ تحميل لوحة المالك…"/>}><OwnerPanel key={account.session.id} ownerId={account.session.id} ownerName={account.session.displayName} initialReturn={ownerReturn} onClose={()=>{setOwnerReturn(null);setPanel('profile');}}/></Suspense>;
 
   return <div className={`platform platform-${page}${page==='events'&&(!panel||panel==='setup')?' platform-events-fit':''}`} dir={locale === 'ar' ? 'rtl' : 'ltr'} data-testid="platform-root">
     <Seo locale={locale} screen={page} /><a className="skip-link" href="#platform-content">{locale === 'ar' ? 'تجاوز إلى المحتوى' : 'Skip to content'}</a>
     {page === 'home' && !panel && !mobileHome && <HeroArtwork />}
-    <header ref={headerRef} className="platform-header" data-node-id="339:2072">
-      <div className="platform-header-tools">{account.session ? <AccountMenu session={account.session} locale={locale} credits={account.dashboard?.credits ?? null} busy={busy} onSupport={() => {setPanel(null); history.pushState(null,'','/policies#support');setPage('policies');window.dispatchEvent(new HashChangeEvent('hashchange')); }} onProfile={() => openPanel('profile')} onRedeem={() => setRedeemOpen(true)} onHistory={() => openPanel('history')} onLogout={() => void perform(async () => {setPanel(null); setRedeemOpen(false); await account.logout();toast('تم تسجيل الخروج.','success');})} /> : <button type="button" className="platform-login" disabled={busy} aria-busy={activeAction==='login'} aria-label={locale === 'ar' ? 'سجّل دخولك عبر Discord' : 'Sign in with Discord'} onClick={() => void login()}><img src="/assets/discord-symbol-white.svg" width="24" height="18" alt="" />{activeAction==='login'?'جارٍ فتح Discord…':t.login}</button>}</div>
+    <header className="platform-header" data-node-id="339:2072">
+      <div className="platform-header-tools">{account.session ? <AccountMenu session={account.session} locale={locale} credits={account.dashboard?.credits ?? null} busy={busy} onSupport={() => {setPanel(null); history.pushState(null,'','/policies#support');setPage('policies');window.dispatchEvent(new HashChangeEvent('hashchange')); }} onProfile={() => openPanel('profile')} onRedeem={() => setRedeemOpen(true)} onHistory={() => openPanel('history')} onLogout={() => void perform(async () => {setPanel(null); setRedeemOpen(false); await account.logout();toast('تم تسجيل الخروج.','success');})} /> : <button type="button" className="platform-login" disabled={busy} aria-busy={activeAction==='login'} aria-label={locale === 'ar' ? 'سجّل دخولك عبر Discord' : 'Sign in with Discord'} onClick={() => void login()}><img src="/assets/discord-symbol-white.svg" width="24" height="18" alt="" /><span className="platform-login-desktop">{activeAction==='login'?'جارٍ فتح Discord…':t.login}</span><span className="platform-login-mobile">{activeAction==='login'?'جارٍ…':'دخول'}</span></button>}</div>
       <div className="platform-brand-navigation">
-        <nav id="platform-main-navigation" data-mobile-open={mobileMenuOpen} className="platform-navigation" aria-label={locale === 'ar' ? 'التنقل الرئيسي' : 'Main navigation'}>{(['home', 'events', 'bots', 'designs'] as const).map(item => <button type="button" key={item} data-testid={`nav-${item}`} aria-label={`${t[item]}${item === 'bots' || item === 'designs' ? ` · ${t.soon}` : ''}`} aria-current={page === item ? 'page' : undefined} className={item === 'bots' || item === 'designs' ? 'platform-future-link' : ''} onPointerEnter={item === 'events' ? () => { void loadEventPreview(); } : undefined} onFocus={item === 'events' ? () => { void loadEventPreview(); } : undefined} onClick={() => navigate(item)}><span className="platform-nav-icon"><InterfaceIcon kind={item} /></span><span className="platform-nav-label">{t[item]}{(item === 'bots' || item === 'designs') && <small> · {t.soon}</small>}</span></button>)}</nav>
+        {!mobileHome&&mainNavigation}
         <button className="platform-brand" aria-label={locale === 'ar' ? 'بُعد — الرئيسية' : 'BU’D — Home'} onClick={() => navigate('home')}><Mark /><span>بُعد</span></button>
-         <button type="button" className="platform-mobile-menu-toggle" aria-label={mobileMenuOpen?'إغلاق قائمة التنقل':'فتح قائمة التنقل'} aria-controls="platform-main-navigation" aria-expanded={mobileMenuOpen} onClick={()=>setMobileMenuOpen(open=>!open)}>{mobileMenuOpen?<X aria-hidden="true" size={21}/>:<Menu aria-hidden="true" size={21}/>}</button>
+         <button type="button" ref={mobileToggleRef} className="platform-mobile-menu-toggle" aria-label="فتح قائمة التنقل" aria-controls="platform-mobile-sheet" aria-haspopup="dialog" aria-expanded={mobileMenuOpen} onClick={()=>setMobileMenuOpen(open=>!open)}>{mobileMenuOpen?<X aria-hidden="true" size={21}/>:<Menu aria-hidden="true" size={21}/>}</button>
       </div>
     </header>
+    <dialog ref={mobileSheetRef} id="platform-mobile-sheet" className="platform-mobile-sheet" aria-label="قائمة التنقل" dir={locale==='ar'?'rtl':'ltr'} onCancel={event=>{event.preventDefault();setMobileMenuOpen(false);}} onKeyDown={event=>{
+      if(event.key!=='Tab')return;
+      const items=Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled),a[href]'));
+      if(!items.length)return;
+      const first=items[0],last=items[items.length-1];
+      if(event.shiftKey&&(document.activeElement===first||!event.currentTarget.contains(document.activeElement))){event.preventDefault();last.focus();}
+      else if(!event.shiftKey&&(document.activeElement===last||!event.currentTarget.contains(document.activeElement))){event.preventDefault();first.focus();}
+    }} onClick={event=>{if(event.target===event.currentTarget)setMobileMenuOpen(false);}}>
+      <div className="platform-mobile-sheet-head"><div className="platform-mobile-sheet-title"><Mark/><strong>استكشف بُعد</strong></div><button type="button" className="platform-mobile-sheet-close" aria-label="إغلاق قائمة التنقل" onClick={()=>setMobileMenuOpen(false)}><X size={22} aria-hidden="true"/></button></div>
+      <div className="platform-mobile-sheet-body">
+        <p className="platform-mobile-sheet-note">كل ما تحتاجه لمجتمعك في مكان واحد</p>
+        {mobileHome&&mainNavigation}
+        <button type="button" className="platform-mobile-sheet-support" onClick={()=>navigate('policies')} aria-current={page==='policies'?'page':undefined}><LifeBuoy aria-hidden="true" size={21}/><span>المساعدة والسياسات</span></button>
+      </div>
+      <div className="platform-mobile-sheet-foot">ننقل تجربتك إلى بُعد آخر</div>
+    </dialog>
     {page === 'events' && inspectWhop && account.session && <Suspense fallback={<BudSkeleton label="جارٍ تحميل الفحص…"/>}><WhopPreflight key={account.session.id} locale={locale} onAuthLost={account.expire} /></Suspense>}
     {paymentOrder && account.session && <Suspense fallback={null}><PaymentStatus key={account.session.id + paymentOrder} orderId={paymentOrder} locale={locale} onAuthLost={account.expire} onState={onReceiptState} /></Suspense>}
       {account.session&&<Suspense fallback={null}><RedeemDialog key={account.session.id} open={redeemOpen} onClose={()=>setRedeemOpen(false)} onRefresh={()=>void account.refresh()}/></Suspense>}
