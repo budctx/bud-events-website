@@ -67,10 +67,10 @@ for (const locale of ['ar','en']) for (const size of sizes) {
       const control=page.locator(selector);
       const box=await control.boundingBox();
       expect(box?.height,selector).toBeGreaterThanOrEqual(44);
-      expect(await control.evaluate(el=>{
+      await expect.poll(() => control.evaluate(el=>{
         const r=el.getBoundingClientRect();
         return el.contains(document.elementFromPoint(r.left+r.width/2,r.top+r.height/2));
-      }),selector).toBeTruthy();
+      }),{message:`${selector} should receive pointer hits after UI animations`}).toBeTruthy();
     };
     if(size.width<=700){
       // Check content with the navigation closed; an open menu intentionally overlays the page.
