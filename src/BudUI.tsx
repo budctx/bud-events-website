@@ -64,12 +64,31 @@ export function BudFlipGrid({items,className=''}:{items:{id:string;content:React
 }
 export type PartnerLogo={id:string;name:string;logoUrl:string;websiteUrl:string};
 export function BudLogoCarousel({logos}:{logos:PartnerLogo[]}){
+ const [batch,setBatch]=useState(0);
+ const [reduceMotion,setReduceMotion]=useState(()=>typeof window!=='undefined'&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+ useEffect(()=>{
+  const preference=window.matchMedia('(prefers-reduced-motion: reduce)');
+  const onChange=()=>setReduceMotion(preference.matches);
+  preference.addEventListener('change',onChange);
+  return()=>preference.removeEventListener('change',onChange);
+ },[]);
+ const batches=Math.ceil(logos.length/5);
+ useEffect(()=>{
+  if(reduceMotion||batches<=1)return;
+  const timer=window.setInterval(()=>setBatch(previous=>(previous+1)%batches),2000);
+  return()=>window.clearInterval(timer);
+ },[batches,reduceMotion]);
+ useEffect(()=>setBatch(0),[logos.map(logo=>logo.id).join('|')]);
  if(!logos.length)return null;
- const many=logos.length>1;
- return <div className="bud-logo-carousel" aria-label="شركاء بُعد" data-testid="partners-carousel"><div className="bud-logo-track" data-animated={many}>
- {[...logos,...(many?logos:[])].map((p,i)=>{const logo=<img src={p.logoUrl} alt={i>=logos.length?'':p.name} loading="lazy" referrerPolicy="no-referrer" />;
- return <div className="bud-logo-item" key={p.id+'-'+i} aria-hidden={i>=logos.length?true:undefined}>{p.websiteUrl&&i<logos.length?<a href={p.websiteUrl} target="_blank" rel="noopener noreferrer" aria-label={'زيارة '+p.name}>{logo}</a>:logo}</div>;})}
- </div></div>;
+ const visible=reduceMotion?logos:logos.slice((batch%batches)*5,((batch%batches)*5)+5);
+ return <div className="bud-logo-carousel bud-logo-cloud" aria-label="شركاء بُعد" data-testid="partners-carousel">
+  <div className="bud-logo-track" key={reduceMotion?'static':batch} data-animated={!reduceMotion&&batches>1}>
+   {visible.map((p,i)=>{
+    const logo=<img src={p.logoUrl} alt={p.name} loading="lazy" referrerPolicy="no-referrer" />;
+    return <div className="bud-logo-item" key={p.id} style={{'--bud-logo-index':i} as CSSProperties}>{p.websiteUrl?<a href={p.websiteUrl} target="_blank" rel="noopener noreferrer" aria-label={'زيارة '+p.name}>{logo}</a>:logo}</div>;
+   })}
+  </div>
+ </div>;
 }
 export function BudTooltip({label,children}:{label:string;children:ReactNode}){return <Tooltip.Provider delayDuration={170}><Tooltip.Root><Tooltip.Trigger asChild><button type="button" className="bud-ui-help-trigger" aria-label={label}><Info size={16}/></button></Tooltip.Trigger><Tooltip.Portal><Tooltip.Content className="bud-ui-tooltip" collisionPadding={12} sideOffset={8}>{children}<Tooltip.Arrow className="bud-ui-tooltip-arrow"/></Tooltip.Content></Tooltip.Portal></Tooltip.Root></Tooltip.Provider>;}
 export function BudPopover({label,children}:{label:string;children:ReactNode}){
