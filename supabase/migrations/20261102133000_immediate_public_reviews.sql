@@ -86,7 +86,7 @@ begin
  values(p_actor,p_operation,'reviewFeature',p_id::text,btrim(p_reason),result||jsonb_build_object('request',q));
  return result||jsonb_build_object('replayed',false);
 end;
-$function$
+$function$;
 
 
 -- Hide also clears a homepage selection so the existing featured-status constraint is respected.
@@ -115,5 +115,5 @@ begin
  insert into bud_platform.owner_audit(actor,operation_id,kind,subject,reason,outcome) values(p_actor,p_operation,'reviewModerate',p_id::text,trim(p_reason),r||jsonb_build_object('request',q));
  return r||jsonb_build_object('replayed',false);
 end;
-$function$
+$function$;
 
