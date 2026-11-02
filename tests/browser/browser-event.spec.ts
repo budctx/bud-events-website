@@ -129,8 +129,8 @@ test('finished local event navigates to the unified review and thanks page witho
  await expect(page).toHaveURL(/\/review(?:[?#]|$)/);
  await expect(page.getByRole('heading',{name:'شاركنا رأيك'})).toBeVisible();
  await expect(page.getByText('حساب محلي')).toBeVisible();
- await expect(page.getByRole('textbox',{name:'رأيك في بُعد'})).toBeVisible();
- await page.getByRole('textbox',{name:'رأيك في بُعد'}).fill('فعالية ممتعة');
+ await expect(page.getByRole('textbox',{name:'شاركنا رايك'})).toBeVisible();
+ await page.getByRole('textbox',{name:'شاركنا رايك'}).fill('فعالية ممتعة');
  await page.getByRole('button',{name:'إرسال',exact:true}).click();
  await expect(page.getByRole('heading',{name:'شكرًا لك!'})).toBeVisible();
  await expect(page.getByRole('link',{name:'العودة للرئيسية'})).toHaveAttribute('href','/');
