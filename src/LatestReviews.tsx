@@ -41,8 +41,8 @@ export function LatestReviews({refreshKey=0}:{refreshKey?:number}){
   {loaded&&!rows.length&&<p className="bud-latest-reviews-empty">لا توجد تقييمات منشورة بعد. كن أول من يشارك رأيه.</p>}
   <div className="bud-latest-reviews-grid">
    {rows.map(item=><figure className="bud-review-card" key={item.id}>
+    <figcaption><ReviewIdentity name={item.name} avatarUrl={item.avatarUrl}/></figcaption>
     <blockquote dir="auto">{item.comment}</blockquote>
-    <figcaption><ReviewIdentity name={item.name} avatarUrl={item.avatarUrl}/><time dateTime={item.publishedAt}>{new Date(item.publishedAt).toLocaleDateString('ar-SA-u-nu-latn',{year:'numeric',month:'short',day:'numeric'})}</time></figcaption>
    </figure>)}
   </div>
   {error&&<p role="alert" className="bud-latest-reviews-error">{error}</p>}
