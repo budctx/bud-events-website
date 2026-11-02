@@ -237,10 +237,17 @@ export default function Platform({ onPlay }: PlatformProps) {
       <div className="platform-brand-navigation">
         {!mobileHome&&mainNavigation}
         <button className="platform-brand" aria-label={locale === 'ar' ? 'بُعد — الرئيسية' : 'BU’D — Home'} onClick={() => navigate('home')}><Mark /><span>بُعد</span></button>
-         <button type="button" ref={mobileToggleRef} className="platform-mobile-menu-toggle" aria-label={mobileMenuOpen?'إغلاق قائمة التنقل':'فتح قائمة التنقل'} aria-controls="platform-mobile-sheet" aria-haspopup="dialog" aria-expanded={mobileMenuOpen} onClick={()=>setMobileMenuOpen(open=>!open)}>{mobileMenuOpen?<X aria-hidden="true" size={21}/>:<Menu aria-hidden="true" size={21}/>}</button>
+         <button type="button" ref={mobileToggleRef} className="platform-mobile-menu-toggle" aria-label="فتح قائمة التنقل" aria-controls="platform-mobile-sheet" aria-haspopup="dialog" aria-expanded={mobileMenuOpen} onClick={()=>setMobileMenuOpen(open=>!open)}>{mobileMenuOpen?<X aria-hidden="true" size={21}/>:<Menu aria-hidden="true" size={21}/>}</button>
       </div>
     </header>
-    <dialog ref={mobileSheetRef} id="platform-mobile-sheet" className="platform-mobile-sheet" aria-label="قائمة التنقل" dir={locale==='ar'?'rtl':'ltr'} onCancel={event=>{event.preventDefault();setMobileMenuOpen(false);}} onClick={event=>{if(event.target===event.currentTarget)setMobileMenuOpen(false);}}>
+    <dialog ref={mobileSheetRef} id="platform-mobile-sheet" className="platform-mobile-sheet" aria-label="قائمة التنقل" dir={locale==='ar'?'rtl':'ltr'} onCancel={event=>{event.preventDefault();setMobileMenuOpen(false);}} onKeyDown={event=>{
+      if(event.key!=='Tab')return;
+      const items=Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled),a[href]'));
+      if(!items.length)return;
+      const first=items[0],last=items[items.length-1];
+      if(event.shiftKey&&(document.activeElement===first||!event.currentTarget.contains(document.activeElement))){event.preventDefault();last.focus();}
+      else if(!event.shiftKey&&(document.activeElement===last||!event.currentTarget.contains(document.activeElement))){event.preventDefault();first.focus();}
+    }} onClick={event=>{if(event.target===event.currentTarget)setMobileMenuOpen(false);}}>
       <div className="platform-mobile-sheet-head"><div className="platform-mobile-sheet-title"><Mark/><strong>استكشف بُعد</strong></div><button type="button" className="platform-mobile-sheet-close" aria-label="إغلاق قائمة التنقل" onClick={()=>setMobileMenuOpen(false)}><X size={22} aria-hidden="true"/></button></div>
       <div className="platform-mobile-sheet-body">
         <p className="platform-mobile-sheet-note">كل ما تحتاجه لمجتمعك في مكان واحد</p>

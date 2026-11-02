@@ -9,7 +9,7 @@ for(const width of widths)for(const signedIn of [false,true]){
   }
   await page.goto('/?screen=events&lang=ar');
   const logo=page.getByRole('button',{name:'بُعد — الرئيسية'});
-  const toggle=page.getByRole('button',{name:'فتح قائمة التنقل'});
+  const toggle=page.locator('.platform-mobile-menu-toggle');
   const account=signedIn?page.locator('.platform-account-trigger'):page.getByRole('button',{name:'سجّل دخولك عبر Discord'});
   await expect(logo).toBeVisible();await expect(toggle).toBeVisible();await expect(account).toBeVisible();
   const logoBox=await logo.boundingBox(),toggleBox=await toggle.boundingBox(),accountBox=await account.boundingBox();

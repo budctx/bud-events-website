@@ -739,3 +739,10 @@ html:has(.platform){scrollbar-gutter:stable both-edges;overflow-x:clip}
 @media(prefers-reduced-motion:reduce){
  .platform .platform-mobile-sheet,.platform .platform-mobile-sheet button{scroll-behavior:auto;transition:none}
 }
+
+/* The native dialog should attach to the physical edge corresponding to
+   inline-start even when the containing app changes direction. */
+@media(max-width:700px){
+ .platform[dir=rtl] .platform-mobile-sheet[open]{right:0;left:auto}
+ .platform[dir=ltr] .platform-mobile-sheet[open]{left:0;right:auto}
+}
