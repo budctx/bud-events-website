@@ -70,6 +70,7 @@ test('the live browser event randomizes prize-to-card mapping once and preserves
   const stored=localStorage.getItem('bud-browser-event:v1:'+owner+':'+id);
   return JSON.parse(stored!).state.prizes as {id:string;name:string;revealed:boolean;winnerId:string|null}[];
  },{owner,id});
+ await expect.poll(()=>page.evaluate(({owner,id})=>localStorage.getItem('bud-browser-event:v1:'+owner+':'+id)!==null,{owner,id}),{message:'local event record is persisted before checking prize mapping'}).toBe(true);
  const before=await readPrizes();
  expect(before.map(p=>p.id)).toEqual(['prize-1','prize-2','prize-3','prize-4']);
  expect(before.map(p=>p.name).sort()).toEqual([...entered].sort());

@@ -1,0 +1,119 @@
+-- Publish authenticated Discord reviews immediately; retain owner hide/feature workflows.
+-- Existing pending/hidden reviews are not republished by this migration.
+create or replace function public.bud_review_submit_text(p_host uuid, p_comment text, p_name text, p_avatar text)
+returns jsonb language plpgsql set search_path to ''
+as $function$
+declare v bud_platform.event_reviews;
+begin
+ if p_host is null or p_comment is null or char_length(btrim(p_comment)) not between 3 and 500
+ or p_name is null or char_length(btrim(p_name)) not between 1 and 60
+ or (p_avatar is not null and (char_length(p_avatar)>256 or p_avatar not like 'https://cdn.discordapp.com/%'))
+ then raise exception 'BUD_INVALID_REQUEST'; end if;
+ insert into bud_platform.event_reviews(host_id,rating,comment,display_name,avatar_url,publish_consent,status)
+ values(p_host,null,btrim(p_comment),btrim(p_name),p_avatar,true,'published')
+ on conflict(host_id) do update set
+  comment=excluded.comment,display_name=excluded.display_name,avatar_url=excluded.avatar_url,
+  rating=null,publish_consent=true,updated_at=clock_timestamp(),status='published',
+  featured_rank=case when bud_platform.event_reviews.comment is distinct from excluded.comment
+     or bud_platform.event_reviews.display_name is distinct from excluded.display_name
+     or bud_platform.event_reviews.avatar_url is distinct from excluded.avatar_url
+     then null else bud_platform.event_reviews.featured_rank end
+ returning * into v;
+ return jsonb_build_object('received',true,'id',v.id,'status',v.status);
+end;
+$function$;
+
+create or replace function public.bud_reviews_latest_text(p_offset integer default 0,p_limit integer default 12)
+returns jsonb language plpgsql stable set search_path to ''
+as $function$
+declare answer jsonb;
+begin
+ if p_offset is null or p_offset<0 or p_offset>10000
+ or p_limit is null or p_limit<1 or p_limit>12 then raise exception 'BUD_INVALID_REQUEST'; end if;
+ select jsonb_build_object(
+   'items',coalesce(jsonb_agg(jsonb_build_object('id',q.id,'name',q.display_name,'comment',q.comment,'avatarUrl',q.avatar_url,'publishedAt',q.updated_at)
+       order by q.updated_at desc,q.id desc) filter(where q.rn<=p_limit),'[]'::jsonb),
+   'hasMore',count(*)>p_limit)
+ into answer from (
+   select id,display_name,comment,avatar_url,updated_at,row_number() over(order by updated_at desc,id desc) rn
+   from bud_platform.event_reviews
+   where status='published' and publish_consent=true
+   order by updated_at desc,id desc limit p_limit+1 offset p_offset
+ ) q;
+ return answer;
+end;
+$function$;
+revoke all on function public.bud_reviews_latest_text(integer,integer) from public,anon,authenticated;
+grant execute on function public.bud_reviews_latest_text(integer,integer) to service_role;
+
+-- Homepage featured selection must not remove reviews from the full public feed.
+CREATE OR REPLACE FUNCTION public.bud_review_feature(p_actor uuid, p_discord text, p_operation uuid, p_id uuid, p_rank integer, p_reason text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SET search_path TO ''
+AS $function$
+declare v bud_platform.event_reviews; old_rank integer; occupied uuid; a bud_platform.owner_audit;
+ q jsonb; result jsonb;
+begin
+ perform bud_platform.require_owner(p_actor,p_discord);
+ if p_operation is null or p_id is null or (p_rank is not null and p_rank not between 1 and 5)
+ or p_reason is null or char_length(btrim(p_reason)) not between 3 and 300 then raise exception 'BUD_INVALID_REQUEST';end if;
+ q:=jsonb_build_object('id',p_id,'rank',p_rank,'reason',btrim(p_reason));
+ perform pg_advisory_xact_lock(91311986);
+ select * into a from bud_platform.owner_audit where actor=p_actor and operation_id=p_operation;
+ if found then
+  if a.kind<>'reviewFeature' or a.outcome->'request' is distinct from q then raise exception 'BUD_KEY_REUSED';end if;
+  return (a.outcome-'request')||jsonb_build_object('replayed',true);
+ end if;
+ select * into v from bud_platform.event_reviews where id=p_id for update;
+ if not found then raise exception 'BUD_RESOURCE_NOT_FOUND';end if;
+ old_rank:=v.featured_rank;
+ if p_rank is null then
+  update bud_platform.event_reviews set featured_rank=null,moderated_at=clock_timestamp() where id=p_id;
+ else
+  select id into occupied from bud_platform.event_reviews where featured_rank=p_rank and id<>p_id;
+  update bud_platform.event_reviews set featured_rank=null where id=p_id;
+  if occupied is not null then
+   update bud_platform.event_reviews set featured_rank=null where id=occupied;
+  end if;
+  update bud_platform.event_reviews set status='published',featured_rank=p_rank,moderated_at=clock_timestamp() where id=p_id;
+  if occupied is not null and old_rank is not null and old_rank<>p_rank then
+   update bud_platform.event_reviews set featured_rank=old_rank,status='published',moderated_at=clock_timestamp() where id=occupied;
+  end if;
+ end if;
+ result:=jsonb_build_object('id',p_id,'rank',p_rank);
+ insert into bud_platform.owner_audit(actor,operation_id,kind,subject,reason,outcome)
+ values(p_actor,p_operation,'reviewFeature',p_id::text,btrim(p_reason),result||jsonb_build_object('request',q));
+ return result||jsonb_build_object('replayed',false);
+end;
+$function$;
+
+
+-- Hide also clears a homepage selection so the existing featured-status constraint is respected.
+CREATE OR REPLACE FUNCTION public.bud_review_moderate(p_actor uuid, p_discord text, p_operation uuid, p_id uuid, p_status text, p_reason text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SET search_path TO ''
+AS $function$
+declare v bud_platform.event_reviews; a bud_platform.owner_audit; r jsonb; q jsonb;
+begin
+ perform bud_platform.require_owner(p_actor,p_discord);
+ if p_operation is null or p_id is null or p_status is null or p_status not in ('published','hidden')
+ or p_reason is null or length(trim(p_reason)) not between 3 and 300 then raise exception 'BUD_INVALID_REQUEST';end if;
+ q:=jsonb_build_object('id',p_id,'status',p_status,'reason',trim(p_reason));
+ perform pg_advisory_xact_lock(hashtextextended(p_actor::text||p_operation::text,27));
+ select * into a from bud_platform.owner_audit where actor=p_actor and operation_id=p_operation;
+ if found then
+  if a.kind<>'reviewModerate' or a.outcome->'request' is distinct from q then raise exception 'BUD_KEY_REUSED';end if;
+  return (a.outcome-'request')||jsonb_build_object('replayed',true);
+ end if;
+ select * into v from bud_platform.event_reviews where id=p_id for update;
+ if not found then raise exception 'BUD_RESOURCE_NOT_FOUND';end if;
+ if p_status='published' and (not v.publish_consent or char_length(btrim(v.comment))<3) then raise exception 'BUD_INVALID_REQUEST';end if;
+ update bud_platform.event_reviews set status=p_status,featured_rank=case when p_status='hidden' then null else featured_rank end,moderated_at=clock_timestamp() where id=p_id;
+ r:=jsonb_build_object('id',p_id,'status',p_status);
+ insert into bud_platform.owner_audit(actor,operation_id,kind,subject,reason,outcome) values(p_actor,p_operation,'reviewModerate',p_id::text,trim(p_reason),r||jsonb_build_object('request',q));
+ return r||jsonb_build_object('replayed',false);
+end;
+$function$;
+

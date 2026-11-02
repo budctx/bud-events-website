@@ -9,14 +9,17 @@ test('unified reviews are text-only, account-unique, editable, owner-curated and
  const value=async(sql:string,args:unknown[]=[]) =>(await db.query<{v:any}>(sql,args)).rows[0]?.v;
  try{
   await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,created_at timestamptz default now());create table auth.identities(user_id uuid,provider text,identity_data jsonb);insert into auth.users(id) values('${host}'),('${owner}'),('${other}');`);
-  for(const file of ['20261022215208_host_persistence_foundation.sql','20261023173930_production_commerce_foundation.sql','20261023193330_live_payment_queue_and_event_consumption.sql','20261023202259_live_payment_operations_and_receipts.sql','20261026042029_owner_panel_and_bonus_ledger.sql','20261030141500_event_reviews.sql','20261101141500_text_only_discord_reviews.sql'])
+  for(const file of ['20261022215208_host_persistence_foundation.sql','20261023173930_production_commerce_foundation.sql','20261023193330_live_payment_queue_and_event_consumption.sql','20261023202259_live_payment_operations_and_receipts.sql','20261026042029_owner_panel_and_bonus_ledger.sql','20261030141500_event_reviews.sql','20261101141500_text_only_discord_reviews.sql','20261102133000_immediate_public_reviews.sql'])
    await db.exec(await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
   await db.exec(`insert into bud_platform.platform_owners values('${owner}','${discord}');set role service_role;`);
   const avatar='https://cdn.discordapp.com/embed/avatars/2.png';
   const submit=(actor:string,body:string)=>value('select public.bud_review_submit_text($1,$2,$3,$4) v',[actor,body,'حساب Discord',avatar]);
   await assert.rejects(submit(host,'لا'),/BUD_INVALID_REQUEST/);
   const first=await submit(host,'تجربة ممتازة');
-  assert.equal(first.received,true);assert.equal(first.status,'pending');
+  assert.equal(first.received,true);assert.equal(first.status,'published');
+  const latest=await value('select public.bud_reviews_latest_text(0,12) v');
+  assert.equal(latest.items[0].id,first.id);
+  assert.equal(latest.hasMore,false);
   assert.equal((await submit(host,'تجربة ممتازة')).id,first.id);
   assert.equal((await value('select public.bud_review_mine($1) v',[host])).comment,'تجربة ممتازة');
   assert.equal((await value('select public.bud_review_mine($1) v',[other])).comment,undefined);
@@ -30,14 +33,24 @@ test('unified reviews are text-only, account-unique, editable, owner-curated and
   const list=await value('select public.bud_reviews_owner($1,$2,$3) v',[owner,discord,0]);
   assert.equal(list.rows[0].featured_rank,1);
   assert.equal(list.rows[0].avatar_url,avatar);
+  assert.equal((await rank(owner,3,null)).rank,null);
+  assert.equal((await value('select public.bud_reviews_latest_text(0,12) v')).items[0].id,first.id);
   const changed=await submit(host,'تجربة جديدة بعد التحديث');
-  assert.equal(changed.id,first.id);assert.equal(changed.status,'pending');
+  assert.equal(changed.id,first.id);assert.equal(changed.status,'published');
   assert.deepEqual(await value('select public.bud_reviews_public_text() v'),[]);
   assert.equal((await value('select count(*)::int v from bud_platform.event_reviews')),1);
-  assert.equal((await value('select count(*)::int v from bud_platform.owner_audit where kind=\'reviewFeature\'')),1);
+  assert.equal((await value('select public.bud_reviews_latest_text(0,12) v')).items[0].comment,'تجربة جديدة بعد التحديث');
+  assert.equal((await value('select public.bud_review_moderate($1,$2,$3,$4,$5,$6) v',
+    [owner,discord,op(4),first.id,'hidden','إخفاء رأي مخالف'])).status,'hidden');
+  assert.deepEqual((await value('select public.bud_reviews_latest_text(0,12) v')).items,[]);
+  assert.equal((await submit(host,'تجربة جديدة بعد التحديث')).status,'published');
+  assert.equal((await value('select public.bud_reviews_latest_text(0,12) v')).items[0].id,first.id);
+  assert.deepEqual((await value('select public.bud_reviews_latest_text(1,12) v')).items,[]);
+  assert.equal((await value('select count(*)::int v from bud_platform.owner_audit where kind=\'reviewFeature\'')),2);
   for(const role of ['anon','authenticated']){
    assert.equal(await value(`select has_table_privilege('${role}','bud_platform.event_reviews','select') v`),false);
    assert.equal(await value(`select has_function_privilege('${role}','public.bud_reviews_public_text()','execute') v`),false);
+   assert.equal(await value(`select has_function_privilege('${role}','public.bud_reviews_latest_text(integer,integer)','execute') v`),false);
   }
  }finally{await db.close();}
 });
