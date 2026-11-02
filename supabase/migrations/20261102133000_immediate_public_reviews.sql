@@ -45,3 +45,46 @@ end;
 $function$;
 revoke all on function public.bud_reviews_latest_text(integer,integer) from public,anon,authenticated;
 grant execute on function public.bud_reviews_latest_text(integer,integer) to service_role;
+
+-- Homepage featured selection must not remove reviews from the full public feed.
+CREATE OR REPLACE FUNCTION public.bud_review_feature(p_actor uuid, p_discord text, p_operation uuid, p_id uuid, p_rank integer, p_reason text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SET search_path TO ''
+AS $function$
+declare v bud_platform.event_reviews; old_rank integer; occupied uuid; a bud_platform.owner_audit;
+ q jsonb; result jsonb;
+begin
+ perform bud_platform.require_owner(p_actor,p_discord);
+ if p_operation is null or p_id is null or (p_rank is not null and p_rank not between 1 and 5)
+ or p_reason is null or char_length(btrim(p_reason)) not between 3 and 300 then raise exception 'BUD_INVALID_REQUEST';end if;
+ q:=jsonb_build_object('id',p_id,'rank',p_rank,'reason',btrim(p_reason));
+ perform pg_advisory_xact_lock(91311986);
+ select * into a from bud_platform.owner_audit where actor=p_actor and operation_id=p_operation;
+ if found then
+  if a.kind<>'reviewFeature' or a.outcome->'request' is distinct from q then raise exception 'BUD_KEY_REUSED';end if;
+  return (a.outcome-'request')||jsonb_build_object('replayed',true);
+ end if;
+ select * into v from bud_platform.event_reviews where id=p_id for update;
+ if not found then raise exception 'BUD_RESOURCE_NOT_FOUND';end if;
+ old_rank:=v.featured_rank;
+ if p_rank is null then
+  update bud_platform.event_reviews set featured_rank=null,moderated_at=clock_timestamp() where id=p_id;
+ else
+  select id into occupied from bud_platform.event_reviews where featured_rank=p_rank and id<>p_id;
+  update bud_platform.event_reviews set featured_rank=null where id=p_id;
+  if occupied is not null then
+   update bud_platform.event_reviews set featured_rank=null where id=occupied;
+  end if;
+  update bud_platform.event_reviews set status='published',featured_rank=p_rank,moderated_at=clock_timestamp() where id=p_id;
+  if occupied is not null and old_rank is not null and old_rank<>p_rank then
+   update bud_platform.event_reviews set featured_rank=old_rank,status='published',moderated_at=clock_timestamp() where id=occupied;
+  end if;
+ end if;
+ result:=jsonb_build_object('id',p_id,'rank',p_rank);
+ insert into bud_platform.owner_audit(actor,operation_id,kind,subject,reason,outcome)
+ values(p_actor,p_operation,'reviewFeature',p_id::text,btrim(p_reason),result||jsonb_build_object('request',q));
+ return result||jsonb_build_object('replayed',false);
+end;
+$function$
+
