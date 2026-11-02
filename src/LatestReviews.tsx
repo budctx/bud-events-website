@@ -37,7 +37,7 @@ export function LatestReviews({refreshKey=0}:{refreshKey?:number}){
   finally{setBusy(false);}
  };
  return <section className="bud-latest-reviews" aria-labelledby="bud-latest-reviews-title">
-  <div className="bud-latest-reviews-heading"><h2 id="bud-latest-reviews-title">آخر آراء المجتمع</h2><p>آراء أصحاب حسابات Discord، مرتبة من الأحدث. تظهر مباشرة ويمكن إخفاء المخالف منها.</p></div>
+  <div className="bud-latest-reviews-heading"><h2 id="bud-latest-reviews-title">آخر آراء المجتمع</h2></div>
   {loaded&&!rows.length&&<p className="bud-latest-reviews-empty">لا توجد تقييمات منشورة بعد. كن أول من يشارك رأيه.</p>}
   <div className="bud-latest-reviews-grid">
    {rows.map(item=><figure className="bud-review-card" key={item.id}>
