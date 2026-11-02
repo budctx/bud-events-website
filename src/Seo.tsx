@@ -5,7 +5,7 @@ export function Seo({ locale = 'ar', screen = 'home' }: { locale?: 'ar' | 'en'; 
     const isPublic = ['home', 'events', 'bots', 'designs'].includes(screen);
     const origin = 'https://budteam.net';
     const title = screen === 'review' ? 'التقييمات | بُعد' : 'بُعد';
-    const description = screen === 'review' ? 'شاركنا رأيك' : 'ننقل تجربتك إلى بُعد آخر — فعاليات وبوتات وتصاميم لمجتمعات Discord.';
+    const description = screen === 'review' ? 'رأيك يهمنا ويساعدنا نطوّر تجربتك.' : 'ننقل تجربتك إلى بُعد آخر — فعاليات وبوتات وتصاميم لمجتمعات Discord.';
     document.title = title;
     const setMeta = (key: string, value: string, property = false) => { const attr = property ? 'property' : 'name'; let element = document.head.querySelector<HTMLMetaElement>(`meta[${attr}="${key}"]`); if (!element) { element = document.createElement('meta'); element.setAttribute(attr, key); document.head.append(element); } element.content = value; };
     setMeta('description', description); setMeta('robots', isPublic ? 'index,follow' : 'noindex,nofollow');
