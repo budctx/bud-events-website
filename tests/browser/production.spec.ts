@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 async function navigate(page:import('@playwright/test').Page,id:string,method:'click'|'tap'='click'){
  const toggle=page.getByRole('button',{name:'فتح قائمة التنقل'});
- if(await toggle.isVisible())await toggle.click();
+ if(!await page.getByRole('dialog',{name:'قائمة التنقل'}).isVisible()&&await toggle.isVisible())await toggle.click();
  const link=page.getByTestId('nav-'+id);
  if(method==='tap')await link.tap();else await link.click();
 }
@@ -67,14 +67,16 @@ for (const locale of ['ar','en']) for (const size of sizes) {
       const control=page.locator(selector);
       const box=await control.boundingBox();
       expect(box?.height,selector).toBeGreaterThanOrEqual(44);
-      expect(await control.evaluate(el=>{
+      await expect.poll(() => control.evaluate(el=>{
         const r=el.getBoundingClientRect();
         return el.contains(document.elementFromPoint(r.left+r.width/2,r.top+r.height/2));
-      }),selector).toBeTruthy();
+      }),{message:`${selector} should receive pointer hits after UI animations`}).toBeTruthy();
     };
     if(size.width<=700){
       // Check content with the navigation closed; an open menu intentionally overlays the page.
       await page.getByRole('button',{name:'إغلاق قائمة التنقل'}).click();
+      // The Sheet stays modal during its exit animation; await actual dismissal before checking hit targets.
+      await expect(page.getByRole('dialog',{name:'قائمة التنقل'})).toBeHidden();
       await expectHit('.platform-login');
       await expectHit('[data-testid="hero-explore"]');
       await page.getByRole('button',{name:'فتح قائمة التنقل'}).click();
@@ -374,7 +376,14 @@ test('Arabic header keeps brand on left and account entry on right across pages 
       const access=await login.boundingBox();
       expect(mark).not.toBeNull();
       expect(access).not.toBeNull();
-      expect(mark!.x+mark!.width).toBeLessThan(access!.x);
+      if(size.width<=700){
+        expect(Math.abs(mark!.x+mark!.width/2-size.width/2)).toBeLessThanOrEqual(2);
+        expect(access!.x+access!.width).toBeLessThan(mark!.x);
+        const toggle=await page.getByRole('button',{name:'فتح قائمة التنقل'}).boundingBox();
+        expect(toggle!.x).toBeGreaterThan(mark!.x+mark!.width);
+      }else{
+        expect(mark!.x+mark!.width).toBeLessThan(access!.x);
+      }
       expect(access!.x+access!.width).toBeLessThanOrEqual(size.width+1);
       expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBeTruthy();
       if(size.width<=700)await page.getByRole('button',{name:'فتح قائمة التنقل'}).click();
@@ -403,7 +412,12 @@ test('Arabic signed-in header anchors Nav User and its dropdown inside the right
       await expect(brand).toBeVisible();
       const a=await account.boundingBox(),b=await brand.boundingBox();
       expect(a).not.toBeNull();expect(b).not.toBeNull();
-      expect(b!.x+b!.width).toBeLessThan(a!.x);
+      if(size.width<=700){
+        expect(Math.abs(b!.x+b!.width/2-size.width/2)).toBeLessThanOrEqual(2);
+        expect(a!.x+a!.width).toBeLessThan(b!.x);
+      }else{
+        expect(b!.x+b!.width).toBeLessThan(a!.x);
+      }
       expect(a!.x+a!.width).toBeLessThanOrEqual(size.width+1);
       await account.click();
       const menu=page.getByRole('menu',{name:'قائمة حسابك'});

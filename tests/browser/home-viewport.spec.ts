@@ -1,7 +1,7 @@
 import {test,expect} from '@playwright/test';
 async function navigate(page:import('@playwright/test').Page,id:string,method:'click'|'tap'='click'){
  const toggle=page.getByRole('button',{name:'فتح قائمة التنقل'});
- if(await toggle.isVisible())await toggle.click();
+ if(!await page.getByRole('dialog',{name:'قائمة التنقل'}).isVisible()&&await toggle.isVisible())await toggle.click();
  const link=page.getByTestId('nav-'+id);
  if(method==='tap')await link.tap();else await link.click();
 }
