@@ -9,7 +9,7 @@ test('unified reviews are text-only, account-unique, editable, owner-curated and
  const value=async(sql:string,args:unknown[]=[]) =>(await db.query<{v:any}>(sql,args)).rows[0]?.v;
  try{
   await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key,created_at timestamptz default now());create table auth.identities(user_id uuid,provider text,identity_data jsonb);insert into auth.users(id) values('${host}'),('${owner}'),('${other}');`);
-  for(const file of ['20261022215208_host_persistence_foundation.sql','20261023173930_production_commerce_foundation.sql','20261023193330_live_payment_queue_and_event_consumption.sql','20261023202259_live_payment_operations_and_receipts.sql','20261026042029_owner_panel_and_bonus_ledger.sql','20261030141500_event_reviews.sql','20261101141500_text_only_discord_reviews.sql','20261102133000_immediate_public_reviews.sql'])
+  for(const file of ['20261022215208_host_persistence_foundation.sql','20261023173930_production_commerce_foundation.sql','20261023193330_live_payment_queue_and_event_consumption.sql','20261023202259_live_payment_operations_and_receipts.sql','20261026042029_owner_panel_and_bonus_ledger.sql','20261030141500_event_reviews.sql','20261101141500_text_only_discord_reviews.sql','20261102133000_immediate_public_reviews.sql','20261102191000_review_permanent_delete.sql'])
    await db.exec(await readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8'));
   await db.exec(`insert into bud_platform.platform_owners values('${owner}','${discord}');set role service_role;`);
   const avatar='https://cdn.discordapp.com/embed/avatars/2.png';
@@ -47,10 +47,29 @@ test('unified reviews are text-only, account-unique, editable, owner-curated and
   assert.equal((await value('select public.bud_reviews_latest_text(0,12) v')).items[0].id,first.id);
   assert.deepEqual((await value('select public.bud_reviews_latest_text(1,12) v')).items,[]);
   assert.equal((await value('select count(*)::int v from bud_platform.owner_audit where kind=\'reviewFeature\'')),2);
+  const deleteReview=(actor:string,n:number,id:string=first.id,reason='حذف تقييم مخالف')=>
+   value('select public.bud_review_delete($1,$2,$3,$4,$5) v',[actor,discord,op(n),id,reason]);
+  await assert.rejects(deleteReview(host,5),/BUD_OWNER_REQUIRED/);
+  assert.equal((await deleteReview(owner,6)).deleted,true);
+  assert.equal((await deleteReview(owner,6)).replayed,true);
+  await assert.rejects(deleteReview(owner,6,first.id,'طلب مختلف'),/BUD_KEY_REUSED/);
+  await assert.rejects(deleteReview(owner,7),/BUD_RESOURCE_NOT_FOUND/);
+  assert.equal(await value('select count(*)::int v from bud_platform.event_reviews'),0);
+  assert.deepEqual((await value('select public.bud_reviews_latest_text(0,12) v')).items,[]);
+  assert.deepEqual(await value('select public.bud_reviews_public_text() v'),[]);
+  assert.equal((await value('select public.bud_review_mine($1) v',[host])).id,undefined);
+  const logged=await value("select outcome->>'deleted' v from bud_platform.owner_audit where kind='reviewDelete'");
+  assert.equal(logged,'true');
+  const audit=await value("select outcome::text v from bud_platform.owner_audit where kind='reviewDelete'");
+  assert.doesNotMatch(audit,/تجربة جديدة|حساب Discord|cdn\.discordapp/);
+  const fresh=await submit(host,'تقييم جديد بعد الحذف');
+  assert.notEqual(fresh.id,first.id);
+  assert.equal((await value('select public.bud_reviews_latest_text(0,12) v')).items[0].id,fresh.id);
   for(const role of ['anon','authenticated']){
    assert.equal(await value(`select has_table_privilege('${role}','bud_platform.event_reviews','select') v`),false);
    assert.equal(await value(`select has_function_privilege('${role}','public.bud_reviews_public_text()','execute') v`),false);
    assert.equal(await value(`select has_function_privilege('${role}','public.bud_reviews_latest_text(integer,integer)','execute') v`),false);
+   assert.equal(await value(`select has_function_privilege('${role}','public.bud_review_delete(uuid,text,uuid,uuid,text)','execute') v`),false);
   }
  }finally{await db.close();}
 });

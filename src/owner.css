@@ -88,3 +88,8 @@
  .owner-profile-credit>div{flex-wrap:wrap}
 }
 @media(prefers-reduced-motion:reduce){.owner-sidebar nav{scroll-behavior:auto}}
+
+/* Destructive action in owner-managed community reviews. */
+.owner-review-management .owner-button.danger{color:#a52d2d;border-color:#e8bbbb;background:#fff8f8}
+.owner-review-management .owner-button.danger:hover:not(:disabled){color:#872323;background:#ffeded;border-color:#dba3a3}
+.owner-review-management .owner-button.danger:focus-visible{outline:3px solid #a52d2d;outline-offset:2px}

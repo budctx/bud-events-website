@@ -119,10 +119,10 @@ export async function handleOwner(request: Request, env: AuthEnv = envNow(), tra
     // The verified session and owner check above authorize every command.
     // Token refresh preserves the session lifetime without another Discord redirect.
     const p=body.payload;
-    if(body.action==='reviewModerate') {
+    if(body.action==='reviewDelete') {
       if(env.BUD_REVIEWS_ENABLED!=='true')throw new WhopError('REVIEWS_NOT_CONFIGURED');
-      if(!exact(p,['id','status'])||typeof p.id!=='string'||!uuid.test(p.id)||!['published','hidden'].includes(String(p.status)))throw new WhopError('INVALID_REQUEST',400);
-      return liveResponse(200,'OK',await rpc('bud_review_moderate',{p_actor:session.hostId,p_discord:session.discordId,p_operation:body.operationId,p_id:p.id,p_status:p.status,p_reason:body.reason.trim()},secret,transport),refreshed);
+      if(!exact(p,['id'])||typeof p.id!=='string'||!uuid.test(p.id))throw new WhopError('INVALID_REQUEST',400);
+      return liveResponse(200,'OK',await rpc('bud_review_delete',{p_actor:session.hostId,p_discord:session.discordId,p_operation:body.operationId,p_id:p.id,p_reason:body.reason.trim()},secret,transport),refreshed);
     }
 
     if(['promoCreate','promoPause','promoResume'].includes(body.action)) {

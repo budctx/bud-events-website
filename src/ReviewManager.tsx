@@ -4,17 +4,17 @@ type Row=Record<string,unknown>;
 export function ReviewManager({rows,onNext,onBack,offset,onRefresh}:{rows:Row[];onNext:()=>void;onBack:()=>void;offset:number;onRefresh:()=>void}){
  const [busy,setBusy]=useState<string|null>(null),[error,setError]=useState(''),[copied,setCopied]=useState(false);
  const selected=rows.filter(row=>typeof row.featured_rank==='number').length;
- const moderate=async(id:string,status:'hidden'|'published')=>{
-  if(busy||!window.confirm(status==='hidden'?'إخفاء هذا التقييم من الموقع؟':'إعادة نشر هذا التقييم؟'))return;
+ const remove=async(id:string)=>{
+  if(busy||!window.confirm('حذف هذا التقييم نهائيًا؟ سيُحذف من قاعدة البيانات ومن جميع صفحات الموقع، ولا يمكن استرجاعه.'))return;
   setBusy(id);setError('');
   try{
    const response=await fetch('/api/owner',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action:'reviewModerate',operationId:crypto.randomUUID(),confirmed:true,
-     reason:status==='hidden'?'إخفاء تقييم مخالف لسياسات الخدمة':'إعادة نشر التقييم بعد المراجعة',payload:{id,status}})});
+    body:JSON.stringify({action:'reviewDelete',operationId:crypto.randomUUID(),confirmed:true,
+     reason:'حذف التقييم نهائيًا بقرار المالك',payload:{id}})});
    const data=await response.json().catch(()=>null);
-   if(!response.ok||data?.code!=='OK')throw Error();
+   if(!response.ok||data?.code!=='OK'||data.data?.deleted!==true)throw Error();
    onRefresh();
-  }catch{setError('تعذر تحديث نشر التقييم. حاول مرة أخرى.');}
+  }catch{setError('تعذر حذف التقييم نهائيًا. تحقق من حالته وأعد المحاولة.');}
   finally{setBusy(null);}
  };
  const change=async(id:string,rank:number|null)=>{
@@ -30,7 +30,7 @@ export function ReviewManager({rows,onNext,onBack,offset,onRefresh}:{rows:Row[];
  };
  return <section className="owner-review-management">
   <article className="owner-card"><div className="owner-block-heading"><h3>رابط استقبال الآراء</h3><span>{selected} / 5 معروضة</span></div>
-   <p className="owner-subtle">يُرسل لأي شخص. تظهر آراء مستخدمي Discord للجميع مباشرة. يمكنك إخفاء المخالف أو اختيار خمسة آراء لإبرازها في الرئيسية.</p>
+   <p className="owner-subtle">يُرسل لأي شخص. تظهر آراء مستخدمي Discord للجميع مباشرة. يمكنك حذف التقييم نهائيًا أو اختيار خمسة آراء لإبرازها في الرئيسية.</p>
    <div className="owner-actions"><code dir="ltr">https://budteam.net/review</code>
     <button type="button" className="owner-button primary" onClick={()=>{void navigator.clipboard.writeText('https://budteam.net/review').then(()=>setCopied(true)).catch(()=>setError('تعذر نسخ الرابط. يمكنك تحديده يدويًا.'));}}>{copied?'تم النسخ':'نسخ الرابط'}</button>
     <a className="owner-button" href="/review" target="_blank" rel="noopener noreferrer">معاينة</a>
@@ -48,7 +48,7 @@ export function ReviewManager({rows,onNext,onBack,offset,onRefresh}:{rows:Row[];
      <select id={'feature-'+id} className="owner-button" disabled={busy!==null} value={rank??''} onChange={e=>{void change(id,e.target.value===''?null:Number(e.target.value));}}>
       <option value="">غير مميز في الرئيسية</option>{[1,2,3,4,5].map(n=><option key={n} value={n}>المركز {n}</option>)}
      </select><small>اختيار مركز مشغول يستبدل الرأي الموجود فيه، أو يبدّل موقعهما إذا كان الاثنان معروضين. إزالة الاختيار من الرئيسية لا تخفي التقييم عن الجمهور.</small>
-     <button type="button" className="owner-button" disabled={busy!==null} onClick={()=>void moderate(id,row.status==='hidden'?'published':'hidden')}>{row.status==='hidden'?'إعادة نشر التقييم':'إخفاء التقييم عن الجمهور'}</button>
+     <button type="button" className="owner-button danger" disabled={busy!==null} onClick={()=>void remove(id)} aria-label={'حذف التقييم نهائيًا: '+String(row.display_name)}>حذف التقييم نهائيًا</button>
     </div>
    </article>;
   })}

@@ -186,3 +186,33 @@ for(const width of [320,390,430])test('owner mobile drawer, record labels and pr
  await expect(record.getByRole('button',{name:'فتح ملف المستخدم'})).toBeVisible();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });
+
+test('owner review actions confirm irreversible deletion and refresh the list',async({page})=>{
+ await setup(page);
+ const calls:any[]=[];let deleted=false;
+ await page.route('**/api/owner',route=>{
+  const body=route.request().postDataJSON();
+  if(body.action==='profile')return route.fulfill(ok({owner:true}));
+  if(body.action==='reviews')return route.fulfill(ok({rows:deleted?[]:[{id,display_name:'مراجع تجريبي',avatar_url:null,comment:'رأي للاختبار',status:'published',featured_rank:1}]}));
+  if(body.action==='reviewDelete'){
+   calls.push(body);deleted=true;
+   return route.fulfill(ok({id,deleted:true,replayed:false}));
+  }
+  return route.fulfill(ok({rows:[]}));
+ });
+ await page.getByRole('button',{name:'لوحة المالك',exact:true}).click();
+ await (await ownerNav(page)).getByRole('button',{name:'التقييمات',exact:true}).click();
+ const remove=page.getByRole('button',{name:'حذف التقييم نهائيًا: مراجع تجريبي'});
+ await expect(remove).toBeVisible();
+ await expect(page.getByRole('button',{name:'إخفاء التقييم عن الجمهور'})).toHaveCount(0);
+ page.once('dialog',async dialog=>{
+  expect(dialog.message()).toContain('لا يمكن استرجاعه');
+  await dialog.accept();
+ });
+ await remove.click();
+ await expect(remove).toHaveCount(0);
+ await expect(page.getByText('لا توجد آراء واردة حتى الآن.')).toBeVisible();
+ expect(calls).toHaveLength(1);
+ expect(calls[0]).toMatchObject({action:'reviewDelete',confirmed:true,payload:{id}});
+ expect(calls[0].payload.status).toBeUndefined();
+});
