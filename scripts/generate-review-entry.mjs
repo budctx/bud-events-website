@@ -2,7 +2,7 @@ import {readFile,writeFile} from 'node:fs/promises';
 let html=await readFile(new URL('../dist/index.html',import.meta.url),'utf8');
 const image='https://budteam.net/assets/%D8%A7%D9%84%D8%AA%D9%82%D9%8A%D9%8A%D9%85%D8%A7%D8%AA.png';
 const title='التقييمات | بُعد';
-const description='شاركنا رأيك في بُعد، واطّلع على آراء المجتمع.';
+const description='شاركنا رأيك';
 const replace=(key,value,attr='property')=>{const re=new RegExp('<meta '+attr+'="'+key+'" content="[^"]*"\\s*/>');if(!re.test(html))throw Error('Missing metadata: '+key);html=html.replace(re,'<meta '+attr+'="'+key+'" content="'+value+'" />');};
 html=html.replace(/<title>[^<]*<\/title>/,'<title>'+title+'</title>');
 replace('description',description,'name');
