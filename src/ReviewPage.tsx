@@ -52,6 +52,7 @@ export default function ReviewPage(){
     {stage==='editing'&&<form onSubmit={e=>{e.preventDefault();void submit();}}>
      {user&&<div className="bud-review-identity"><ReviewIdentity name={user.displayName.trim().slice(0,60)} avatarUrl={user.avatarUrl}/></div>}
      {previousStatus&&<p className="bud-review-previous" role="status">{previousStatus==='published'?'رأيك منشور في آراء المجتمع. يمكنك تحديثه وسيظهر التعديل مباشرة.':previousStatus==='hidden'?'رأيك السابق مخفي. إذا أرسلت نسخة جديدة، ستُنشر مباشرة.':'لديك رأي سابق. يمكنك تحديثه ونشره مباشرة.'}</p>}
+     <p className="bud-review-publish-note">سيظهر رأيك للزوار مباشرة باسم وصورة حساب Discord. يمكن إخفاء المحتوى المخالف لسياسات الخدمة.</p>
      <label htmlFor="bud-review-input">رأيك في بُعد</label>
      <textarea id="bud-review-input" maxLength={500} minLength={3} required value={comment} disabled={busy} onChange={e=>setComment(e.target.value)} placeholder="اكتب رأيك هنا…" aria-describedby="bud-review-count"/>
      <small id="bud-review-count" className="bud-review-count" aria-live="off"><bdi>{new Intl.NumberFormat('ar-SA-u-nu-latn').format(comment.length)}</bdi> / 500</small>
