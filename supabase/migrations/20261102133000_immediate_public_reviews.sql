@@ -88,3 +88,32 @@ begin
 end;
 $function$
 
+
+-- Hide also clears a homepage selection so the existing featured-status constraint is respected.
+CREATE OR REPLACE FUNCTION public.bud_review_moderate(p_actor uuid, p_discord text, p_operation uuid, p_id uuid, p_status text, p_reason text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SET search_path TO ''
+AS $function$
+declare v bud_platform.event_reviews; a bud_platform.owner_audit; r jsonb; q jsonb;
+begin
+ perform bud_platform.require_owner(p_actor,p_discord);
+ if p_operation is null or p_id is null or p_status is null or p_status not in ('published','hidden')
+ or p_reason is null or length(trim(p_reason)) not between 3 and 300 then raise exception 'BUD_INVALID_REQUEST';end if;
+ q:=jsonb_build_object('id',p_id,'status',p_status,'reason',trim(p_reason));
+ perform pg_advisory_xact_lock(hashtextextended(p_actor::text||p_operation::text,27));
+ select * into a from bud_platform.owner_audit where actor=p_actor and operation_id=p_operation;
+ if found then
+  if a.kind<>'reviewModerate' or a.outcome->'request' is distinct from q then raise exception 'BUD_KEY_REUSED';end if;
+  return (a.outcome-'request')||jsonb_build_object('replayed',true);
+ end if;
+ select * into v from bud_platform.event_reviews where id=p_id for update;
+ if not found then raise exception 'BUD_RESOURCE_NOT_FOUND';end if;
+ if p_status='published' and (not v.publish_consent or char_length(btrim(v.comment))<3) then raise exception 'BUD_INVALID_REQUEST';end if;
+ update bud_platform.event_reviews set status=p_status,featured_rank=case when p_status='hidden' then null else featured_rank end,moderated_at=clock_timestamp() where id=p_id;
+ r:=jsonb_build_object('id',p_id,'status',p_status);
+ insert into bud_platform.owner_audit(actor,operation_id,kind,subject,reason,outcome) values(p_actor,p_operation,'reviewModerate',p_id::text,trim(p_reason),r||jsonb_build_object('request',q));
+ return r||jsonb_build_object('replayed',false);
+end;
+$function$
+
