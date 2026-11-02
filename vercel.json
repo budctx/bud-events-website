@@ -97,7 +97,7 @@
     },
     {
       "source": "/review",
-      "destination": "/index.html"
+      "destination": "/review.html"
     },
     {
       "source": "/policies",
