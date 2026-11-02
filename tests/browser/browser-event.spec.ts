@@ -137,3 +137,22 @@ test('finished local event navigates to the unified review and thanks page witho
  expect(requests.filter(r=>r.action==='submit')).toEqual([{action:'submit',comment:'فعالية ممتعة'}]);
  expect(JSON.stringify(requests)).not.toContain('جائزة محلية خاصة');
 });
+
+test('latest community review card puts compact author above text without date or platform caption',async({page})=>{
+ await page.route('**/api/owner?public=latest-reviews*',route=>route.fulfill(ok({
+  items:[{id:'33333333-3333-4333-8333-333333333333',name:'407i',comment:'تجربة ممتعة',avatarUrl:null,publishedAt:'2026-11-02T12:00:00Z'}],
+  hasMore:false
+ })));
+ await page.goto('/review');
+ const card=page.locator('.bud-latest-reviews .bud-review-card').first();
+ await expect(card).toBeVisible();
+ await expect(card.locator('figcaption')).toContainText('407i');
+ await expect(card.locator('blockquote')).toHaveText('تجربة ممتعة');
+ await expect(card.locator('time')).toHaveCount(0);
+ await expect(card.getByText('حساب Discord')).toHaveCount(0);
+ const metrics=await card.evaluate(el=>({
+  firstTag:el.firstElementChild?.tagName,
+  avatarWidth:Math.round(el.querySelector('.bud-review-avatar')!.getBoundingClientRect().width)
+ }));
+ expect(metrics).toEqual({firstTag:'FIGCAPTION',avatarWidth:28});
+});

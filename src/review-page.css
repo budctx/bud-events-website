@@ -95,3 +95,28 @@
  .bud-review-page-card textarea{min-height:90px}
  .bud-latest-reviews .bud-review-card{min-height:120px}
 }
+
+
+/* Author-first community review cards — compact identity, content-sized height. */
+.bud-latest-reviews-grid{align-items:start}
+.bud-latest-reviews .bud-review-card{
+ min-height:0;height:auto;padding:14px 16px;
+ display:flex;flex-direction:column;justify-content:flex-start;gap:11px
+}
+.bud-latest-reviews .bud-review-card figcaption{
+ display:flex;align-items:center;justify-content:flex-start;flex-wrap:nowrap;
+ padding-bottom:10px;border-bottom:1px solid #e6e6e6;min-width:0
+}
+.bud-latest-reviews .bud-review-card .bud-review-person{gap:8px;min-width:0}
+.bud-latest-reviews .bud-review-card .bud-review-avatar{
+ width:28px;height:28px;flex:0 0 28px
+}
+.bud-latest-reviews .bud-review-card .bud-review-person-name{
+ font-size:12px;line-height:1.45;font-weight:600
+}
+.bud-latest-reviews .bud-review-card blockquote{
+ font-size:13px;line-height:1.7
+}
+@media(max-width:540px){
+ .bud-latest-reviews .bud-review-card{padding:13px 15px;gap:10px}
+}
