@@ -21,6 +21,7 @@ for(const width of widths)for(const signedIn of [false,true]){
   await toggle.click();
   const sheet=page.getByRole('dialog',{name:'قائمة التنقل'});
   await expect(sheet).toBeVisible();
+  await sheet.evaluate(el=>Promise.all(el.getAnimations().map(a=>a.finished.catch(()=>undefined))));
   await expect(toggle).toHaveAttribute('aria-expanded','true');
   await expect(sheet.getByTestId('nav-events')).toHaveAttribute('aria-current','page');
   await expect(sheet.getByRole('button',{name:'المساعدة والسياسات'})).toBeVisible();
@@ -49,6 +50,7 @@ test('mobile Sheet closes on backdrop tap and supports keyboard focus trap',asyn
  const button=page.getByRole('button',{name:'فتح قائمة التنقل'});
  await button.click();const sheet=page.getByRole('dialog',{name:'قائمة التنقل'});
  await expect(sheet).toBeVisible();
+ await sheet.evaluate(el=>Promise.all(el.getAnimations().map(a=>a.finished.catch(()=>undefined))));
  await sheet.getByRole('button',{name:'إغلاق قائمة التنقل'}).focus();
  await page.keyboard.press('Shift+Tab');
  expect(await page.evaluate(()=>document.querySelector('dialog')!.contains(document.activeElement))).toBe(true);
@@ -66,7 +68,9 @@ test('mobile Sheet mirrors its start edge under LTR direction',async({page})=>{
  expect(toggle!.x+toggle!.width).toBeLessThan(logo!.x);
  expect(account!.x).toBeGreaterThan(logo!.x+logo!.width);
  await page.getByRole('button',{name:'فتح قائمة التنقل'}).click();
- const sheet=await page.getByRole('dialog',{name:'قائمة التنقل'}).boundingBox();
+ const drawer=page.getByRole('dialog',{name:'قائمة التنقل'});
+ await drawer.evaluate(el=>Promise.all(el.getAnimations().map(a=>a.finished.catch(()=>undefined))));
+ const sheet=await drawer.boundingBox();
  expect(sheet!.x).toBeLessThanOrEqual(16); // reserved Chromium scrollbar gutter
 });
 
