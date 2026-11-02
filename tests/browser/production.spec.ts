@@ -75,6 +75,8 @@ for (const locale of ['ar','en']) for (const size of sizes) {
     if(size.width<=700){
       // Check content with the navigation closed; an open menu intentionally overlays the page.
       await page.getByRole('button',{name:'إغلاق قائمة التنقل'}).click();
+      // The Sheet stays modal during its exit animation; await actual dismissal before checking hit targets.
+      await expect(page.getByRole('dialog',{name:'قائمة التنقل'})).toBeHidden();
       await expectHit('.platform-login');
       await expectHit('[data-testid="hero-explore"]');
       await page.getByRole('button',{name:'فتح قائمة التنقل'}).click();
