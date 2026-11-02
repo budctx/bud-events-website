@@ -51,7 +51,7 @@ export default function ReviewPage(){
     {stage==='login'&&<button className="bud-review-action" type="button" onClick={()=>{setStage('loading');void signInHost({page:'review',locale:'ar'}).catch(()=>setStage('error'));}}>تسجيل الدخول عبر Discord</button>}
     {stage==='editing'&&<form onSubmit={e=>{e.preventDefault();void submit();}}>
      {user&&<div className="bud-review-identity"><ReviewIdentity name={user.displayName.trim().slice(0,60)} avatarUrl={user.avatarUrl}/></div>}
-     <label htmlFor="bud-review-input">رأيك في بُعد</label>
+     <label htmlFor="bud-review-input">شاركنا رايك</label>
      <textarea id="bud-review-input" maxLength={500} minLength={3} required value={comment} disabled={busy} onChange={e=>setComment(e.target.value)} placeholder="اكتب رأيك هنا…" aria-describedby="bud-review-count"/>
      <small id="bud-review-count" className="bud-review-count" aria-live="off"><bdi>{new Intl.NumberFormat('ar-SA-u-nu-latn').format(comment.length)}</bdi> / 500</small>
      {error&&<div className="bud-review-inline-error" role="alert"><span>{error}</span><button type="button" onClick={()=>location.reload()}>إعادة المحاولة</button></div>}
