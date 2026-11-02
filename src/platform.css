@@ -746,3 +746,57 @@ html:has(.platform){scrollbar-gutter:stable both-edges;overflow-x:clip}
  .platform[dir=rtl] .platform-mobile-sheet[open]{right:0;left:auto}
  .platform[dir=ltr] .platform-mobile-sheet[open]{left:0;right:auto}
 }
+
+
+/* Slide animation for the mobile navigation Sheet.
+   Keep links at the top and the help action at the thumb-reachable bottom. */
+@media(max-width:700px){
+  .platform .platform-mobile-sheet .platform-navigation{
+    margin-block-start:0;
+  }
+  .platform .platform-mobile-sheet-support{
+    margin-block-start:auto;
+  }
+  .platform .platform-mobile-sheet[open]{
+    --bud-sheet-offset:100%;
+    animation:bud-sheet-slide-in 280ms cubic-bezier(.22,.85,.3,1) both;
+    will-change:transform;
+  }
+  .platform[dir=ltr] .platform-mobile-sheet[open]{
+    --bud-sheet-offset:-100%;
+  }
+  .platform .platform-mobile-sheet[open]::backdrop{
+    animation:bud-sheet-backdrop-in 280ms ease-out both;
+  }
+  .platform .platform-mobile-sheet[open][data-closing=true]{
+    animation:bud-sheet-slide-out 230ms cubic-bezier(.4,0,.8,.3) both;
+    pointer-events:none;
+  }
+  .platform .platform-mobile-sheet[open][data-closing=true]::backdrop{
+    animation:bud-sheet-backdrop-out 230ms ease-in both;
+  }
+}
+@keyframes bud-sheet-slide-in{
+  from{transform:translateX(var(--bud-sheet-offset));}
+  to{transform:translateX(0);}
+}
+@keyframes bud-sheet-slide-out{
+  from{transform:translateX(0);}
+  to{transform:translateX(var(--bud-sheet-offset));}
+}
+@keyframes bud-sheet-backdrop-in{
+  from{background-color:rgba(23,20,16,0);}
+  to{background-color:rgba(23,20,16,.58);}
+}
+@keyframes bud-sheet-backdrop-out{
+  from{background-color:rgba(23,20,16,.58);}
+  to{background-color:rgba(23,20,16,0);}
+}
+@media(prefers-reduced-motion:reduce){
+  .platform .platform-mobile-sheet[open],
+  .platform .platform-mobile-sheet[open]::backdrop,
+  .platform .platform-mobile-sheet[open][data-closing=true],
+  .platform .platform-mobile-sheet[open][data-closing=true]::backdrop{
+    animation:none!important;will-change:auto;
+  }
+}

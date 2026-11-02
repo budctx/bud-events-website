@@ -71,13 +71,34 @@ export default function Platform({ onPlay }: PlatformProps) {
   const [mobileHome,setMobileHome]=useState(()=>window.matchMedia('(max-width:700px)').matches);
   useEffect(()=>{
     const media=window.matchMedia('(max-width:700px)');
-    const update=()=>{setMobileHome(media.matches);setMobileMenuOpen(false);};
+    const update=()=>{setMobileHome(media.matches);setMobileMenuOpen(false);setMobileMenuClosing(false);afterMenuClose.current=null;};
     media.addEventListener('change',update);
     return()=>media.removeEventListener('change',update);
   },[]);
   const mobileSheetRef=useRef<HTMLDialogElement>(null);
   const mobileToggleRef=useRef<HTMLButtonElement>(null);
   const restoreMenuFocus=useRef(true);
+  const [mobileMenuClosing,setMobileMenuClosing]=useState(false);
+  const afterMenuClose=useRef<(()=>void)|null>(null);
+  const completeMobileMenuClose=()=>{
+    setMobileMenuOpen(false);
+    setMobileMenuClosing(false);
+    const action=afterMenuClose.current;
+    afterMenuClose.current=null;
+    action?.();
+  };
+  const closeMobileMenu=(onClosed?:()=>void)=>{
+    if(onClosed){
+      restoreMenuFocus.current=false;
+      afterMenuClose.current=onClosed;
+    }
+    if(mobileMenuClosing)return;
+    if(!mobileMenuOpen||window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+      completeMobileMenuClose();
+    }else{
+      setMobileMenuClosing(true);
+    }
+  };
   useEffect(()=>{
     if(!mobileMenuOpen||!mobileHome)return;
     const sheet=mobileSheetRef.current;if(!sheet)return;
@@ -226,7 +247,7 @@ export default function Platform({ onPlay }: PlatformProps) {
   const canSetup = !!account.session && !!account.dashboard && account.dashboard.credits > 0 && !paymentHold && !account.dashboard.paymentReview;
   const canResume = !!ongoing && !ongoing.localMissing && !!account.session;
 
-  const mainNavigation = (<nav id="platform-main-navigation" data-mobile-open={mobileMenuOpen} className="platform-navigation" aria-label={locale === 'ar' ? 'التنقل الرئيسي' : 'Main navigation'}>{(['home', 'events', 'bots', 'designs'] as const).map(item => <button type="button" key={item} data-testid={`nav-${item}`} aria-label={`${t[item]}${item === 'bots' || item === 'designs' ? ` · ${t.soon}` : ''}`} aria-current={page === item ? 'page' : undefined} className={item === 'bots' || item === 'designs' ? 'platform-future-link' : ''} onPointerEnter={item === 'events' ? () => { void loadEventPreview(); } : undefined} onFocus={item === 'events' ? () => { void loadEventPreview(); } : undefined} onClick={() => navigate(item)}><span className="platform-nav-icon"><InterfaceIcon kind={item} /></span><span className="platform-nav-label">{t[item]}{(item === 'bots' || item === 'designs') && <small> · {t.soon}</small>}</span></button>)}</nav>);
+  const mainNavigation = (<nav id="platform-main-navigation" data-mobile-open={mobileMenuOpen} className="platform-navigation" aria-label={locale === 'ar' ? 'التنقل الرئيسي' : 'Main navigation'}>{(['home', 'events', 'bots', 'designs'] as const).map(item => <button type="button" key={item} data-testid={`nav-${item}`} aria-label={`${t[item]}${item === 'bots' || item === 'designs' ? ` · ${t.soon}` : ''}`} aria-current={page === item ? 'page' : undefined} className={item === 'bots' || item === 'designs' ? 'platform-future-link' : ''} onPointerEnter={item === 'events' ? () => { void loadEventPreview(); } : undefined} onFocus={item === 'events' ? () => { void loadEventPreview(); } : undefined} onClick={() => mobileHome?closeMobileMenu(()=>navigate(item)):navigate(item)}><span className="platform-nav-icon"><InterfaceIcon kind={item} /></span><span className="platform-nav-label">{t[item]}{(item === 'bots' || item === 'designs') && <small> · {t.soon}</small>}</span></button>)}</nav>);
   if(panel==='owner'&&account.session)return <Suspense fallback={<BudSkeleton label="جارٍ تحميل لوحة المالك…"/>}><OwnerPanel key={account.session.id} ownerId={account.session.id} ownerName={account.session.displayName} initialReturn={ownerReturn} onClose={()=>{setOwnerReturn(null);setPanel('profile');}}/></Suspense>;
 
   return <div className={`platform platform-${page}${page==='events'&&(!panel||panel==='setup')?' platform-events-fit':''}`} dir={locale === 'ar' ? 'rtl' : 'ltr'} data-testid="platform-root">
@@ -237,22 +258,22 @@ export default function Platform({ onPlay }: PlatformProps) {
       <div className="platform-brand-navigation">
         {!mobileHome&&mainNavigation}
         <button className="platform-brand" aria-label={locale === 'ar' ? 'بُعد — الرئيسية' : 'BU’D — Home'} onClick={() => navigate('home')}><Mark /><span>بُعد</span></button>
-         <button type="button" ref={mobileToggleRef} className="platform-mobile-menu-toggle" aria-label="فتح قائمة التنقل" aria-controls="platform-mobile-sheet" aria-haspopup="dialog" aria-expanded={mobileMenuOpen} onClick={()=>setMobileMenuOpen(open=>!open)}>{mobileMenuOpen?<X aria-hidden="true" size={21}/>:<Menu aria-hidden="true" size={21}/>}</button>
+         <button type="button" ref={mobileToggleRef} className="platform-mobile-menu-toggle" aria-label="فتح قائمة التنقل" aria-controls="platform-mobile-sheet" aria-haspopup="dialog" aria-expanded={mobileMenuOpen} onClick={()=>mobileMenuOpen?closeMobileMenu():(setMobileMenuClosing(false),setMobileMenuOpen(true))}>{mobileMenuOpen?<X aria-hidden="true" size={21}/>:<Menu aria-hidden="true" size={21}/>}</button>
       </div>
     </header>
-    <dialog ref={mobileSheetRef} id="platform-mobile-sheet" className="platform-mobile-sheet" aria-label="قائمة التنقل" dir={locale==='ar'?'rtl':'ltr'} onCancel={event=>{event.preventDefault();setMobileMenuOpen(false);}} onKeyDown={event=>{
+    <dialog ref={mobileSheetRef} id="platform-mobile-sheet" className="platform-mobile-sheet" data-closing={mobileMenuClosing?'true':'false'} aria-label="قائمة التنقل" dir={locale==='ar'?'rtl':'ltr'} onCancel={event=>{event.preventDefault();closeMobileMenu();}} onAnimationEnd={event=>{if(event.target===event.currentTarget&&event.animationName==='bud-sheet-slide-out')completeMobileMenuClose();}} onKeyDown={event=>{
       if(event.key!=='Tab')return;
       const items=Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled),a[href]'));
       if(!items.length)return;
       const first=items[0],last=items[items.length-1];
       if(event.shiftKey&&(document.activeElement===first||!event.currentTarget.contains(document.activeElement))){event.preventDefault();last.focus();}
       else if(!event.shiftKey&&(document.activeElement===last||!event.currentTarget.contains(document.activeElement))){event.preventDefault();first.focus();}
-    }} onClick={event=>{if(event.target===event.currentTarget)setMobileMenuOpen(false);}}>
-      <div className="platform-mobile-sheet-head"><div className="platform-mobile-sheet-title"><Mark/><strong>استكشف بُعد</strong></div><button type="button" className="platform-mobile-sheet-close" aria-label="إغلاق قائمة التنقل" onClick={()=>setMobileMenuOpen(false)}><X size={22} aria-hidden="true"/></button></div>
+    }} onClick={event=>{if(event.target===event.currentTarget)closeMobileMenu();}}>
+      <div className="platform-mobile-sheet-head"><div className="platform-mobile-sheet-title"><Mark/><strong>استكشف بُعد</strong></div><button type="button" className="platform-mobile-sheet-close" aria-label="إغلاق قائمة التنقل" onClick={()=>closeMobileMenu()}><X size={22} aria-hidden="true"/></button></div>
       <div className="platform-mobile-sheet-body">
         <p className="platform-mobile-sheet-note">كل ما تحتاجه لمجتمعك في مكان واحد</p>
         {mobileHome&&mainNavigation}
-        <button type="button" className="platform-mobile-sheet-support" onClick={()=>navigate('policies')} aria-current={page==='policies'?'page':undefined}><LifeBuoy aria-hidden="true" size={21}/><span>المساعدة والسياسات</span></button>
+        <button type="button" className="platform-mobile-sheet-support" onClick={()=>closeMobileMenu(()=>navigate('policies'))} aria-current={page==='policies'?'page':undefined}><LifeBuoy aria-hidden="true" size={21}/><span>المساعدة والسياسات</span></button>
       </div>
       <div className="platform-mobile-sheet-foot">ننقل تجربتك إلى بُعد آخر</div>
     </dialog>

@@ -69,3 +69,31 @@ test('mobile Sheet mirrors its start edge under LTR direction',async({page})=>{
  const sheet=await page.getByRole('dialog',{name:'قائمة التنقل'}).boundingBox();
  expect(sheet!.x).toBeLessThanOrEqual(16); // reserved Chromium scrollbar gutter
 });
+
+test('Sheet animates RTL entry and exit before it closes',async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ await page.goto('/');
+ const toggle=page.getByRole('button',{name:'فتح قائمة التنقل'});
+ await toggle.click();
+ const sheet=page.getByRole('dialog',{name:'قائمة التنقل'});
+ await expect(sheet).toBeVisible();
+ await expect(sheet).toHaveAttribute('data-closing','false');
+ expect(await sheet.evaluate(el=>getComputedStyle(el).animationName)).toBe('bud-sheet-slide-in');
+ await sheet.getByRole('button',{name:'إغلاق قائمة التنقل'}).click();
+ await expect(sheet).toHaveAttribute('data-closing','true');
+ await expect(sheet).not.toBeVisible();
+ await expect(toggle).toBeFocused();
+});
+test('Sheet respects reduced motion without waiting for an exit animation',async({page})=>{
+ await page.emulateMedia({reducedMotion:'reduce'});
+ await page.setViewportSize({width:390,height:844});
+ await page.goto('/');
+ const toggle=page.getByRole('button',{name:'فتح قائمة التنقل'});
+ await toggle.click();
+ const sheet=page.getByRole('dialog',{name:'قائمة التنقل'});
+ await expect(sheet).toBeVisible();
+ expect(await sheet.evaluate(el=>getComputedStyle(el).animationName)).toBe('none');
+ await sheet.getByRole('button',{name:'إغلاق قائمة التنقل'}).click();
+ await expect(sheet).not.toBeVisible();
+ await expect(toggle).toBeFocused();
+});
