@@ -100,3 +100,33 @@ test('payment recovery re-reads Whop and binds stored order before allowing the 
  calls=[];assert.equal((await handleOwner(req({...body,action:'recoverPayment'},c),configured,transport)).status,200);assert.deepEqual(calls,['bud_live_order','bud_owner_recover_payment']);
  for(const change of [{total:4},{checkout_configuration_id:'ch_wrong123'},{status:'failed'},{disputes:[{}]}]){alter=change;calls=[];assert.equal((await handleOwner(req({...body,action:'recoverPayment'},c),configured,transport)).status,409);assert.ok(!calls.includes('bud_owner_recover_payment'));}
 });
+
+test('review deletion requires owner, explicit confirmation, valid ID, and calls only hard-delete RPC',async()=>{
+ const calls:{name:string;body:any}[]=[];
+ const transport=mock((name,body)=>{
+  calls.push({name,body});
+  if(name==='bud_review_delete')return Response.json({deleted:true,id,replayed:false});
+  return Response.json({message:'unexpected rpc'},{status:500});
+ });
+ const c=await login(transport);
+ const configured={...env,BUD_REVIEWS_ENABLED:'true'};
+ const request={action:'reviewDelete',operationId:'44444444-4444-4444-8444-000000000099',confirmed:true,reason:'حذف تقييم مخالف',payload:{id}};
+ for(const invalid of [
+  {...request,confirmed:false},
+  {...request,payload:{id:'wrong-id'}},
+  {...request,payload:{id,status:'hidden'}},
+  {...request,reason:'لا'},
+ ]){
+  assert.equal((await handleOwner(req(invalid,c),configured,transport)).status,400);
+ }
+ assert.equal(calls.length,0);
+ assert.equal((await handleOwner(req(request,c),configured,mock(undefined,false))).status,403);
+ assert.equal((await handleOwner(req(request,c),{...configured,BUD_REVIEWS_ENABLED:'false'},transport)).status,503);
+ const response=await handleOwner(req(request,c),configured,transport);
+ assert.equal(response.status,200);
+ assert.equal((await response.json()).data.deleted,true);
+ assert.deepEqual(calls,[{name:'bud_review_delete',body:{
+  p_actor:host,p_discord:discord,p_operation:request.operationId,p_id:id,p_reason:request.reason
+ }}]);
+ assert.equal((await handleOwner(req({...request,action:'reviewModerate'},c),configured,transport)).status,400);
+});
