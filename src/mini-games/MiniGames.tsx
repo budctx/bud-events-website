@@ -10,6 +10,7 @@ import {PrizeReveal} from '../PrizeReveal';
 import {formatEventResults} from '../event-summary';
 import {WinnerList} from '../WinnerList';
 import {parsePrizeLines} from '../prize-lines';
+import '../game.css';
 import './mini-games.css';
 
 const icons:Record<MiniGameKind,LucideIcon>={bomb:Bomb,'form-word':BookOpen,scramble:RotateCcw,pattern:Grid3X3,emoji:Sparkles,wheel:Dices};
