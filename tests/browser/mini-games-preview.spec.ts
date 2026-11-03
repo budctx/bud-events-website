@@ -28,9 +28,9 @@ test('wheel stops category before letter, reshuffles and never shows excluded le
  await page.clock.install();
  await page.goto('/?screen=mini-preview');
  await page.getByRole('button',{name:/بدء المعاينة/}).click();
- await page.getByRole('button',{name:'عجلة الحروف',exact:true}).click();
- await page.getByRole('button',{name:/بدء عجلة الحروف/}).click();
- const modal=page.getByRole('dialog',{name:'عجلة الحروف'});
+ await page.getByRole('button',{name:'سبين الحروف',exact:true}).click();
+ await page.getByRole('button',{name:/بدء سبين الحروف/}).click();
+ const modal=page.getByRole('dialog',{name:'سبين الحروف'});
  await expect(modal.locator('.mini-wheel-reel strong')).toHaveCount(0);
  await page.clock.runFor(2700);
  await expect(modal.locator('.mini-wheel-reel strong')).toHaveCount(1);
@@ -56,4 +56,15 @@ test('responsive mini-game hub has usable modals and no horizontal page overflow
  await expect(page.getByText('لم يتم تحديد فائز، هل أنت متأكد؟')).toBeVisible();
  await page.getByRole('button',{name:'إنهاء بدون فائز'}).click();
  await expect(page.locator('.mini-hub-card')).toHaveCount(6);
+});
+
+// The second event card is browsable even before signing in; a paid start still requires an approved host.
+test('Mini Games product can be discovered before Discord login',async({page})=>{
+ await page.route('**/api/auth?action=session',route=>route.fulfill({status:401,json:{code:'AUTH_REQUIRED'}}));
+ await page.goto('/events');
+ await expect(page.getByTestId('product-card-mini')).toHaveCount(1);
+ await page.getByRole('button',{name:'عرض فعالية ميني قيمز'}).click();
+ await expect(page.getByTestId('product-card-mini').getByRole('heading',{name:'ميني قيمز'})).toBeVisible();
+ await expect(page.getByTestId('event-mini-setup')).toHaveCount(0);
+ await expect(page.getByTestId('product-card-mini-buy')).toHaveCount(1);
 });
