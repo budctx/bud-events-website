@@ -95,7 +95,6 @@ function properties(run, deploy) {
     'Deployment URL': { url: deploy.url },
     Environment: { select: { name: 'production' } },
     'Observed At': { date: { start: new Date().toISOString() } },
-    'Manual Review': { checkbox: false },
     Notes: { rich_text: text('Automated evidence only; no Stage/Gate approval. ' + deploy.note) }
   };
 }
@@ -117,7 +116,7 @@ async function upsert(run, deploy) {
   } else {
     await notion('/pages', 'POST', {
       parent: { type: 'data_source_id', data_source_id: DS },
-      properties: data
+      properties: { ...data, 'Manual Review': { checkbox: false } }
     });
   }
   console.log('Evidence ' + (existing ? 'updated' : 'created') + ' for run #' + run.id +
