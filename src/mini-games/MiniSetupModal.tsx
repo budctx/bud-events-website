@@ -27,7 +27,9 @@ export function MiniSetupModal({ownerId,onClose,onPlay}:{ownerId:string;onClose:
    pendingKey.current=null;setUncertain(false);onPlay(run);
   }catch(reason){
    const issue=reason instanceof HostClientError?reason:null;
-   setUncertain(true);
+   const rejected=!!issue&&['NO_SLOT_CREDIT','ACTIVE_EVENT_EXISTS','PRODUCT_UNAVAILABLE','ACCOUNT_RESTRICTED'].includes(issue.code);
+   if(rejected)pendingKey.current=null;
+   setUncertain(!rejected);
    setError(issue?.code==='NO_SLOT_CREDIT'?'لا يوجد رصيد كافٍ لبدء الفعالية.':
      issue?.code==='ACTIVE_EVENT_EXISTS'?'هناك فعالية أخرى نشطة. أغلقها قبل بدء فعالية جديدة.':
      issue?.code==='LOCAL_STORAGE_UNAVAILABLE'?'تعذر تفعيل الحفظ المحلي. لا تبدأ الفعالية في هذا المتصفح.':
