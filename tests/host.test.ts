@@ -130,3 +130,32 @@ test('live browser runtime keeps only financial receipts server-side and rejects
  for(const [action,rpc] of [['localContent','bud_live_host_local_content'],['localAdopt','bud_live_host_local_adopt'],['localFinish','bud_live_host_local_finish']]){assert.equal((await handleLiveHost(request({action,eventId},cookie),live,transport)).status,200);assert.deepEqual(calls.at(-1),{name:rpc,body:{p_event:eventId,p_host:id}});}
  assert.equal((await handleLiveHost(request({action:'localContent',eventId},cookie),{...live,BUD_LOCAL_EVENT_RUNTIME_ENABLED:'false'},transport)).status,503);
 });
+
+test('Mini Games host API is fail-closed until explicitly enabled and accepts only trusted start metadata',async()=>{
+ const cookie=await session();
+ const live={...env,BUD_LIVE_HOST_ENABLED:'true',WHOP_ENVIRONMENT:'production',BUD_WHOP_PRODUCTION_MODE:'pilot',BUD_WHOP_PILOT_HOST_ID:id,BUD_LOCAL_EVENT_RUNTIME_ENABLED:'true'};
+ const key='mini-start-idempotent-test';
+ const calls:Call[]=[];
+ const receipt={eventId,title:'ميني قيمز',phase:'live',version:1,kind:'mini-games',storage:'browser-v2',state:{kind:'mini-games',storage:'browser-v2',phase:'live'}};
+ const transport=mock((name,body)=>Response.json(name==='bud_live_host_mini_start'?receipt:name==='bud_live_host_mini_content'?{ownerId:id,eventId,kind:'mini-games',storage:'browser-v2',title:'ميني قيمز',expiresAt:new Date(Date.now()+3600000).toISOString()}:{closed:true}),calls);
+ const start={action:'miniStart',idempotencyKey:key,title:'ميني قيمز'};
+ const blocked=await handleLiveHost(request(start,cookie),live,transport);
+ assert.equal(blocked.status,503);assert.equal((await blocked.json()).code,'PRODUCT_UNAVAILABLE');
+ assert.equal(calls.length,0);
+ const enabled={...live,BUD_MINI_GAMES_ENABLED:'true'};
+ const opened=await handleLiveHost(request(start,cookie),enabled,transport);
+ assert.equal(opened.status,200);assert.equal((await opened.json()).data.storage,'browser-v2');
+ assert.equal(calls.length,1);assert.equal(calls[0].name,'bud_live_host_mini_start');
+ assert.equal(calls[0].body.p_host,id);assert.equal(calls[0].body.p_title,'ميني قيمز');
+ assert.match(String(calls[0].body.p_fingerprint),/^[0-9a-f]{64}$/);
+ assert.doesNotMatch(JSON.stringify(calls[0].body),/prizes|winners|gameplay|credits|amount/);
+ for(const unsafe of [{...start,credits:10},{...start,prizeText:'private'},{...start,kind:'question-condition'},{...start,title:''},{...start,idempotencyKey:'bad'}]){
+  assert.equal((await handleLiveHost(request(unsafe,cookie),enabled,transport)).status,400);
+ }
+ assert.equal(calls.length,1);
+ assert.equal((await handleLiveHost(request({action:'miniContent',eventId},cookie),enabled,transport)).status,200);
+ assert.equal((await handleLiveHost(request({action:'miniFinish',eventId},cookie),enabled,transport)).status,200);
+ assert.deepEqual(calls.slice(1).map(c=>c.name),['bud_live_host_mini_content','bud_live_host_mini_finish']);
+ assert.equal((await handleLiveHost(request({action:'miniContent',eventId,hostId:id},cookie),enabled,transport)).status,400);
+ assert.equal((await handleLiveHost(request({action:'miniStart',idempotencyKey:key,title:'ميني قيمز'},cookie),{...enabled,BUD_LOCAL_EVENT_RUNTIME_ENABLED:'false'},transport)).status,503);
+});
