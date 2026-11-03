@@ -3,8 +3,9 @@ import {X} from 'lucide-react';
 import {ButtonUtility} from './ButtonUtility';
 import HostPortal from './HostPortal';
 import type {HostEvent,Locale} from './host-client';
+import type {MiniRun} from './mini-games/session.ts';
 import './section-controls.css';
-export default function EventSetupModal({onClose,onPlay,onAuthLost,locale}:{onClose:()=>void;onPlay:(event:HostEvent)=>void;onAuthLost:()=>void;locale:Locale}){
+export default function EventSetupModal({onClose,onPlay,onAuthLost,locale}:{onClose:()=>void;onPlay:(event:HostEvent|MiniRun)=>void;onAuthLost:()=>void;locale:Locale}){
  const dialog=useRef<HTMLDialogElement>(null),blocked=useRef(false),[closeBlocked,setCloseBlocked]=useState(false);
  const blocking=useCallback((value:boolean)=>{blocked.current=value;setCloseBlocked(value);},[]);
  const close=()=>{if(!blocked.current)onClose();};
