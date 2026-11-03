@@ -482,14 +482,19 @@ test.describe('touch button presentation',()=>{
  });
 });
 
-for(const width of [390,1440])test(`events catalogue contains two disabled upcoming events and eight named bots at ${width}`,async({page})=>{
+for(const width of [390,1440])test(`events catalogue contains the released Mini Games product, one upcoming event and eight named bots at ${width}`,async({page})=>{
  await page.setViewportSize({width,height:850});await page.goto('/?screen=events');
  await expect(page.locator('.platform-event-catalog .platform-product-card')).toHaveCount(3);
- for(const [id,title] of [['mini-games','ميني قيمز'],['lucky-cards','كروت الحظ']]){
-  await page.getByRole('button',{name:'عرض فعالية '+title,exact:true}).click();
-  const card=page.getByTestId('event-coming-'+id);await expect(card.getByRole('heading',{name:title,exact:true})).toBeVisible();
-  await expect(card.getByRole('button',{name:'قريبًا',exact:true})).toBeDisabled();await expect(card.getByRole('button',{name:/اشتر|إعداد/})).toHaveCount(0);
- }
+ await page.getByRole('button',{name:'عرض فعالية ميني قيمز',exact:true}).click();
+ const mini=page.getByTestId('product-card-mini');
+ await expect(mini.getByRole('heading',{name:'ميني قيمز',exact:true})).toBeVisible();
+ await expect(mini.getByRole('button',{name:'قريبًا',exact:true})).toHaveCount(0);
+ await expect(page.getByTestId('product-card-mini-buy')).toHaveCount(1);
+ await page.getByRole('button',{name:'عرض فعالية كروت الحظ',exact:true}).click();
+ const card=page.getByTestId('event-coming-lucky-cards');
+ await expect(card.getByRole('heading',{name:'كروت الحظ',exact:true})).toBeVisible();
+ await expect(card.getByRole('button',{name:'قريبًا',exact:true})).toBeDisabled();
+ await expect(card.getByRole('button',{name:/اشتر|إعداد/})).toHaveCount(0);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
  await navigate(page,'bots');await expect(page.locator('.bud-bot-card')).toHaveCount(8);
  for(const name of ['الرومات المؤقتة','التيكت','قيف اواي','الالعاب','اللفلات','تجمعات','الحماية','اشتراكات']){
@@ -509,11 +514,11 @@ for(const width of [390,1440])test(`selected catalogues: four-column bots and RT
  await navigate(page,'events');
  const previous=page.getByRole('button',{name:'الفعالية السابقة',exact:true}),next=page.getByRole('button',{name:'الفعالية التالية',exact:true});
  await expect(previous).toBeDisabled();await expect(next).toBeEnabled();
- await next.click();await expect(page.getByTestId('event-coming-mini-games')).toBeInViewport();
+ await next.click();await expect(page.getByTestId('product-card-mini')).toBeInViewport();
  await expect(page.getByRole('status').filter({hasText:'ميني قيمز'})).toBeVisible();
  await expect(page.getByTestId('product-card-qc').locator('xpath=ancestor::*[@inert]')).toHaveCount(1);
  await next.click();await expect(page.getByTestId('event-coming-lucky-cards')).toBeInViewport();await expect(next).toBeDisabled();
- await previous.click();await expect(page.getByTestId('event-coming-mini-games')).toBeInViewport();
+ await previous.click();await expect(page.getByTestId('product-card-mini')).toBeInViewport();
  const first=page.getByRole('button',{name:'عرض فعالية سؤال وشرط',exact:true});await first.focus();await page.keyboard.press('Enter');
  await expect(page.getByTestId('product-card-qc')).toBeInViewport();await expect(previous).toBeDisabled();
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);

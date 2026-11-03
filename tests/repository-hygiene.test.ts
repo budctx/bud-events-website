@@ -12,7 +12,9 @@ test('public entrypoint uses the platform and requires a server event for produc
   const game = read('src/Game.tsx');
   const platform = read('src/Platform.tsx');
   assert.match(app, /import Platform from '.\/Platform'/);
-  assert.match(app, /screen === 'game' && \(event \|\| import\.meta\.env\.DEV\)/);
+  assert.match(app, /screen === 'game' && \(qcEvent \|\| import\.meta\.env\.DEV\)/);
+  assert.match(app, /screen==='game'&&event&&isMiniRun\(event\)/);
+  assert.match(app, /MiniGamesHost/);
   assert.match(app, /import\('\.\/Game'\)/);
   assert.doesNotMatch(platform, /initialManualState|manualGameReducer/);
   assert.match(game, /manualGameReducer/);

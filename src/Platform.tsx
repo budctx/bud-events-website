@@ -12,7 +12,7 @@ import {readOwnerReturn,clearOwnerReturn} from './owner-return';
 import type {OwnerReturn} from './owner-return';
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import './platform.css';
-import {LifeBuoy, Menu, Palette, X} from 'lucide-react';
+import {LifeBuoy, Menu, Palette, X,Gamepad2} from 'lucide-react';
 import { HeroArtwork } from './HeroArtwork';
 import { InterfaceIcon } from './InterfaceControls';
 import { Seo } from './Seo';
@@ -23,9 +23,11 @@ import { useAccount } from './use-account';
 import { HostClientError, newHostRequestKey, purchaseEvent, resumeHostEvent, signInHost } from './host-client';
 import type { PaymentState } from './payment-state';
 import type { HostEvent } from './host-client';
+import type {MiniRun} from './mini-games/session.ts';
 const EventCarousel = lazy(() => import('./EventCarousel'));
 const BotCatalog = lazy(() => import('./BotCatalog'));
 const EventSetupModal=lazy(()=>import('./EventSetupModal'));
+const MiniSetupModal=lazy(()=>import('./mini-games/MiniSetupModal').then(m=>({default:m.MiniSetupModal})));
 const HostPortal = lazy(() => import('./HostPortal'));
 const WhopPreflight = lazy(() => import('./WhopPreflight'));
 const RedeemDialog = lazy(() => import('./RedeemDialog'));
@@ -38,7 +40,7 @@ const PaymentStatus = lazy(() => import('./PaymentStatus'));
 type Locale = 'ar' | 'en';
 type Page = 'home' | 'events' | 'bots' | 'designs' | 'policies';
 type Modal = 'soon' | 'about' | 'privacy' | 'terms' | 'support' | 'how' | null;
-type PlatformProps = { onPlay: (event: HostEvent, locale: Locale) => void };
+type PlatformProps = { onPlay: (event: HostEvent|MiniRun, locale: Locale) => void };
 
 const copy = {
   ar: { policies:'مركز المساعدة والسياسات', home: 'الرئيسية', events: 'الفعاليات', bots: 'بوتات', designs: 'تصاميم', soon: 'قريبًا', login: 'سجّل دخولك', eyebrow: 'تجارب رقمية، بروح مجتمعك', title: <>ننقل تجربتك<br />إلى بُعد آخر</>, description: <>منتجات رقمية لمجتمعك على Discord.<br />ابدأ بالفعاليات، واكتشف ما يأتي بعدها.</>, explore: 'اختر فعاليتك', about: 'عن بُعد', how: 'كيف ابدأ؟', browseHint: 'تصفّح المنتجات وجرّب الفعالية قبل الشراء.', privacy: 'الخصوصية', terms: 'الشروط', support: 'الدعم', close: 'إغلاق', galleryTitle: 'فعاليات بُعد', galleryDescription: 'اختر الفعالية، وجهّز وقتًا يجمع مجتمعك.', product: 'سؤال وشرط', productEyebrow: 'فعالية صوتية على Discord', productDescription: <>سؤال يختبرك، وشرط يغيّر التحدّي.<br />أدر الفعالية بطريقتك مع مجتمعك.</>, features: 'إدارة للهوست · جوائز · مؤقت اختياري', view: 'عرض الفعالية', review: 'آراء المجتمع قريبًا', reviewNote: 'لم تُنشر آراء معتمدة بعد.', partners: 'الشركاء قريبًا', purchaseUnavailable: 'الشراء غير متاح حاليًا. لن يُخصم أي رصيد.', rehearsal: 'معاينة ببطاقتين ثابتتين ومؤقت 5 ثوانٍ، دون تشغيل فعالية كاملة.', details: 'اكشف بطاقتي السؤال والشرط، واحكم على الإجابة صوتيًا. بعد الإجابة الصحيحة أدخل اسم الفائز، ثم وزّع الجوائز واختتم الفعالية.', soonDescription: 'نعمل على منتجات جديدة لمجتمعك. ستظهر هنا عند توفرها.', aboutDescription: 'بُعد منصة منتجات رقمية لمجتمعات Discord. ننقل تجربتك إلى بُعد آخر.', legalPending: 'هذه الصفحة قيد الإعداد. ستتوفر التفاصيل المعتمدة قبل تفعيل الشراء.', loginUnavailable: 'تسجيل الدخول والشراء غير متاحين في هذه المعاينة. يمكنك تصفّح المنتجات وتجربة البطاقتين دون تسجيل.', changeLanguage: 'English', question: 'سؤال', condition: 'شرط' }
@@ -118,6 +120,7 @@ export default function Platform({ onPlay }: PlatformProps) {
   const [busy, setBusy] = useState(false);
   const [activeAction,setActiveAction] = useState<'login' | 'purchase' | null>(null);
   const [panel, setPanel] = useState<'history' | 'setup' | 'profile' | 'owner' | null>(panelFromURL);
+  const [miniSetupOpen,setMiniSetupOpen]=useState(false);
   const account = useAccount();
   const toast = useBudToast();
   const notifyError=(text:string)=>toast(text,'danger');
@@ -244,8 +247,12 @@ export default function Platform({ onPlay }: PlatformProps) {
   };
   const ongoing = account.dashboard?.events.find(event => !['completed', 'closing'].includes(event.phase) && event.state.phase !== 'closing');
   const modalTitle = modal === 'soon' ? t.soon : modal ? t[modal] : '';
-  const canSetup = !!account.session && !!account.dashboard && account.dashboard.credits > 0 && !paymentHold && !account.dashboard.paymentReview;
+  const canSetup = !!account.session && !!account.dashboard && account.dashboard.credits > 0 && !paymentHold && !account.dashboard.paymentReview && !account.dashboard.miniLocalMissing && !account.dashboard.miniRuns?.some(run=>run.state.phase!=='closing'&&Date.now()<Date.parse(run.expiresAt));
   const canResume = !!ongoing && !ongoing.localMissing && !!account.session;
+  const miniAvailable=!!account.dashboard?.miniGamesAvailable;
+  const miniActive=account.dashboard?.miniRuns?.find(run=>run.state.phase!=='closing'&&Date.now()<Date.parse(run.expiresAt));
+  const canMiniStart=miniAvailable&&canSetup&&!miniActive&&!ongoing;
+  const canMiniResume=!!miniActive&&!!account.session;
 
   const mainNavigation = (<nav id="platform-main-navigation" data-mobile-open={mobileMenuOpen} className="platform-navigation" aria-label={locale === 'ar' ? 'التنقل الرئيسي' : 'Main navigation'}>{(['home', 'events', 'bots', 'designs'] as const).map(item => <button type="button" key={item} data-testid={`nav-${item}`} aria-label={`${t[item]}${item === 'bots' || item === 'designs' ? ` · ${t.soon}` : ''}`} aria-current={page === item ? 'page' : undefined} className={item === 'bots' || item === 'designs' ? 'platform-future-link' : ''} onPointerEnter={item === 'events' ? () => { void loadEventPreview(); } : undefined} onFocus={item === 'events' ? () => { void loadEventPreview(); } : undefined} onClick={() => mobileHome?closeMobileMenu(()=>navigate(item)):navigate(item)}><span className="platform-nav-icon"><InterfaceIcon kind={item} /></span><span className="platform-nav-label">{t[item]}{(item === 'bots' || item === 'designs') && <small> · {t.soon}</small>}</span></button>)}</nav>);
   if(panel==='owner'&&account.session)return <Suspense fallback={<BudSkeleton label="جارٍ تحميل لوحة المالك…"/>}><OwnerPanel key={account.session.id} ownerId={account.session.id} ownerName={account.session.displayName} initialReturn={ownerReturn} onClose={()=>{setOwnerReturn(null);setPanel('profile');}}/></Suspense>;
@@ -291,7 +298,22 @@ export default function Platform({ onPlay }: PlatformProps) {
         <aside className="platform-proof" aria-label={locale === 'ar' ? 'المجتمع والشركاء' : 'Community and partners'} data-node-id="359:2272"><div className="platform-partners-empty">{partners.length>0?<><strong>شركاؤنا</strong><BudLogoCarousel logos={partners}/></>:t.partners}</div><div className="platform-reviews-desktop"><PublicReviews/></div></aside>
       </> : <>
         <div className="platform-gallery-intro"><h1>{page === 'events' ? t.galleryTitle : t[page]}</h1><p>{page === 'events' ? t.galleryDescription : t.soonDescription}</p>{page === 'events' && <button className="platform-action platform-action-secondary platform-event-how" data-testid="event-how" onClick={() => setModal('how')}>{t.how}</button>}</div>
-        {page === 'events' ? <Suspense fallback={<BudSkeleton label="جارٍ تحميل الفعاليات…"/>}><EventCarousel><article className="platform-product-card" data-node-id="383:11116"><Suspense fallback={<div className="event-preview" role="status" aria-label="جارٍ تحميل معاينة الفعالية…" />}><EventPreview key={locale} locale={locale} /></Suspense><div className="platform-product-information"><p className="platform-product-eyebrow">{t.productEyebrow}</p><h2><ComicEventTitle>{t.product}</ComicEventTitle></h2><p className="platform-product-description">{t.productDescription}</p><div className="platform-features" aria-label="مميزات الفعالية">{["إدارة للهوست","جوائز","مؤقت اختياري"].map(feature=><BudBadge key={feature} variant="outline">{feature}</BudBadge>)}</div><div className="platform-event-ownership">
+        {page === 'events' ? <Suspense fallback={<BudSkeleton label="جارٍ تحميل الفعاليات…"/>}><EventCarousel mini={<article className="platform-product-card platform-upcoming-event platform-mini-event" data-testid="product-card-mini" aria-label="فعالية ميني قيمز">
+ <div className="platform-product-preview platform-upcoming-preview" aria-hidden="true"><div className="platform-upcoming-face"><Gamepad2 size={64}/><span>بُعد</span></div></div>
+ <div className="platform-product-information"><p className="platform-product-eyebrow">فعالية صوتية على Discord</p><h2><ComicEventTitle>ميني قيمز</ComicEventTitle></h2>
+  <p className="platform-product-description">ست ألعاب تفاعلية يديرها المضيف، مع الفائزين والجوائز والختام في تجربة واحدة.</p>
+  <div className="platform-features"><BudBadge variant="outline">6 ألعاب</BudBadge><BudBadge variant="outline">جوائز</BudBadge><BudBadge variant="outline">بدون مؤقت موحّد</BudBadge></div>
+  <div className="platform-event-ownership">
+   {account.session&&account.dashboard&&<p className="platform-event-keys">لديك <bdi>{account.dashboard.credits}</bdi> مفاتيح</p>}
+   <div className="platform-event-actions">
+    {canMiniResume&&<button type="button" className="platform-action platform-action-primary" data-testid="event-mini-resume" disabled={busy} onClick={()=>{if(miniActive)onPlay(miniActive,locale);}}>عودة للفعالية</button>}
+    {canMiniStart&&<button type="button" className="platform-action platform-action-primary" data-testid="event-mini-setup" disabled={busy} onClick={()=>setMiniSetupOpen(true)}>بدء فعالية</button>}
+    <PurchaseButton amountMinor={price?.amountMinor??0} originalAmountMinor={price?.promotion?price.baseAmountMinor:undefined} secondary={canMiniStart||canMiniResume} data-testid="product-card-mini-buy" disabled={busy||promoLoading||!!promoError||paymentHold||account.dashboard?.paymentReview} loading={activeAction==='purchase'} priceLoading={!price} onClick={()=>void buy()}/>
+   </div>
+   {account.dashboard?.miniLocalMissing&&<BudNotice tone="warning" persistent>التقدم المحلي لميني قيمز غير موجود في هذا المتصفح.</BudNotice>}
+  </div>
+ </div>
+</article>}><article className="platform-product-card" data-node-id="383:11116"><Suspense fallback={<div className="event-preview" role="status" aria-label="جارٍ تحميل معاينة الفعالية…" />}><EventPreview key={locale} locale={locale} /></Suspense><div className="platform-product-information"><p className="platform-product-eyebrow">{t.productEyebrow}</p><h2><ComicEventTitle>{t.product}</ComicEventTitle></h2><p className="platform-product-description">{t.productDescription}</p><div className="platform-features" aria-label="مميزات الفعالية">{["إدارة للهوست","جوائز","مؤقت اختياري"].map(feature=><BudBadge key={feature} variant="outline">{feature}</BudBadge>)}</div><div className="platform-event-ownership">
           {account.session && (account.keysLoading ? <BudSkeleton label="جارٍ تحميل مفاتيحك…" lines={1}/> : account.keysError ? <div><BudNotice tone="danger">تعذر تحميل مفاتيحك.</BudNotice><button className="platform-inline-retry" onClick={() => void account.refresh()}>{locale === 'ar' ? 'إعادة المحاولة' : 'Retry'}</button></div> : account.dashboard && <p className="platform-event-keys" data-testid="event-keys">{locale === 'ar' ? <>لديك <bdi>{account.dashboard.credits}</bdi> مفاتيح</> : <>You have <bdi>{account.dashboard.credits}</bdi> keys</>}</p>)}
           <div className="platform-event-actions">
           {canResume && <button className="platform-action platform-action-primary" data-testid="event-resume" disabled={busy} onClick={() => void perform(async () => onPlay(await resumeHostEvent(ongoing!.eventId,account.session?.id,account.dashboard?.runtime==='browser-v1'), locale))}>عودة للفعالية</button>}
@@ -308,6 +330,7 @@ export default function Platform({ onPlay }: PlatformProps) {
       </>}
     </main>
     {page==='events'&&panel==='setup'&&account.session&&<Suspense fallback={<BudSkeleton label="جارٍ فتح إعداد الفعالية…"/>}><EventSetupModal key={account.session.id} locale={locale} onAuthLost={account.expire} onClose={closePanel} onPlay={event=>onPlay(event,locale)}/></Suspense>}
+    {page==='events'&&miniSetupOpen&&account.session&&<Suspense fallback={<BudSkeleton label="جارٍ فتح إعداد ميني قيمز…"/>}><MiniSetupModal ownerId={account.session.id} onClose={()=>{setMiniSetupOpen(false);void account.refresh();}} onPlay={run=>{setMiniSetupOpen(false);onPlay(run,locale);}}/></Suspense>}
     <footer className="platform-footer"><small>© {locale === 'ar' ? 'بُعد' : 'BU’D'} 2026</small><div className="platform-footer-links">{(['privacy', 'terms', 'support'] as const).map(item => <button key={item} onClick={() => {setPanel(null);history.pushState(null,'',`/policies#${item}`);setPage('policies');window.dispatchEvent(new HashChangeEvent('hashchange'));}}>{t[item]}</button>)}</div></footer>
 
     <dialog ref={dialog} className="platform-dialog" data-testid="platform-dialog" aria-labelledby="platform-dialog-title" onKeyDown={event => {

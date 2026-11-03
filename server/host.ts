@@ -142,7 +142,19 @@ async function handleHostMode(request: Request, env: AuthEnv, transport: Transpo
     const browserRuntime=live&&env.BUD_LOCAL_EVENT_RUNTIME_ENABLED==='true';
     if(browserRuntime&&['start','dispatch'].includes(body.action))throw new HostError(410,'BROWSER_RUNTIME_REQUIRED');
     let output: unknown;
-    if(['localStart','localContent','localAdopt','localFinish'].includes(body.action)){
+    if(['miniStart','miniContent','miniFinish'].includes(body.action)){
+      if(!browserRuntime)throw new HostError(503,'BROWSER_RUNTIME_NOT_CONFIGURED');
+      if(body.action==='miniStart'){
+        if(env.BUD_MINI_GAMES_ENABLED!=='true')throw new HostError(503,'PRODUCT_UNAVAILABLE');
+        if(!exact(body,['action','idempotencyKey','title'])||typeof body.idempotencyKey!=='string'||!keyPattern.test(body.idempotencyKey)
+         ||typeof body.title!=='string'||!body.title.trim()||body.title.trim().length>100)throw new HostError(400,'INVALID_EVENT');
+        output=await rpc('bud_host_mini_start',{p_key:body.idempotencyKey,p_title:body.title.trim(),
+          p_fingerprint:await fingerprint({title:body.title.trim(),kind:'mini-games',storage:'browser-v2'})});
+      }else{
+        if(!exact(body,['action','eventId'])||typeof body.eventId!=='string'||!uuid.test(body.eventId))throw new HostError(400,'INVALID_EVENT');
+        output=await rpc(body.action==='miniContent'?'bud_host_mini_content':'bud_host_mini_finish',{p_event:body.eventId});
+      }
+    }else if(['localStart','localContent','localAdopt','localFinish'].includes(body.action)){
       if(!browserRuntime)throw new HostError(503,'BROWSER_RUNTIME_NOT_CONFIGURED');
       if(body.action==='localStart'){
         if(!exact(body,['action','idempotencyKey','title'])||typeof body.idempotencyKey!=='string'||!keyPattern.test(body.idempotencyKey)||typeof body.title!=='string'||!body.title.trim()||body.title.trim().length>100)throw new HostError(400,'INVALID_EVENT');
@@ -214,8 +226,9 @@ async function handleHostMode(request: Request, env: AuthEnv, transport: Transpo
     // must be fresh so a delayed retry cannot extend a persisted timer.
     if (object(output) && typeof output.eventId === 'string') output = { ...output, serverNow: Date.now() };
     if(browserRuntime&&object(output)){
-      if(body.action==='dashboard'){output={...output,runtime:'browser-v1',ownerId:session.hostId,events:Array.isArray(output.events)?output.events.map(e=>object(e)&&object(e.state)&&e.state.storage==='browser-v1'?{eventId:e.eventId,title:e.title,phase:e.phase,version:e.version,updatedAt:e.updatedAt,state:{...initialManualState(),phase:e.phase==='completed'?'closing':'live',storage:'browser-v1'},storage:'browser-v1'}:e):[]};}
+      if(body.action==='dashboard'){output={...output,runtime:'browser-v1',ownerId:session.hostId,miniGamesAvailable:env.BUD_MINI_GAMES_ENABLED==='true',events:Array.isArray(output.events)?output.events.map(e=>object(e)&&object(e.state)&&e.state.storage==='browser-v1'?{eventId:e.eventId,title:e.title,phase:e.phase,version:e.version,updatedAt:e.updatedAt,state:{...initialManualState(),phase:e.phase==='completed'?'closing':'live',storage:'browser-v1'},storage:'browser-v1'}:object(e)&&object(e.state)&&e.state.storage==='browser-v2'?{eventId:e.eventId,title:e.title,phase:e.phase,version:e.version,updatedAt:e.updatedAt,state:{phase:e.phase==='completed'?'closing':'live',storage:'browser-v2',kind:'mini-games'},kind:'mini-games',storage:'browser-v2'}:e):[]};}
       else if(body.action==='localStart')output={...output,storage:'browser-v1',ownerId:session.hostId};
+      else if(body.action==='miniStart')output={...output,storage:'browser-v2',kind:'mini-games',ownerId:session.hostId};
     }
     return response(200, 'OK', output, refreshed);
   } catch (error) {
