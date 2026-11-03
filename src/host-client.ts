@@ -2,7 +2,7 @@ import {browserStorageReady,clearBrowserPointer,listBrowserRuns,mergeBrowserDash
 import type {BrowserPackage,BrowserRun} from './browser-event';
 import type { ManualAction, ManualConfig, ManualState } from './manual-game';
 import { checkoutDestination } from './checkout-destination';
-import {createMiniRun,listMiniRuns,readMiniRun} from './mini-games/session.ts';
+import {createMiniRun,listMiniRuns,readMiniRun,saveMiniRun} from './mini-games/session.ts';
 import type {MiniRun} from './mini-games/session.ts';
 export type Locale = 'ar' | 'en';
 export type HostEvent = {storage?:'browser-v1';localMissing?:boolean;ownerId?:string; eventId: string; title: string; phase: string; version: number; state: ManualState; updatedAt?: string; cards?: { question: string; condition: string }; cardsEn?: { question: string; condition: string }; serverNow?: number };
@@ -30,6 +30,9 @@ export async function getHostDashboard(signal?:AbortSignal){
  const clean={...data,events:data.events.filter(event=>(event as HostEvent & {kind?:string}).kind!=='mini-games'),miniRuns:runs,
   miniLocalMissing:miniReceipts.some(event=>event.phase!=='completed'&&!runs.some(run=>run.eventId===event.eventId))};
  for(const run of listBrowserRuns(data.ownerId).filter(r=>r.adoptionPending)){try{await request('/api/host',{action:'localAdopt',eventId:run.eventId},signal);saveBrowserRun({...run,adoptionPending:false});}catch{/* Adoption acknowledgement retries contain no gameplay. */}}
+ for(const run of runs.filter(r=>r.state.phase==='closing'&&!r.released)){
+  try{await request('/api/host',{action:'miniFinish',eventId:run.eventId},signal);saveMiniRun({...run,released:true});}catch{/* Retry only the lifecycle acknowledgement, never send gameplay. */}
+ }
  for(const run of listBrowserRuns(data.ownerId).filter(r=>r.state.phase==='closing'&&!r.released)){
   try{await request('/api/host',{action:'localFinish',eventId:run.eventId},signal);saveBrowserRun({...run,released:true});}catch{/* Only lifecycle metadata is retried; no gameplay is uploaded. */}
  }
