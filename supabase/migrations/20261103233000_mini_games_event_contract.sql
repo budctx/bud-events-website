@@ -54,14 +54,14 @@ grant execute on function bud_platform.live_host_event(uuid) to service_role;
 -- A duplicate start key returns the original receipt before checking the balance again.
 create function public.bud_live_host_mini_start(p_host uuid,p_key text,p_title text,p_fingerprint text)
 returns jsonb language plpgsql security invoker set search_path='' as $$
-declare e bud_platform.live_events; credits integer;
+declare e bud_platform.live_events; v_credits integer;
 begin
  if p_host is null or p_key is null or p_key !~ '^[A-Za-z0-9_-]{16,100}$'
     or p_title is null or char_length(btrim(p_title)) not between 1 and 100
     or p_fingerprint is null or p_fingerprint !~ '^[a-f0-9]{64}$'
  then raise exception 'BUD_INVALID_EVENT'; end if;
  insert into bud_platform.live_wallets(host_id) values(p_host) on conflict do nothing;
- select w.credits into credits from bud_platform.live_wallets w where w.host_id=p_host for update;
+ select w.credits into v_credits from bud_platform.live_wallets w where w.host_id=p_host for update;
  perform bud_platform.expire_live_host_events(p_host);
  select * into e from bud_platform.live_events where host_id=p_host and start_key=p_key;
  if found then
@@ -75,7 +75,7 @@ begin
   then raise exception 'BUD_ACCOUNT_RESTRICTED'; end if;
  if exists(select 1 from bud_platform.live_events where host_id=p_host and phase<>'completed')
   then raise exception 'BUD_ACTIVE_EVENT'; end if;
- if credits<1 then raise exception 'BUD_NO_CREDIT'; end if;
+ if v_credits<1 then raise exception 'BUD_NO_CREDIT'; end if;
  insert into bud_platform.live_events(host_id,title,start_key,phase,version,state,start_fingerprint,
   content_version,pair_order,event_kind)
  values(p_host,btrim(p_title),p_key,'live',1,
