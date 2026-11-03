@@ -27,17 +27,24 @@ function onlyHttp(value) {
   return typeof value === 'string' && /^https:\/\//.test(value) ? value : null;
 }
 async function request(url, auth, options = {}) {
-  const response = await fetch(url, {
-    ...options,
-    headers: { authorization: 'Bearer ' + auth,
-      accept: 'application/json',
-      ...(options.headers || {}) }
-  });
-  if (!response.ok) {
-    // Never log error response bodies; external APIs can echo secrets or user data.
-    throw new Error(new URL(url).host + ' request failed: HTTP ' + response.status);
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const response = await fetch(url, {
+      ...options,
+      headers: { authorization: 'Bearer ' + auth,
+        accept: 'application/json',
+        ...(options.headers || {}) }
+    });
+    if (response.ok) return response.json();
+    const retryable = response.status === 429 || response.status >= 500;
+    if (!retryable || attempt === 3) {
+      // Never log response bodies; providers can echo tokens or private content.
+      throw new Error(new URL(url).host + ' request failed: HTTP ' + response.status);
+    }
+    const retryAfter = Number(response.headers.get('retry-after'));
+    const delayMs = Number.isFinite(retryAfter) && retryAfter > 0
+      ? Math.min(retryAfter * 1000, 15000) : 700 * (2 ** attempt);
+    await new Promise(resolve => setTimeout(resolve, delayMs));
   }
-  return response.json();
 }
 const gh = (path) => request('https://api.github.com' + path, required(githubToken, 'GITHUB_TOKEN'),
   { headers: { 'x-github-api-version': '2022-11-28', accept: 'application/vnd.github+json' } });
