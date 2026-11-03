@@ -2,10 +2,12 @@ import {browserStorageReady,clearBrowserPointer,listBrowserRuns,mergeBrowserDash
 import type {BrowserPackage,BrowserRun} from './browser-event';
 import type { ManualAction, ManualConfig, ManualState } from './manual-game';
 import { checkoutDestination } from './checkout-destination';
+import {createMiniRun,listMiniRuns,readMiniRun} from './mini-games/session.ts';
+import type {MiniRun} from './mini-games/session.ts';
 export type Locale = 'ar' | 'en';
 export type HostEvent = {storage?:'browser-v1';localMissing?:boolean;ownerId?:string; eventId: string; title: string; phase: string; version: number; state: ManualState; updatedAt?: string; cards?: { question: string; condition: string }; cardsEn?: { question: string; condition: string }; serverNow?: number };
 export type HostSession = { id: string; displayName: string; avatarUrl?: string | null };
-export type HostDashboard = {runtime?:'browser-v1';ownerId?:string; credits: number; paymentReview?: boolean; events: HostEvent[]; products: { id: string; name: string; available: boolean; slotCost: number }[]; contentVersions: { id: string; questionCount: number; conditionCount: number }[] };
+export type HostDashboard = {runtime?:'browser-v1';ownerId?:string;miniGamesAvailable?:boolean;miniRuns?:MiniRun[];miniLocalMissing?:boolean; credits: number; paymentReview?: boolean; events: HostEvent[]; products: { id: string; name: string; available: boolean; slotCost: number }[]; contentVersions: { id: string; questionCount: number; conditionCount: number }[] };
 export type StartHostEvent = { action: 'start'; idempotencyKey: string; title: string; config: ManualConfig; prizeText: string };
 export class HostClientError extends Error {
   constructor(public code: string, public status: number, public data?: unknown) { super(code); this.name = 'HostClientError'; }
@@ -23,11 +25,15 @@ export const getPaymentReceipt = (orderId: string, signal?: AbortSignal) => requ
 export async function getHostDashboard(signal?:AbortSignal){
  const data=await request<HostDashboard>('/api/host',{action:'dashboard'},signal);
  if(data.runtime!=='browser-v1'||!data.ownerId||signal?.aborted)return data;
+ const miniReceipts=data.events.filter(event=>(event as HostEvent & {kind?:string}).kind==='mini-games');
+ const runs=listMiniRuns(data.ownerId);
+ const clean={...data,events:data.events.filter(event=>(event as HostEvent & {kind?:string}).kind!=='mini-games'),miniRuns:runs,
+  miniLocalMissing:miniReceipts.some(event=>event.phase!=='completed'&&!runs.some(run=>run.eventId===event.eventId))};
  for(const run of listBrowserRuns(data.ownerId).filter(r=>r.adoptionPending)){try{await request('/api/host',{action:'localAdopt',eventId:run.eventId},signal);saveBrowserRun({...run,adoptionPending:false});}catch{/* Adoption acknowledgement retries contain no gameplay. */}}
  for(const run of listBrowserRuns(data.ownerId).filter(r=>r.state.phase==='closing'&&!r.released)){
   try{await request('/api/host',{action:'localFinish',eventId:run.eventId},signal);saveBrowserRun({...run,released:true});}catch{/* Only lifecycle metadata is retried; no gameplay is uploaded. */}
  }
- return mergeBrowserDashboard(data,data.ownerId);
+ return mergeBrowserDashboard(clean,data.ownerId);
 }
 export const startHostEvent = (payload: StartHostEvent) => request<HostEvent>('/api/host', payload);
 export async function resumeHostEvent(eventId:string,ownerId?:string,browserRuntime=false):Promise<HostEvent>{
@@ -48,6 +54,23 @@ export async function startBrowserHostEvent(ownerId:string,payload:StartHostEven
  return prepareBrowserRun(pkg,payload);
 }
 export const closeBrowserHostRun=(eventId:string)=>request('/api/host',{action:'localFinish',eventId});
+
+/** Start one four-hour Mini Games session. The credit debit is only made by the server once. */
+export async function startMiniHostEvent(ownerId:string,idempotencyKey:string,prizeText:string):Promise<MiniRun>{
+ if(!browserStorageReady())throw new HostClientError('LOCAL_STORAGE_UNAVAILABLE',409);
+ const receipt=await request<{eventId:string;ownerId:string;storage:string;kind:string}>('/api/host',{action:'miniStart',idempotencyKey,title:'ميني قيمز'});
+ if(receipt.ownerId!==ownerId||receipt.storage!=='browser-v2'||receipt.kind!=='mini-games')throw new HostClientError('LOCAL_CONTENT_INVALID',503);
+ const pkg=await request<{ownerId:string;eventId:string;title:string;expiresAt:string;kind:string;storage:string}>('/api/host',{action:'miniContent',eventId:receipt.eventId});
+ if(pkg.ownerId!==ownerId||pkg.eventId!==receipt.eventId||pkg.kind!=='mini-games'||pkg.storage!=='browser-v2')throw new HostClientError('LOCAL_CONTENT_INVALID',503);
+ try{return createMiniRun({ownerId,eventId:pkg.eventId,title:pkg.title,expiresAt:pkg.expiresAt,prizeText});}
+ catch{throw new HostClientError('LOCAL_STORAGE_UNAVAILABLE',409);}
+}
+export function resumeMiniHostEvent(ownerId:string,eventId:string):MiniRun{
+ const run=readMiniRun(ownerId,eventId);
+ if(!run)throw new HostClientError('LOCAL_EVENT_MISSING',409);
+ return run;
+}
+export const closeMiniHostEvent=(eventId:string)=>request<{closed:boolean}>('/api/host',{action:'miniFinish',eventId});
 export const signOutHost = () => {clearBrowserPointer();return request<{ signedOut: boolean }>('/api/auth?action=logout', {});};
 export type LoginContext = { page: 'home' | 'events' | 'bots' | 'designs' | 'review'; locale: Locale };
 export async function signInHost(context?: LoginContext) {
