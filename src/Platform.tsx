@@ -247,7 +247,7 @@ export default function Platform({ onPlay }: PlatformProps) {
   };
   const ongoing = account.dashboard?.events.find(event => !['completed', 'closing'].includes(event.phase) && event.state.phase !== 'closing');
   const modalTitle = modal === 'soon' ? t.soon : modal ? t[modal] : '';
-  const canSetup = !!account.session && !!account.dashboard && account.dashboard.credits > 0 && !paymentHold && !account.dashboard.paymentReview;
+  const canSetup = !!account.session && !!account.dashboard && account.dashboard.credits > 0 && !paymentHold && !account.dashboard.paymentReview && !account.dashboard.miniLocalMissing && !account.dashboard.miniRuns?.some(run=>run.state.phase!=='closing'&&Date.now()<Date.parse(run.expiresAt));
   const canResume = !!ongoing && !ongoing.localMissing && !!account.session;
   const miniAvailable=!!account.dashboard?.miniGamesAvailable;
   const miniActive=account.dashboard?.miniRuns?.find(run=>run.state.phase!=='closing'&&Date.now()<Date.parse(run.expiresAt));
