@@ -44,6 +44,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Validate Notion evidence runner syntax
+        run: node --check scripts/sync-release-evidence.mjs
       - run: npm run typecheck:server
       - run: npm run build
       - run: npx playwright install --with-deps chromium
