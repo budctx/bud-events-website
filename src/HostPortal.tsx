@@ -11,6 +11,7 @@ import { formatEventResults } from './event-summary';
 import { closeBrowserHostRun, getHostDashboard, getHostSession, HostClientError, newHostRequestKey, resumeHostEvent, signInHost, signOutHost, startHostEvent, startBrowserHostEvent } from './host-client';
 import type { HostDashboard, HostEvent, HostSession, Locale, StartHostEvent } from './host-client';
 import type { ManualConfig } from './manual-game';
+import type {MiniRun} from './mini-games/session.ts';
 import './host-portal.css';
 export type { HostEvent } from './host-client';
 const text = {
@@ -18,7 +19,7 @@ const text = {
 
 };
 const completed = (event: HostEvent) => event.phase === 'completed' || event.phase === 'closing' || event.state.phase === 'closing';
-export default function HostPortal({ onPlay, onExit, locale, view, onAuthLost,onBlockingChange }: { onPlay: (event: HostEvent) => void; onExit: () => void; locale: Locale; view?: 'setup' | 'history'; onAuthLost?: () => void;onBlockingChange?:(blocked:boolean)=>void }) {
+export default function HostPortal({ onPlay, onExit, locale, view, onAuthLost,onBlockingChange }: { onPlay: (event: HostEvent|MiniRun) => void; onExit: () => void; locale: Locale; view?: 'setup' | 'history'; onAuthLost?: () => void;onBlockingChange?:(blocked:boolean)=>void }) {
   const t = text.ar;
   const toast=useBudToast();
   const [startStep,setStartStep]=useState<number|null>(null);
@@ -33,7 +34,7 @@ export default function HostPortal({ onPlay, onExit, locale, view, onAuthLost,on
   const [prizeText, setPrizeText] = useState('');
   const [draftOwner,setDraftOwner] = useState<string|null>(null);
   const [draftRestored,setDraftRestored] = useState(false);
-  const [summary, setSummary] = useState<HostEvent | null>(null);
+  const [summary, setSummary] = useState<HostEvent|MiniRun|null>(null);
   const [copyStatus, setCopyStatus] = useState('');
   const summaryDialog = useRef<HTMLDialogElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
@@ -106,7 +107,17 @@ export default function HostPortal({ onPlay, onExit, locale, view, onAuthLost,on
             <button type="submit" className="host-primary" aria-describedby={startDisabledReason?'host-start-hint':undefined} disabled={busy || !parsed.valid || !enoughRuns || !product?.available || !contentReady}>{busy ? t.starting : uncertain ? t.retry : t.start}</button>
           </div>
         </form></section>}
-        {view !== 'setup' && <div className="host-session-lists">{[false, true].map(history => <section className="host-panel" key={String(history)}><h2>{history ? t.history : t.running}</h2>{dashboard.events.filter(event => completed(event) === history).length === 0 ? <p className="host-empty">{history ? t.emptyHistory : t.emptyActive}</p> : <ul>{dashboard.events.filter(event => completed(event) === history).map(event => <li key={event.eventId}><div><h3>{event.title}</h3><small>{history ? t.completed : event.phase === 'setup' ? t.preparing : t.live}{event.updatedAt && !Number.isNaN(Date.parse(event.updatedAt)) && <> · <time dateTime={event.updatedAt}>{new Date(event.updatedAt).toLocaleDateString(locale,{numberingSystem:'latn'})}</time></>}</small></div><button aria-label={!history&&!event.localMissing?'عودة للفعالية':undefined} disabled={busy||!!event.localMissing} onClick={() => { if (history) { setCopyStatus(''); setSummary(event); } else void perform(async () => onPlay(await resumeHostEvent(event.eventId,session?.id,dashboard.runtime==='browser-v1'))); }}>{event.localMissing?'السجل غير موجود في هذا المتصفح':history?t.summary:<ArrowRight aria-hidden="true" size={20}/>}</button>{event.localMissing&&!history&&<button disabled={busy} onClick={()=>{if(window.confirm('التقدم المحلي غير موجود. إغلاق سجل التشغيل لا يعيد الرصيد ولا يستعيد النتائج. هل تريد المتابعة؟'))void perform(async()=>{await closeBrowserHostRun(event.eventId);setReload(v=>v+1);});}}>اغلاق</button>}</li>)}</ul>}</section>)}</div>}</div>
+        {view !== 'setup' && (dashboard.miniRuns?.length||dashboard.miniLocalMissing) && <section className="host-panel" aria-label="جلسات ميني قيمز">
+ <h2>ميني قيمز — جلساتك</h2>
+ {dashboard.miniLocalMissing&&<BudNotice tone="warning" persistent>هناك جلسة ميني قيمز لا يوجد تقدمها في هذا المتصفح؛ لا يمكن استعادتها من الخادم.</BudNotice>}
+ <ul>{dashboard.miniRuns?.map(run=>{
+  const previous=run.state.phase==='closing'||Date.now()>=Date.parse(run.expiresAt);
+  return <li key={run.eventId}><div><h3>{run.title}</h3><small>{previous?'مكتملة':'جارية'} · <time dateTime={run.updatedAt}>{new Date(run.updatedAt).toLocaleDateString('ar-SA-u-nu-latn')}</time></small></div>
+   <button disabled={busy} aria-label={previous?'عرض ملخص ميني قيمز':'عودة لميني قيمز'} onClick={()=>{if(previous){setCopyStatus('');setSummary(run);}else onPlay(run);}}>{previous?'الملخص':<ArrowRight size={20} aria-hidden="true"/>}</button>
+  </li>;
+ })}</ul>
+ </section>}
+ {view !== 'setup' && <div className="host-session-lists">{[false, true].map(history => <section className="host-panel" key={String(history)}><h2>{history ? t.history : t.running}</h2>{dashboard.events.filter(event => completed(event) === history).length === 0 ? <p className="host-empty">{history ? t.emptyHistory : t.emptyActive}</p> : <ul>{dashboard.events.filter(event => completed(event) === history).map(event => <li key={event.eventId}><div><h3>{event.title}</h3><small>{history ? t.completed : event.phase === 'setup' ? t.preparing : t.live}{event.updatedAt && !Number.isNaN(Date.parse(event.updatedAt)) && <> · <time dateTime={event.updatedAt}>{new Date(event.updatedAt).toLocaleDateString(locale,{numberingSystem:'latn'})}</time></>}</small></div><button aria-label={!history&&!event.localMissing?'عودة للفعالية':undefined} disabled={busy||!!event.localMissing} onClick={() => { if (history) { setCopyStatus(''); setSummary(event); } else void perform(async () => onPlay(await resumeHostEvent(event.eventId,session?.id,dashboard.runtime==='browser-v1'))); }}>{event.localMissing?'السجل غير موجود في هذا المتصفح':history?t.summary:<ArrowRight aria-hidden="true" size={20}/>}</button>{event.localMissing&&!history&&<button disabled={busy} onClick={()=>{if(window.confirm('التقدم المحلي غير موجود. إغلاق سجل التشغيل لا يعيد الرصيد ولا يستعيد النتائج. هل تريد المتابعة؟'))void perform(async()=>{await closeBrowserHostRun(event.eventId);setReload(v=>v+1);});}}>اغلاق</button>}</li>)}</ul>}</section>)}</div>}</div>
       </>}
     </div>
     <dialog className="host-summary" ref={summaryDialog} onCancel={() => setSummary(null)} onClose={() => setSummary(null)} aria-labelledby="host-summary-title"><h2 id="host-summary-title">{summary?.title}</h2>{summary && <><p>{t.winners}: {summary.state.winners.length} · {t.opened}: {summary.state.prizes.filter(prize => prize.revealed).length}</p><pre tabIndex={0}>{summaryText || t.noPrizes}</pre><div className="host-summary-actions"><ButtonUtility label={t.copy} icon={Copy} onPress={() => {void navigator.clipboard?.writeText(summaryText).then(()=>{setCopyStatus('');toast(t.copied,'success');}).catch(()=>setCopyStatus(t.copyFailed));if(!navigator.clipboard)setCopyStatus(t.copyFailed);}}/><ButtonUtility label={t.close} icon={X} autoFocus onPress={() => setSummary(null)}/></div><BudNotice tone="danger">{copyStatus}</BudNotice></>}</dialog>
