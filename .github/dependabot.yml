@@ -1,0 +1,24 @@
+# Reviewed dependency-update suggestions only; Dependabot must not auto-merge.
+# Keep PR volume low so production changes still receive explicit CI and review.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Asia/Riyadh"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:30"
+      timezone: "Asia/Riyadh"
+    open-pull-requests-limit: 2
+    labels:
+      - "dependencies"

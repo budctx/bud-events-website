@@ -44,6 +44,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Check operational and security config invariants
+        run: node scripts/check-operational-guardrails.mjs
       - name: Validate Notion evidence runner syntax
         run: node --check scripts/sync-release-evidence.mjs
       - run: npm run typecheck:server
