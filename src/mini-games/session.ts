@@ -31,6 +31,7 @@ export function validMiniSession(v:unknown):v is MiniSession{
  const winners=v.winners as unknown[],prizes=v.prizes as unknown[];
  if(winners.some(w=>!object(w)||typeof w.id!=='string'||!/^winner-[1-9][0-9]*$/.test(w.id)||typeof w.name!=='string'||!w.name.trim()||w.name.length>80)||!unique(winners.map(w=>(w as {id:string}).id)))return false;
  const winnerIds=new Set(winners.map(w=>(w as {id:string}).id));
+ if(winners.some(w=>Number((w as {id:string}).id.slice(7))>=Number(v.nextWinnerNumber)))return false;
  if(prizes.some(p=>!object(p)||typeof p.id!=='string'||!/^prize-[1-9][0-9]*$/.test(p.id)||typeof p.name!=='string'||p.name.length>100||typeof p.revealed!=='boolean'||!(p.winnerId===null||typeof p.winnerId==='string'&&winnerIds.has(p.winnerId)))||!unique(prizes.map(p=>(p as {id:string}).id)))return false;
  if(v.phase!=='live'&&v.active!==null)return false;
  return v.active===null||validGame(v.active);
