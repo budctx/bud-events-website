@@ -34,11 +34,8 @@ export default function MiniGamesHost({initial,onExit,onHome}:{initial:MiniRun;o
  },[]);
  const save=(state:MiniSession)=>{
   if(access!=='ready')return;
-  const next:MiniRun={...current.current,state,phase:undefined} as MiniRun;
   // Only local storage receives gameplay, winner names and the prize mapping.
-  delete (next as MiniRun & {phase?:string}).phase;
-  next.version=current.current.version+1;
-  next.updatedAt=new Date().toISOString();
+  const next:MiniRun={...current.current,state,version:current.current.version+1,updatedAt:new Date().toISOString()};
   current.current=next;
   setRun(next);
   if(!saveMiniRun(next))setStorageError('تعذر الحفظ المحلي؛ قد تفقد التقدم عند إغلاق المتصفح.');
