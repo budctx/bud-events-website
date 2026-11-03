@@ -10,6 +10,9 @@ alter table bud_platform.live_events
 -- Mini Games has its own static local catalog and does not require a QC pair catalog.
 alter table bud_platform.live_events alter column content_version drop not null;
 alter table bud_platform.live_events alter column pair_order drop not null;
+-- Keep QC rows fully pinned while allowing no QC catalog for Mini Games.
+alter table bud_platform.live_events add constraint bud_live_qc_catalog_required
+ check(event_kind='mini-games' or (content_version is not null and pair_order is not null));
 create index if not exists bud_live_events_kind on bud_platform.live_events(event_kind);
 
 -- Preserve the Question & Condition receipt rendering, while ensuring Mini Games
