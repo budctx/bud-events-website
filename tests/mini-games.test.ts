@@ -77,7 +77,8 @@ test('two wrong emoji picks lock input for a full second and rotate the turn',()
  if(s.active?.kind!=='emoji')return;
  const a=0;
  // Find two actual different symbols without relying on shuffle order.
- const other=s.active.tiles.findIndex(x=>x!==s.active?.tiles[0]);
+ const firstSymbol=s.active.tiles[0];
+ const other=s.active.tiles.findIndex(x=>x!==firstSymbol);
  assert.ok(other>=0);
  s=miniReducer(s,{type:'tap',index:a},10,first);
  s=miniReducer(s,{type:'tap',index:other},20,first);
