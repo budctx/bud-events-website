@@ -11,7 +11,7 @@ import '@mantine/carousel/styles.css';
 import './section-controls.css';
 
 const names=['سؤال وشرط','ميني قيمز','كروت الحظ'];
-export default function EventCarousel({children}:{children:ReactNode}){
+export default function EventCarousel({children,mini}:{children:ReactNode;mini?:ReactNode}){
  const [api,setApi]=useState<EmblaCarouselType>(),[selected,setSelected]=useState(0);
  const reduced=useReducedMotion(),scope=useRef<HTMLDivElement>(null);
  const getRoot=useCallback(()=>scope.current??undefined,[]);
@@ -51,7 +51,8 @@ export default function EventCarousel({children}:{children:ReactNode}){
   sync();
   return()=>{observer.disconnect();mutation.disconnect();cancelAnimationFrame(frame);};
  },[]);
- const slides=[children,...upcomingEventCards()];
+ const upcoming=upcomingEventCards();
+ const slides=[children,mini??upcoming[0],upcoming[1]];
  return <div ref={scope} className="platform-event-catalog" data-testid="event-carousel">
   <DirectionProvider initialDirection="rtl" detectDirection={false}>
    <MantineProvider forceColorScheme="light" withCssVariables={false} withGlobalClasses={false} getRootElement={getRoot}>
