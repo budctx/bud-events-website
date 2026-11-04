@@ -129,7 +129,7 @@ test('five-step pattern illuminates its four unlettered pads silently and then e
  const pads=modal.locator('.mini-pattern-pad');
  await expect(pads).toHaveCount(4);
  await expect(pads.first()).toHaveText('');
- await expect(modal.locator('.mini-pattern-turn')).toContainText('5');
+ await expect(modal.locator('.mini-pattern-turn')).toContainText('شاهد الأضواء'); // Sequence length 5 is asserted by the engine tests; no redundant onscreen text.
  await expect(pads.first()).toBeDisabled();
  await page.clock.runFor(600);
  await expect(modal.locator('.mini-pattern-pad.is-lit')).toHaveCount(1);
