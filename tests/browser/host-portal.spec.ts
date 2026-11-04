@@ -387,3 +387,36 @@ for(const width of [390,1440])test(`event setup opens in a viewport-safe modal a
  await setup.click();await expect(modal.getByLabel('اسم الفعالية')).toHaveValue('جلسة محفوظة');await expect(modal.getByLabel('الجوائز',{exact:true})).toHaveValue('جائزة أولى');
  await page.keyboard.press('Escape');await expect(modal).not.toBeVisible();expect(actions.every(x=>x==='dashboard')).toBe(true);
 });
+
+test('mobile Mini Games reuses the Question & Condition setup shell and prize editor without opening the keyboard',async({browser},info)=>{
+ const context=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true});
+ const page=await context.newPage();
+ await session(page);
+ await page.route('**/api/host',route=>{
+  const payload=route.request().postDataJSON();
+  if(payload.action==='dashboard')return route.fulfill(ok({...dashboard,runtime:'browser-v1',ownerId:'host-1',miniGamesAvailable:true,events:[]}));
+  return route.fulfill({status:503,json:{code:'PRODUCT_UNAVAILABLE'}});
+ });
+ await page.goto('http://127.0.0.1:4173/?screen=events&lang=ar');
+ await page.getByRole('button',{name:'عرض فعالية ميني قيمز',exact:true}).click();
+ await page.getByTestId('event-mini-setup').tap();
+ const modal=page.getByRole('dialog',{name:'إعداد ميني قيمز'});
+ await expect(modal).toBeVisible();
+ await expect(modal).toHaveClass(/bud-event-setup-modal/);
+ await expect(modal.locator('.host-portal.host-embedded .host-panel')).toBeVisible();
+ await expect(modal.locator('[data-event-prize-editor="shared"]')).toBeVisible();
+ await expect(modal.getByLabel('الجوائز',{exact:true})).not.toBeFocused();
+ await expect(modal.locator('.host-heading h1')).toBeFocused();
+ await expect(modal.getByRole('button',{name:'توضيح الجوائز'})).toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+ await page.screenshot({path:info.outputPath('mini-setup-mobile-reuse.png'),animations:'disabled'});
+ await modal.getByRole('button',{name:'إغلاق إعداد الفعالية'}).tap();
+ await expect(modal).not.toBeVisible();
+ await page.getByRole('button',{name:'عرض فعالية سؤال وشرط',exact:true}).click();
+ await page.getByTestId('event-setup').tap();
+ const qc=page.getByRole('dialog',{name:'إعداد الفعالية',exact:true});
+ await expect(qc.locator('[data-event-prize-editor="shared"]')).toBeVisible();
+ await expect(qc.locator('.host-heading h1')).toBeFocused();
+ await expect(qc.getByLabel('الجوائز',{exact:true})).not.toBeFocused();
+ await context.close();
+});
