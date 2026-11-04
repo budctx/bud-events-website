@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState} from 'react';
-import {ArrowRight,ArrowLeft,Bomb,BookOpen,Copy,Dices,Gift,Grid3X3,RotateCcw,Settings2,Sparkles,Trash2,Trophy,X} from 'lucide-react';
+import {ArrowRight,ArrowLeft,Bomb,BookOpen,ChevronDown,Copy,Dices,Gift,Grid3X3,Info,RotateCcw,Settings2,Sparkles,Trophy,X} from 'lucide-react';
 import type {LucideIcon} from 'lucide-react';
 import {createMiniSession,gameFinished,miniReducer,recordableWinner} from './engine.ts';
 import type {MiniSession,MiniAction} from './engine.ts';
@@ -14,16 +14,15 @@ import '../game.css';
 import './mini-games.css';
 
 const icons:Record<MiniGameKind,LucideIcon>={bomb:Bomb,'form-word':BookOpen,scramble:RotateCcw,pattern:Grid3X3,emoji:Sparkles,wheel:Dices};
-const words={bomb:'تبادل فتح المربعات بين لاعبين. من يكشف القنبلة يخسر.', 'form-word':'كوّن أطول كلمة من خمسة أحرف.',scramble:'رتب الأحرف واكشف الكلمة الصحيحة.',pattern:'تذكر تسلسل الألوان، ثم أعده بالترتيب.',emoji:'طابق أزواج الإيموجي واجمع نقاطًا أكثر.',wheel:'تصنيف عشوائي وحرف عشوائي. الأسرع في الإجابة يفوز.'};
 type Props={initial:MiniSession;onChange?:(session:MiniSession)=>void;onExit?:()=>void;sessionName?:string};
 const num=(v:number)=>new Intl.NumberFormat('ar-u-nu-latn').format(v);
 
 export function MiniGames({initial,onChange,onExit,sessionName='ميني قيمز'}:Props){
  const [state,setState]=useState(initial),latest=useRef(initial);
- const [selected,setSelected]=useState<MiniGameKind|null>(null),[size,setSize]=useState<4|5|6>(5),[pairs,setPairs]=useState<3|5|7>(5),[level,setLevel]=useState<4|5|6>(5),[seconds,setSeconds]=useState(60);
+ const [selected,setSelected]=useState<MiniGameKind|null>(null),[pairs,setPairs]=useState<5|7>(5),[seconds,setSeconds]=useState(60),[help,setHelp]=useState<MiniGameKind|null>(null);
  const [clock,setClock]=useState(Date.now()),[confirmExit,setConfirmExit]=useState(false),[winnerForm,setWinnerForm]=useState(false),[name,setName]=useState(''),[notice,setNotice]=useState('');
  const [pickedWinner,setPickedWinner]=useState<string|null>(null),[reveal,setReveal]=useState<{name:string;winnerId:string|null}|null>(null);
- const dialog=useRef<HTMLDialogElement>(null);
+ const dialog=useRef<HTMLDialogElement>(null),helpDialog=useRef<HTMLDialogElement>(null),helpTrigger=useRef<HTMLButtonElement|null>(null);
  const send=(action:MiniAction)=>{
   const next=miniReducer(latest.current,action,Date.now());
   if(next!==latest.current){latest.current=next;setState(next);onChange?.(next);}
@@ -42,6 +41,12 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
   else{if(node.open)node.close();document.body.style.overflow='';}
   return()=>{if(node.open)node.close();document.body.style.overflow='';if(previous?.isConnected)previous.focus({preventScroll:true});};
  },[modalOpen]);
+ useEffect(()=>{
+  const node=helpDialog.current;if(!node)return;
+  if(help){if(!node.open)node.showModal();}else if(node.open)node.close();
+  return()=>{if(node.open)node.close();};
+ },[help]);
+ const closeHelp=()=>{setHelp(null);helpTrigger.current?.focus({preventScroll:true});};
  const requestClose=()=>{
   if(winnerForm){setWinnerForm(false);return;}
   if(!selected&&!state.active)return;
@@ -50,8 +55,8 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
   confirmClose();
  };
  const confirmClose=()=>{send({type:'close'});setSelected(null);setConfirmExit(false);setWinnerForm(false);setName('');};
- const open=(kind:MiniGameKind)=>{setSize(5);setPairs(5);setLevel(5);setSeconds(kind==='form-word'?60:30);setConfirmExit(false);setNotice('');setSelected(kind);};
- const start=()=>{if(!selected)return;send({type:'open',game:selected,size,pairs,level,seconds});setSelected(null);setClock(Date.now());};
+ const open=(kind:MiniGameKind)=>{setPairs(5);setSeconds(kind==='form-word'?60:30);setConfirmExit(false);setNotice('');setSelected(kind);};
+ const start=()=>{if(!selected)return;send({type:'open',game:selected,pairs,seconds});setSelected(null);setClock(Date.now());};
  const capacity=state.prizes.length,filled=state.winners.length,full=filled>=capacity;
  const canRecord=recordableWinner(state,clock);
  const winnerMessage=capacity===0?'لا توجد جوائز مجهّزة':full?'تم تسجيل جميع الفائزين':'';
@@ -71,7 +76,10 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
   {phase==='live'&&<section className="mini-hub"><div className="mini-intro"><span className="mini-eyebrow"><Sparkles size={16}/> اختر لعبتك</span><h2>ست تحديات. متعة بلا توقف.</h2><p>اختر لعبة، وابدأ التحدي مع مجتمعك. جميع الإجابات والنتائج يديرها المضيف.</p></div>
    {capacity===0&&<p className="mini-notice" role="status">لا توجد جوائز مجهّزة — تستطيع اللعب، لكن تسجيل الفائزين غير متاح.</p>}
    {capacity>0&&full&&<p className="mini-notice" role="status">تم تسجيل جميع الفائزين — تستطيع مواصلة اللعب دون تسجيل فائزين جدد.</p>}
-   <div className="mini-hub-grid">{GAME_IDS.map(id=>{const Icon=icons[id];return <button type="button" key={id} className="mini-hub-card" onClick={()=>open(id)}><span className="mini-hub-icon"><Icon size={35} strokeWidth={1.75}/></span><strong>{GAME_LABELS[id]}</strong></button>;})}</div>
+   <div className="mini-hub-grid">{GAME_IDS.map(id=>{const Icon=icons[id];return <div key={id} className="mini-hub-card">
+    <button type="button" className="mini-hub-main" onClick={()=>open(id)}><span className="mini-hub-icon"><Icon size={35} strokeWidth={1.75}/></span><strong>{GAME_LABELS[id]}</strong></button>
+    <button type="button" className="mini-hub-info" aria-label={'شرح '+GAME_LABELS[id]} onClick={event=>{helpTrigger.current=event.currentTarget;setHelp(id);}}><Info size={19}/></button>
+   </div>;})}</div>
   </section>}
   {phase==='prizes'&&<section className="mini-prizes">
    <aside className="mini-prize-winners"><h2><Trophy size={19}/> قائمة الفائزين</h2><WinnerList winners={state.winners} prizes={state.prizes} locale="ar" selectedId={pickedWinner||undefined} onSelect={setPickedWinner} onDelete={w=>{if(window.confirm('هل تريد حذف الفائز وإعادة جائزته إلى البطاقات؟'))send({type:'delete-winner',winnerId:w.id});}}/>
@@ -85,12 +93,15 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
   {phase==='closing'&&<section className="mini-closing"><Trophy size={46}/><h2>شكرًا لمشاركتكم!</h2><p>اكتملت الفعالية، وهذه نتائجها.</p><textarea readOnly aria-label="ملخص الفعالية" value={formatEventResults(state,'ar')||'لم يُسجل فائزون'} rows={Math.max(4,Math.min(12,state.winners.length+1))}/><button className="mini-cta mini-primary" onClick={()=>void copyResults()}><Copy size={17}/> نسخ الملخص</button>{notice&&<p role="status">{notice}</p>}{onExit&&<button className="mini-cta mini-secondary" onClick={onExit}>العودة إلى بُعد</button>}</section>}
   <dialog ref={dialog} className="mini-dialog" aria-label={selected?GAME_LABELS[selected]:state.active?GAME_LABELS[state.active.kind]:'إعداد اللعبة'} onCancel={e=>{e.preventDefault();requestClose();}}>
    <div className="mini-dialog-head"><h2>{selected?GAME_LABELS[selected]:state.active?GAME_LABELS[state.active.kind]:'اللعبة'}</h2><button type="button" className="mini-icon-button" aria-label="إغلاق اللعبة" onClick={requestClose}><X size={21}/></button></div>
-   {confirmExit?<div className="mini-confirm"><h3>لم يتم تحديد فائز، هل أنت متأكد؟</h3><p>يمكنك العودة للعبة أو إنهاؤها دون تسجيل فائز.</p><div className="mini-action-row"><button className="mini-cta mini-secondary" onClick={()=>setConfirmExit(false)}>العودة</button><button className="mini-cta mini-primary" onClick={confirmClose}>إنهاء بدون فائز</button></div></div>:selected?<div className="mini-standby"><p>{words[selected]}</p>
-    {selected==='bomb'&&<fieldset><legend><Settings2 size={16}/> حجم الشبكة</legend><div className="mini-chips">{([4,5,6] as const).map(v=><button type="button" aria-pressed={size===v} key={v} onClick={()=>setSize(v)}>{num(v)} × {num(v)}</button>)}</div></fieldset>}
-    {selected==='emoji'&&<fieldset><legend><Settings2 size={16}/> عدد الأزواج</legend><div className="mini-chips">{([3,5,7] as const).map(v=><button type="button" aria-pressed={pairs===v} key={v} onClick={()=>setPairs(v)}>{num(v)} أزواج</button>)}</div></fieldset>}
-    {selected==='pattern'&&<fieldset><legend><Settings2 size={16}/> طول النمط الأول</legend><div className="mini-chips">{([4,5,6] as const).map(v=><button type="button" aria-pressed={level===v} key={v} onClick={()=>setLevel(v)}>{num(v)} ألوان</button>)}</div></fieldset>}
-    {(selected==='form-word'||selected==='scramble')&&<fieldset><legend><Settings2 size={16}/> مدة التحدي</legend><label className="mini-range">{num(seconds)} ثانية <input type="range" min="10" max="180" step="5" value={seconds} onChange={e=>setSeconds(Number(e.target.value))}/></label></fieldset>}
-    <button type="button" className="mini-cta mini-primary mini-start" onClick={start}>بدء {GAME_LABELS[selected]} <ArrowLeft size={18}/></button>
+   {confirmExit?<div className="mini-confirm"><h3>لم يتم تحديد فائز، هل أنت متأكد؟</h3><p>يمكنك العودة للعبة أو إنهاؤها دون تسجيل فائز.</p><div className="mini-action-row"><button className="mini-cta mini-secondary" onClick={()=>setConfirmExit(false)}>العودة</button><button className="mini-cta mini-primary" onClick={confirmClose}>إنهاء بدون فائز</button></div></div>:selected?<div className="mini-standby">
+    <button type="button" className="mini-cta mini-primary mini-start" onClick={start}>بدء اللعبة <ArrowLeft size={20}/></button>
+    {(selected==='emoji'||selected==='form-word'||selected==='scramble')&&<details className="mini-standby-options">
+     <summary><span><Settings2 size={17}/> خيارات اللعبة</span><ChevronDown size={18} className="mini-options-chevron"/></summary>
+     <div className="mini-options-content">
+      {selected==='emoji'&&<fieldset><legend>عدد الأزواج</legend><div className="mini-chips">{([5,7] as const).map(v=><button type="button" aria-pressed={pairs===v} key={v} onClick={()=>setPairs(v)}>{num(v)} أزواج</button>)}</div></fieldset>}
+      {(selected==='form-word'||selected==='scramble')&&<fieldset><legend>مدة التحدي</legend><label className="mini-range">{num(seconds)} ثانية <input aria-label="مدة التحدي" type="range" min="10" max="180" step="5" value={seconds} onChange={e=>setSeconds(Number(e.target.value))}/></label></fieldset>}
+     </div>
+    </details>}
    </div>:state.active?<div className="mini-playing">
     {winnerForm?<form className="mini-winner-form" onSubmit={e=>{e.preventDefault();saveWinner();}}><label htmlFor="mini-winner-name">اسم الفائز</label><input id="mini-winner-name" autoFocus value={name} maxLength={80} required onChange={e=>setName(e.target.value)} placeholder="أدخل اسم الفائز"/>{duplicate&&<p className="mini-notice">الاسم مسجل سابقًا، ويمكن تسجيله مجددًا كفائز مستقل.</p>}<div className="mini-action-row"><button className="mini-cta mini-secondary" type="button" onClick={()=>setWinnerForm(false)}>إلغاء</button><button type="submit" className="mini-cta mini-primary" disabled={!name.trim()}>حفظ الفائز</button></div></form>:<>
      <MiniGameStage game={state.active} now={clock} send={send}/>
@@ -100,6 +111,10 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
      </div>}
     </>}
    </div>:null}
+  </dialog>
+  <dialog ref={helpDialog} className="mini-dialog mini-help-dialog" aria-label={help?'شرح '+GAME_LABELS[help]:'شرح اللعبة'} onCancel={e=>{e.preventDefault();closeHelp();}}>
+   <div className="mini-dialog-head"><h2>{help?GAME_LABELS[help]:'اللعبة'}</h2><button type="button" className="mini-icon-button" aria-label="إغلاق الشرح" onClick={closeHelp}><X size={21}/></button></div>
+   <div className="mini-help-empty"><Info size={32}/><p>سيُضاف شرح اللعبة هنا لاحقًا.</p></div>
   </dialog>
  </main>;
 }
