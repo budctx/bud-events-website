@@ -34,7 +34,8 @@ export function MiniGameStage({game,now,send}:Props){
     const elapsed=now-game.startedAt;
     const displaying=elapsed<game.level*700+800;
     const index=elapsed>=500?Math.floor((elapsed-500)/700):-1;
-    const active=displaying&&index>=0&&index<game.level?game.sequences[game.turn-1][index]:null;
+    const pulse=(elapsed-500)%700; // A dark gap makes repeated adjacent colors perceptible as distinct steps.
+    const active=displaying&&index>=0&&index<game.level&&pulse<480?game.sequences[game.turn-1][index]:null;
     const turnChanging=elapsed>=0&&elapsed<1250;
     return <>
      <div className={'mini-pattern-turn'+(turnChanging?' is-turn-shifting':'')} role="status">
