@@ -115,3 +115,55 @@
 .mini-setup-dialog textarea{width:100%;min-height:130px;resize:vertical;padding:12px 14px;border:1.5px solid #aaa;border-radius:13px;background:#fff;color:#333;line-height:1.8}
 .mini-setup-dialog .mini-standby label{font-size:14px;font-weight:700}
 .mini-save-warning{position:fixed;bottom:16px;right:16px;left:16px;max-width:600px;margin:auto;z-index:1200;background:#fff0d0;border:2px solid #bc722b;color:#583712;border-radius:13px;box-shadow:0 4px 12px #0002;padding:14px 20px;text-align:center}
+
+/* Mini Games visual refinement — shared standby, numbered balanced boards and quiet delight. */
+.mini-hub-card{position:relative;isolation:isolate;padding:0;overflow:hidden}
+.mini-hub-main{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;width:100%;min-height:190px;padding:20px 24px;border:0;border-radius:inherit;background:transparent;color:inherit;font:inherit;cursor:pointer}
+.mini-hub-info{position:absolute;inset-block-start:12px;inset-inline-end:12px;display:grid;place-items:center;width:38px;height:38px;padding:0;border:1.5px solid #333;border-radius:50%;background:#fdfdff;color:#333;box-shadow:2px 3px 0 #3332;cursor:pointer;z-index:2}
+.mini-hub-info:hover{background:#ffe3a6}
+.mini-hub-main:focus-visible,.mini-hub-info:focus-visible{outline:3px solid #be740d;outline-offset:-3px}
+.mini-standby{padding:clamp(22px,6vh,65px) 0 clamp(10px,2vh,24px);gap:22px;min-height:200px}
+.mini-standby .mini-start{min-height:66px;width:min(400px,100%);justify-self:center;align-self:center;margin:0 auto;font-size:clamp(17px,3vw,21px);font-weight:800;box-shadow:5px 6px 0 #333}
+.mini-standby-options{width:100%;margin-top:8px;border-top:1px solid #e4ded2}
+.mini-standby-options summary{display:flex;align-items:center;justify-content:space-between;min-height:52px;padding:12px 8px;cursor:pointer;font-weight:700;font-size:14px;list-style:none}
+.mini-standby-options summary::-webkit-details-marker{display:none}
+.mini-standby-options summary>span{display:flex;align-items:center;gap:9px}
+.mini-options-chevron{transition:transform .22s ease}
+.mini-standby-options[open] .mini-options-chevron{transform:rotate(180deg)}
+.mini-options-content{display:grid;gap:14px;padding:12px 2px 5px;transform-origin:top center}
+.mini-standby-options[open] .mini-options-content{animation:mini-expand-options .25s ease both}
+@keyframes mini-expand-options{from{opacity:.15;transform:translateY(-9px) scaleY(.97)}to{opacity:1;transform:translateY(0) scaleY(1)}}
+.mini-dialog-head{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center}
+.mini-dialog-head::before{content:'';grid-column:1;grid-row:1;width:44px}
+.mini-dialog-head h2{grid-column:2;grid-row:1;text-align:center}
+.mini-dialog-head>.mini-icon-button{grid-column:3;grid-row:1}
+.mini-help-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;min-height:220px;text-align:center;color:#655a48}
+.mini-help-empty p{font-size:15px;line-height:1.7}
+.mini-bomb-grid,.mini-emoji-grid{width:100%;direction:rtl;align-items:stretch;justify-content:center}
+.mini-bomb-grid{max-width:min(510px,100%);gap:clamp(5px,1.4vw,10px)}
+.mini-bomb-cell,.mini-emoji-cell{width:100%;min-width:0;aspect-ratio:1 / 1;height:auto;min-height:0;border-radius:clamp(7px,1.6vw,13px);font-variant-numeric:tabular-nums;font-size:clamp(17px,4.5vw,27px);font-weight:800}
+.mini-emoji-grid{max-width:min(660px,100%);gap:clamp(4px,.85vw,9px);margin-inline:auto}
+.mini-emoji-cell{font-size:clamp(14px,3.4vw,29px)}
+.mini-emoji-cell.is-open,.mini-emoji-cell.is-matched{font-size:clamp(18px,4.2vw,30px)}
+.mini-pattern-turn{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;width:min(470px,100%);margin:12px auto;padding:14px 22px;border-radius:18px;border:2px solid #333;background:#fff3d5;isolation:isolate}
+.mini-pattern-turn strong{font-size:clamp(18px,3vw,26px);position:relative;z-index:1}
+.mini-pattern-turn span,.mini-pattern-turn small{position:relative;z-index:1;font-size:12px}
+.mini-pattern-turn.is-turn-shifting{border-color:#b77800;box-shadow:0 0 0 4px #fbb03b33,0 0 25px #fbb03b88}
+.mini-pattern-turn.is-turn-shifting:after{content:'';position:absolute;inset:-20px;background:linear-gradient(110deg,transparent 28%,#fff8 48%,transparent 68%);transform:translateX(110%);animation:mini-turn-shimmer 1.2s ease-out both;pointer-events:none}
+@keyframes mini-turn-shimmer{from{transform:translateX(120%)}to{transform:translateX(-120%)}}
+.mini-pattern-pads{width:min(420px,100%);grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(12px,3vw,20px);margin:22px auto}
+.mini-pattern-pad{width:100%;aspect-ratio:1/1;height:auto;min-height:0;min-width:0;border:3px solid #333;border-radius:clamp(18px,4vw,30px);font-size:0;color:transparent;box-shadow:4px 6px 0 #333;transition:filter .12s,transform .12s,box-shadow .12s}
+.mini-pattern-pad.is-lit{filter:brightness(1.55) saturate(1.6);transform:scale(1.055);box-shadow:0 0 0 5px #fdfdff,0 0 22px 12px #fbb03b99,4px 6px 0 #333}
+.mini-pattern-pad:disabled{cursor:not-allowed}
+.mini-wheel-idle{font-size:clamp(19px,3vw,25px);color:#83735d}
+.mini-wheel-lever{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;width:min(270px,100%);margin:14px auto 6px;padding:16px 22px;border:2px solid #333;background:#fbb03b;border-radius:22px;box-shadow:4px 5px 0 #333;font-weight:800;font-size:16px;cursor:pointer}
+.mini-wheel-lever:disabled{opacity:.65;cursor:wait}
+.mini-wheel-lever-art{position:relative;display:block;width:82px;height:102px;isolation:isolate}
+.mini-wheel-lever-base{position:absolute;bottom:0;left:8px;width:66px;height:25px;border:3px solid #333;border-radius:50%;background:#fff7e8;z-index:1}
+.mini-wheel-lever-shaft{position:absolute;bottom:13px;left:38px;width:8px;height:69px;background:#333;border-radius:8px;transform:rotate(-22deg);transform-origin:bottom center}
+.mini-wheel-lever-knob{position:absolute;top:8px;left:20px;width:27px;height:27px;border:3px solid #333;border-radius:50%;background:#fff;z-index:2}
+.mini-wheel-lever:active:not(:disabled) .mini-wheel-lever-shaft,.mini-wheel-lever.is-spinning .mini-wheel-lever-shaft{transform:rotate(25deg)}
+.mini-wheel-lever:active:not(:disabled) .mini-wheel-lever-knob,.mini-wheel-lever.is-spinning .mini-wheel-lever-knob{transform:translate(42px,0)}
+@media(max-width:600px){.mini-hub-main{min-height:146px;padding:15px}.mini-hub-info{width:32px;height:32px;inset-block-start:7px;inset-inline-end:7px}.mini-emoji-grid{gap:4px}.mini-pattern-pads{width:min(330px,100%)}.mini-pattern-pad{aspect-ratio:1 / 1}.mini-standby .mini-start{min-height:60px}}
+@media(max-width:360px){.mini-hub-main{min-height:108px;flex-direction:row;gap:12px}.mini-bomb-grid{gap:4px}}
+@media(prefers-reduced-motion:reduce){.mini-standby-options[open] .mini-options-content,.mini-pattern-turn.is-turn-shifting:after{animation:none}.mini-pattern-pad{transition:none}.mini-pattern-turn.is-turn-shifting:after{display:none}}
