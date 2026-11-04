@@ -5,7 +5,7 @@ export const GAME_LABELS = {
   scramble: 'الكلمة المبعثرة',
   pattern: 'احفظ النمط',
   emoji: 'ذاكرة الإيموجي',
-  wheel: 'سبين الحروف',
+  wheel: 'عجلة الحروف',
 } as const;
 export type MiniGameKind = keyof typeof GAME_LABELS;
 export const GAME_IDS = Object.keys(GAME_LABELS) as MiniGameKind[];
