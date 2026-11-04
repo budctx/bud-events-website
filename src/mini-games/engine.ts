@@ -10,7 +10,7 @@ export type BombGame={kind:'bomb';size:4|5|6;bomb:number;opened:number[];turn:Pl
 export type WordGame={kind:'form-word'|'scramble';answer:string;letters:string[];deadline:number;finished:boolean;revealed:boolean};
 export type PatternGame={kind:'pattern';level:number;sequences:[PatternColor[],PatternColor[]];turn:Player;progress:number;outcomes:[boolean|null,boolean|null];startedAt:number;replays:number;finished:boolean;winner:Player|null;draw:boolean};
 export type EmojiGame={kind:'emoji';pairs:3|5|7;tiles:string[];opened:number[];matched:number[];turn:Player;scores:[number,number];mismatchUntil:number|null;finished:boolean;winner:Player|null};
-export type WheelGame={kind:'wheel';category:WheelCategory;letter:string;example:string;startedAt:number;draws:number};
+export type WheelGame={kind:'wheel';category:WheelCategory;letter:string;example:string;startedAt:number|null;draws:number};
 export type ActiveMiniGame=BombGame|WordGame|PatternGame|EmojiGame|WheelGame;
 export type MiniPhase='live'|'prizes'|'closing';
 export type MiniSession={
@@ -72,16 +72,16 @@ export function createMiniSession(prizeText:string,pick:PickIndex=pickIndex):Min
 }
 export function createMiniGame(kind:MiniGameKind,opts:Extract<MiniAction,{type:'open'}>,now:number,pick:PickIndex=pickIndex):ActiveMiniGame{
  if(kind==='bomb'){
-  const size=([4,5,6] as const).includes(opts.size as 4|5|6)?opts.size!:5;
+  const size=4; // All new bomb games use a single balanced 4x4 grid; legacy saved grids still resume.
   return {kind,size,bomb:choose(Array.from({length:size*size},(_,i)=>i),pick),opened:[],turn:1,loser:null,finished:false};
  }
  if(kind==='emoji'){
-  const pairs=([3,5,7] as const).includes(opts.pairs as 3|5|7)?opts.pairs!:5;
+  const pairs=([5,7] as const).includes(opts.pairs as 5|7)?opts.pairs!:5;
   const symbols=shuffle(EMOJI_SYMBOLS,pick).slice(0,pairs);
   return {kind,pairs,tiles:shuffle([...symbols,...symbols],pick),opened:[],matched:[],turn:1,scores:[0,0],mismatchUntil:null,finished:false,winner:null};
  }
  if(kind==='pattern'){
-  const level=([4,5,6] as const).includes(opts.level as 4|5|6)?opts.level!:5;
+  const level=5; // Always start with five steps; both players succeeding grows the sequence.
   return {kind,level,sequences:distinctSequences(level,pick),turn:1,progress:0,outcomes:[null,null],startedAt:now,replays:0,finished:false,winner:null,draw:false};
  }
  if(kind==='form-word'||kind==='scramble'){
@@ -93,10 +93,10 @@ export function createMiniGame(kind:MiniGameKind,opts:Extract<MiniAction,{type:'
   return {kind,answer,letters,deadline:now+seconds*1000,finished:false,revealed:false};
  }
  const value=choose(availableWheelPairs(),pick);
- return {kind:'wheel',...value,startedAt:now,draws:1};
+ return {kind:'wheel',...value,startedAt:null,draws:0}; // Idle until the host pulls the lever.
 }
 export function gameFinished(game:ActiveMiniGame,now=Date.now()):boolean{
- if(game.kind==='wheel')return now-game.startedAt>=3800;
+ if(game.kind==='wheel')return game.startedAt!==null&&now-game.startedAt>=3800;
  if(game.kind==='form-word'||game.kind==='scramble')return game.finished||now>=game.deadline;
  return game.finished;
 }
@@ -152,7 +152,7 @@ export function miniReducer(state:MiniSession,action:MiniAction,now=Date.now(),p
  }
  if(action.type==='finish'&&(game.kind==='form-word'||game.kind==='scramble'))return {...state,active:{...game,finished:true}};
  if(action.type==='reveal'&&game.kind==='scramble'&&gameFinished(game,now))return {...state,active:{...game,revealed:true}};
- if(action.type==='spin'&&game.kind==='wheel'&&gameFinished(game,now)){
+ if(action.type==='spin'&&game.kind==='wheel'&&(game.startedAt===null||gameFinished(game,now))){
   const value=choose(availableWheelPairs(),pick);
   return {...state,active:{...game,...value,startedAt:now,draws:game.draws+1}};
  }

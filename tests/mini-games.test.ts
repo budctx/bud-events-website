@@ -31,7 +31,7 @@ test('no-prize sessions play normally and never allow winner registration',()=>{
 });
 test('one bomb, turn alternation and no double opening; losing player is correctly identified',()=>{
  let s=createMiniSession('جائزة',first);
- s=miniReducer(s,{type:'open',game:'bomb',size:5},1000,first);
+ s=miniReducer(s,{type:'open',game:'bomb',size:4},1000,first);
  assert.equal(s.active?.kind,'bomb');
  if(s.active?.kind!=='bomb')return;
  const bomb=s.active.bomb;
@@ -60,7 +60,7 @@ test('word and scramble are always solvable; timers only expire at the deadline'
 });
 test('matching emoji pairs stay open, score the current player and ties are impossible',()=>{
  let s=createMiniSession('الجائزة 1\nالجائزة 2',first);
- s=miniReducer(s,{type:'open',game:'emoji',pairs:3},1,first);
+ s=miniReducer(s,{type:'open',game:'emoji',pairs:5},1,first);
  assert.equal(s.active?.kind,'emoji');
  if(s.active?.kind!=='emoji')return;
  const tiles=[...s.active.tiles];
@@ -68,7 +68,7 @@ test('matching emoji pairs stay open, score the current player and ties are impo
   for(let i=0;i<tiles.length;i++)if(tiles[i]===symbol){s=miniReducer(s,{type:'tap',index:i},2+i,first);}
  }
  assert.equal(s.active?.kind==='emoji'&&s.active.finished,true);
- assert.equal(s.active?.kind==='emoji'&&s.active.scores[0],3);
+ assert.equal(s.active?.kind==='emoji'&&s.active.scores[0],5);
  assert.equal(s.active?.kind==='emoji'&&s.active.winner,1);
 });
 test('two wrong emoji picks lock input for a full second and rotate the turn',()=>{
@@ -89,15 +89,15 @@ test('two wrong emoji picks lock input for a full second and rotate the turn',()
 });
 test('pattern mistakes are assessed after both players; both pass raises difficulty',()=>{
  let s=createMiniSession('جائزة',first);
- s=miniReducer(s,{type:'open',game:'pattern',level:4},100,first);
+ s=miniReducer(s,{type:'open',game:'pattern',level:5},100,first);
  if(s.active?.kind!=='pattern')return;
  const firstSeq=[...s.active.sequences[0]],secondSeq=[...s.active.sequences[1]];
- for(let i=0;i<firstSeq.length;i++)s=miniReducer(s,{type:'color',color:firstSeq[i]},100+4*700+800+i+1,first);
+ for(let i=0;i<firstSeq.length;i++)s=miniReducer(s,{type:'color',color:firstSeq[i]},100+5*700+800+i+1,first);
  assert.equal(s.active?.kind==='pattern'&&s.active.turn,2);
  if(s.active?.kind!=='pattern')return;
  const secondStart=s.active.startedAt;
- for(let i=0;i<secondSeq.length;i++)s=miniReducer(s,{type:'color',color:secondSeq[i]},secondStart+4*700+800+i+1,first);
- assert.equal(s.active?.kind==='pattern'&&s.active.level,5);
+ for(let i=0;i<secondSeq.length;i++)s=miniReducer(s,{type:'color',color:secondSeq[i]},secondStart+5*700+800+i+1,first);
+ assert.equal(s.active?.kind==='pattern'&&s.active.level,6);
  assert.equal(s.active?.kind==='pattern'&&s.active.turn,1);
  assert.equal(s.active?.kind==='pattern'&&s.active.finished,false);
 });
@@ -116,4 +116,33 @@ test('winner count never exceeds prize count and repeated names retain different
  assert.equal(s.prizes[0].revealed,true);
  s=miniReducer(s,{type:'phase',phase:'closing'});
  assert.equal(s.phase,'closing');
+});
+
+test('new sessions start fixed 4x4 bomb, five emoji pairs and a five-step pattern',()=>{
+ const b=createMiniGame('bomb',{type:'open',game:'bomb',size:6},0,first);
+ assert.equal(b.kind,'bomb');if(b.kind==='bomb')assert.equal(b.size,4);
+ const easy=createMiniGame('emoji',{type:'open',game:'emoji',pairs:3},0,first);
+ assert.equal(easy.kind,'emoji');if(easy.kind==='emoji'){assert.equal(easy.pairs,5);assert.equal(easy.tiles.length,10);}
+ const hard=createMiniGame('emoji',{type:'open',game:'emoji',pairs:7},0,first);
+ assert.equal(hard.kind,'emoji');if(hard.kind==='emoji'){assert.equal(hard.pairs,7);assert.equal(hard.tiles.length,14);}
+ const pattern=createMiniGame('pattern',{type:'open',game:'pattern',level:4},0,first);
+ assert.equal(pattern.kind,'pattern');if(pattern.kind==='pattern'){assert.equal(pattern.level,5);assert.deepEqual(pattern.sequences.map(s=>s.length),[5,5]);}
+});
+test('wheel remains stopped until a host spin action; cannot double spin while turning',()=>{
+ let state=createMiniSession('',first);
+ state=miniReducer(state,{type:'open',game:'wheel'},1000,first);
+ assert.equal(state.active?.kind,'wheel');
+ if(state.active?.kind!=='wheel')return;
+ assert.equal(state.active.startedAt,null);
+ assert.equal(state.active.draws,0);
+ assert.equal(gameFinished(state.active,5000),false);
+ state=miniReducer(state,{type:'spin'},5000,first);
+ if(state.active?.kind!=='wheel')return;
+ assert.equal(state.active.startedAt,5000);
+ assert.equal(state.active.draws,1);
+ assert.strictEqual(miniReducer(state,{type:'spin'},5001,first),state);
+ assert.equal(gameFinished(state.active,8799),false);
+ assert.equal(gameFinished(state.active,8800),true);
+ state=miniReducer(state,{type:'spin'},8801,first);
+ assert.equal(state.active?.kind==='wheel'&&state.active.draws,2);
 });

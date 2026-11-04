@@ -54,3 +54,13 @@ test('expired mini games are not mutable and no winner can be forged without pri
  assert.equal(started.state.active?.kind,'wheel');
  assert.throws(()=>stepMiniRun(started,{type:'close'},Date.parse(started.expiresAt)),/LOCAL_EVENT_EXPIRED/);
 });
+
+test('idle wheel can persist and resume without an implicit spin',()=>{
+ local.clear();
+ const run=createMiniRun({...payload,eventId:'idle-wheel'});
+ const next=stepMiniRun(run,{type:'open',game:'wheel'});
+ assert.equal(next.state.active?.kind,'wheel');
+ assert.equal(next.state.active?.kind==='wheel'&&next.state.active.startedAt,null);
+ assert.equal(saveMiniRun(next),true);
+ assert.deepEqual(readMiniRun(next.ownerId,next.eventId),next);
+});

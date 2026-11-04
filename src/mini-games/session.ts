@@ -23,7 +23,7 @@ function validGame(v:unknown):v is ActiveMiniGame{
   if(!Array.isArray(tiles))return false;
   return [3,5,7].includes(Number(v.pairs))&&tiles.length===Number(v.pairs)*2&&tiles.every(x=>typeof x==='string'&&x.length<12)&&Array.isArray(v.opened)&&v.opened.length<=2&&v.opened.every(x=>integer(x,0,tiles.length-1))&&unique(v.opened)&&Array.isArray(v.matched)&&v.matched.length<=tiles.length&&v.matched.every(x=>integer(x,0,tiles.length-1))&&unique(v.matched)&&[1,2].includes(Number(v.turn))&&Array.isArray(v.scores)&&v.scores.length===2&&v.scores.every(x=>integer(x,0,Number(v.pairs)))&&(v.mismatchUntil===null||Number.isFinite(v.mismatchUntil))&&typeof v.finished==='boolean'&&(v.winner===null||[1,2].includes(Number(v.winner)));
  }
- return CATEGORIES.includes(v.category as typeof CATEGORIES[number])&&LETTERS.includes(v.letter as typeof LETTERS[number])&&WHEEL_EXAMPLES[v.category as typeof CATEGORIES[number]][v.letter as string]===v.example&&Number.isFinite(v.startedAt)&&integer(v.draws,1,1e8);
+ return CATEGORIES.includes(v.category as typeof CATEGORIES[number])&&LETTERS.includes(v.letter as typeof LETTERS[number])&&WHEEL_EXAMPLES[v.category as typeof CATEGORIES[number]][v.letter as string]===v.example&&((v.startedAt===null&&v.draws===0)||(Number.isFinite(v.startedAt)&&integer(v.draws,1,1e8)));
 }
 export function validMiniSession(v:unknown):v is MiniSession{
  if(!object(v)||v.schema!==2||v.kind!=='mini-games'||!['live','prizes','closing'].includes(String(v.phase))||!integer(v.nextWinnerNumber,1,1001))return false;
