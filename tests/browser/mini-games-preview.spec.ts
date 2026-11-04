@@ -133,11 +133,12 @@ test('five-step pattern illuminates its four unlettered pads silently and then e
  await expect(pads.first()).toBeDisabled();
  await page.clock.runFor(600);
  await expect(modal.locator('.mini-pattern-pad.is-lit')).toHaveCount(1);
- await page.clock.runFor(450);
- await expect(modal.locator('.mini-pattern-pad.is-lit')).toHaveCount(0); // Includes repeated consecutive colors.
+ // The UI ticks every 120 ms. Observe the dark gap well away from either edge.
+ await page.clock.runFor(520);
+ await expect(modal.locator('.mini-pattern-pad.is-lit')).toHaveCount(0); // Distinct flashes even when a color repeats.
  await page.clock.runFor(250);
  await expect(modal.locator('.mini-pattern-pad.is-lit')).toHaveCount(1);
- await page.clock.runFor(3200);
+ await page.clock.runFor(3100);
  await expect(pads.first()).toBeEnabled();
  await expect(modal.locator('button[aria-label="تفعيل الصوت"],button[aria-label="كتم الصوت"]')).toHaveCount(0);
 });
