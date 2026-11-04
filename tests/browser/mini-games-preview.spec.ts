@@ -124,6 +124,7 @@ test('five-step pattern illuminates its four unlettered pads silently and then e
  await page.getByRole('button',{name:'احفظ النمط',exact:true}).click();
  const modal=page.getByRole('dialog',{name:'احفظ النمط'});
  await expect(modal.locator('.mini-chips')).toHaveCount(0);
+ await page.clock.pauseAt(1000000); // Freeze time across async assertions; advance deterministically with runFor.
  await modal.getByRole('button',{name:'بدء اللعبة'}).click();
  const pads=modal.locator('.mini-pattern-pad');
  await expect(pads).toHaveCount(4);
