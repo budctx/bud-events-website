@@ -1,6 +1,7 @@
 import {BudNotice,BudSkeleton} from './BudUI';
 import { useEffect, useRef, useState } from 'react';
-import { AnimatedSwitch, HelpTip } from './InterfaceControls';
+import { AnimatedSwitch } from './InterfaceControls';
+import {EventPrizeFields} from './EventPrizeFields';
 import {ButtonUtility} from './ButtonUtility';
 import {EventStartLoader} from './EventStartLoader';
 import {RefreshCw,Copy,X,ArrowRight} from 'lucide-react';
@@ -100,7 +101,7 @@ export default function HostPortal({ onPlay, onExit, locale, view, onAuthLost,on
             <div className="host-setup-field-group" aria-labelledby="host-setup-timer-title"><h3 id="host-setup-timer-title">{locale==='ar'?'التوقيت':'Timing'}</h3><div className="host-options"><AnimatedSwitch label={t.timer} checked={config.timerEnabled} onCheckedChange={timerEnabled => setConfig(previous => ({ ...previous, timerEnabled }))} /></div>
             {config.timerEnabled && <div className="host-duration"><label htmlFor="host-duration">{t.duration}</label><input id="host-duration" type="number" min={3} max={30} step={1} value={config.duration} onChange={event => setConfig(previous => ({ ...previous, duration: Number(event.target.value) }))} required /></div>}
             </div>
-            <div className="host-setup-field-group" aria-labelledby="host-setup-prizes-title"><h3 id="host-setup-prizes-title">{locale==='ar'?'تجهيز الجوائز':'Prizes'}</h3><div className="host-field-label"><label htmlFor="host-prizes">{t.prizes}</label><HelpTip label={locale === 'ar' ? 'توضيح الجوائز' : 'About prizes'}>{t.prizeHelp}</HelpTip></div><textarea id="host-prizes" rows={5} value={prizeText} onChange={event => setPrizeText(event.target.value)} aria-invalid={!parsed.valid} />{!parsed.valid&&<BudNotice tone="danger" resolveOnUnmount>{t.prizeError}</BudNotice>}</div>
+            <EventPrizeFields id="host-prizes" headingId="host-setup-prizes-title" value={prizeText} onChange={setPrizeText} parsed={parsed}/>
           </fieldset>
           <div className="host-start-actions">
             {startDisabledReason&&<p id="host-start-hint" className="host-start-hint" role="status">{startDisabledReason}</p>}
