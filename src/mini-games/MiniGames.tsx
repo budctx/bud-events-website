@@ -88,7 +88,7 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
  return <main className="mini-root" dir="rtl" lang="ar">
   <header className="mini-top"><div className="mini-top-heading"><button type="button" className="mini-icon-button" aria-label="عودة إلى بُعد" onClick={onExit}><ArrowRight size={20}/></button><div><span className="mini-eyebrow">فعاليات بُعد</span><h1>{sessionName}</h1></div></div><div className="mini-top-actions"><span className="mini-winner-count"><Trophy size={17}/> الفائزون {num(filled)} / {num(capacity)}</span>{phase==='live'&&<button className="mini-cta mini-secondary" onClick={()=>send({type:'phase',phase:'prizes'})}><Gift size={17}/> الجوائز <ArrowLeft size={17}/></button>}</div></header>
   <div className="mini-steps" aria-label="مراحل الفعالية"><span className="is-past">الإعداد</span><span className={phase==='live'?'is-current':'is-past'}>شاشة الفعالية</span><span className={phase==='prizes'?'is-current':phase==='closing'?'is-past':''}>الجوائز</span><span className={phase==='closing'?'is-current':''}>الختام</span></div>
-  {phase==='live'&&<section className="mini-hub"><div className="mini-intro"><span className="mini-eyebrow"><Sparkles size={16}/> اختر لعبتك</span><h2>ست تحديات. متعة بلا توقف.</h2><p>اختر لعبة، وابدأ التحدي مع مجتمعك. جميع الإجابات والنتائج يديرها المضيف.</p></div>
+  {phase==='live'&&<section className="mini-hub"><div className="mini-intro"><h2>اختر لعبتك</h2></div>
    {capacity===0&&<p className="mini-notice" role="status">لا توجد جوائز مجهّزة — تستطيع اللعب، لكن تسجيل الفائزين غير متاح.</p>}
    {capacity>0&&full&&<p className="mini-notice" role="status">تم تسجيل جميع الفائزين — تستطيع مواصلة اللعب دون تسجيل فائزين جدد.</p>}
    <div className="mini-hub-grid">{GAME_IDS.map(id=>{const Icon=icons[id];return <div key={id} className="mini-hub-card">
@@ -122,7 +122,7 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
     {winnerForm?<form className="mini-winner-form" onSubmit={e=>{e.preventDefault();saveWinner();}}><label htmlFor="mini-winner-name">اسم الفائز</label><input id="mini-winner-name" autoFocus value={name} maxLength={80} required onChange={e=>setName(e.target.value)} placeholder="أدخل اسم الفائز"/>{duplicate&&<p className="mini-notice">الاسم مسجل سابقًا، ويمكن تسجيله مجددًا كفائز مستقل.</p>}<div className="mini-action-row"><button className="mini-cta mini-secondary" type="button" onClick={()=>setWinnerForm(false)}>إلغاء</button><button type="submit" className="mini-cta mini-primary" disabled={!name.trim()}>حفظ الفائز</button></div></form>:<>
      <MiniGameStage game={state.active} now={clock} send={send}/>
      {gameFinished(state.active,clock)&&<div className="mini-game-result-actions">
-      {winnerMessage?<p className="mini-notice">{winnerMessage}</p>:state.active.kind==='pattern'&&state.active.draw?<p className="mini-notice">لم يفز أحد</p>:<button className="mini-cta mini-primary" disabled={!canRecord} onClick={()=>setWinnerForm(true)}><Trophy size={17}/> تسجيل فائز</button>}
+      {winnerMessage?<p className="mini-notice">{winnerMessage}</p>:state.active.kind==='pattern'&&state.active.draw?null:<button className="mini-cta mini-primary" disabled={!canRecord} onClick={()=>setWinnerForm(true)}><Trophy size={17}/> تسجيل فائز</button>}
       <button className="mini-cta mini-secondary" onClick={closeGame}>إنهاء اللعبة دون فائز</button>
      </div>}
     </>}

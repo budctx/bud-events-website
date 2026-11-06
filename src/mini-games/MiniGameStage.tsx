@@ -12,7 +12,7 @@ export function MiniGameStage({game,now,send}:Props){
  const finished=gameFinished(game,now);
  const winner=gameWinner(game);
  return <section className="mini-stage" aria-label="شاشة اللعبة">
-  <header className="mini-stage-header"><span className="mini-kicker">التحدي المباشر</span></header>
+  {!(game.kind==='pattern'&&game.finished)&&<header className="mini-stage-header"><span className="mini-kicker">التحدي المباشر</span></header>}
   {game.kind==='bomb'&&<>
    <div className="mini-status">الدور الآن: <strong>{playerLabel(game.turn)}</strong></div>
    <div className="mini-bomb-grid" style={{gridTemplateColumns:'repeat('+game.size+',minmax(0,1fr))'}}>
@@ -29,8 +29,7 @@ export function MiniGameStage({game,now,send}:Props){
    <p className="mini-hint">{game.kind==='form-word'?'من يكوّن أطول كلمة صحيحة من هذه الأحرف؟':'ما الكلمة الصحيحة بعد ترتيب هذه الأحرف؟'}</p>
    {!finished?<button type="button" className="mini-cta mini-secondary" onClick={()=>send({type:'finish'})}>إنهاء التحدي</button>:game.kind==='scramble'&&!game.revealed?<button type="button" className="mini-cta mini-secondary" onClick={()=>send({type:'reveal'})}>إظهار الكلمة</button>:null}
   </>}
-  {game.kind==='pattern'&&<>
-   {(()=>{
+  {game.kind==='pattern'&&(game.finished?<p className="mini-outcome" role="status">{game.draw?'لم يفز أحد':('فاز '+playerLabel(winner!))}</p>:(()=>{
     const elapsed=now-game.startedAt;
     const displaying=elapsed<game.level*700+800;
     const index=elapsed>=500?Math.floor((elapsed-500)/700):-1;
@@ -42,12 +41,10 @@ export function MiniGameStage({game,now,send}:Props){
       <span>الدور الآن</span><strong>{playerLabel(game.turn)}</strong>
       <small>{displaying?'شاهد الأضواء':num(game.progress)+' / '+num(game.level)}</small>
      </div>
-     <div className="mini-pattern-pads" aria-label="لوحة ألوان احفظ النمط">{PATTERN_COLORS.map(value=><button type="button" key={value} aria-label={'اللون '+value} className={'mini-pattern-pad '+colorClass(value)+(active===value?' is-lit':'')} disabled={displaying||game.finished} aria-disabled={displaying||game.finished} onClick={()=>send({type:'color',color:value})}/>)}</div>
-     {!game.finished&&<button type="button" className="mini-icon-text" onClick={()=>send({type:'replay'})}><RotateCcw size={18}/> إعادة عرض النمط</button>}
+     <div className="mini-pattern-pads" aria-label="لوحة ألوان احفظ النمط">{PATTERN_COLORS.map(value=><button type="button" key={value} aria-label={'اللون '+value} className={'mini-pattern-pad '+colorClass(value)+(active===value?' is-lit':'')} disabled={displaying} aria-disabled={displaying} onClick={()=>send({type:'color',color:value})}/>)}</div>
+     <button type="button" className="mini-icon-text" onClick={()=>send({type:'replay'})}><RotateCcw size={18}/> إعادة عرض النمط</button>
     </>;
-   })()}
-   {game.finished&&<p className="mini-outcome" role="status">{game.draw?'لم يفز أحد':('فاز '+playerLabel(winner!))}</p>}
-  </>}
+   })())}
   {game.kind==='emoji'&&<>
    <div className="mini-scorebar"><span>اللاعب 1 <strong>{num(game.scores[0])}</strong></span><span>الدور: <strong>{playerLabel(game.turn)}</strong></span><span>اللاعب 2 <strong>{num(game.scores[1])}</strong></span></div>
    <div className="mini-emoji-grid" style={{gridTemplateColumns:'repeat('+game.pairs+',minmax(0,1fr))'}} aria-label="بطاقات ذاكرة الإيموجي">
