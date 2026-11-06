@@ -253,6 +253,14 @@ export default function Platform({ onPlay }: PlatformProps) {
   const miniActive=account.dashboard?.miniRuns?.find(run=>run.state.phase!=='closing'&&Date.now()<Date.parse(run.expiresAt));
   const canMiniStart=miniAvailable&&canSetup&&!miniActive&&!ongoing;
   const canMiniResume=!!miniActive&&!!account.session;
+  const miniStartHint=account.session&&!canMiniStart&&!canMiniResume
+    ? !account.dashboard?'لم تتوفر حالة حسابك بعد.'
+      : account.dashboard.miniLocalMissing?'توجد جلسة ميني قيمز جارية. تابعها من المتصفح الذي بدأت فيه لأن تقدمها محفوظ هناك.'
+      : ongoing?'أكمل الفعالية الجارية قبل بدء ميني قيمز.'
+      : paymentHold||account.dashboard.paymentReview?'بدء فعالية جديدة معلّق حتى اكتمال مراجعة الدفع.'
+      : !miniAvailable?'بدء ميني قيمز غير متاح حاليًا.'
+      : 'تحتاج إلى مفتاح بُعد لبدء فعالية جديدة.'
+    : null;
 
   const mainNavigation = (<nav id="platform-main-navigation" data-mobile-open={mobileMenuOpen} className="platform-navigation" aria-label={locale === 'ar' ? 'التنقل الرئيسي' : 'Main navigation'}>{(['home', 'events', 'bots', 'designs'] as const).map(item => <button type="button" key={item} data-testid={`nav-${item}`} aria-label={`${t[item]}${item === 'bots' || item === 'designs' ? ` · ${t.soon}` : ''}`} aria-current={page === item ? 'page' : undefined} className={item === 'bots' || item === 'designs' ? 'platform-future-link' : ''} onPointerEnter={item === 'events' ? () => { void loadEventPreview(); } : undefined} onFocus={item === 'events' ? () => { void loadEventPreview(); } : undefined} onClick={() => mobileHome?closeMobileMenu(()=>navigate(item)):navigate(item)}><span className="platform-nav-icon"><InterfaceIcon kind={item} /></span><span className="platform-nav-label">{t[item]}{(item === 'bots' || item === 'designs') && <small> · {t.soon}</small>}</span></button>)}</nav>);
   if(panel==='owner'&&account.session)return <Suspense fallback={<BudSkeleton label="جارٍ تحميل لوحة المالك…"/>}><OwnerPanel key={account.session.id} ownerId={account.session.id} ownerName={account.session.displayName} initialReturn={ownerReturn} onClose={()=>{setOwnerReturn(null);setPanel('profile');}}/></Suspense>;
@@ -310,7 +318,7 @@ export default function Platform({ onPlay }: PlatformProps) {
     {canMiniStart&&<button type="button" className="platform-action platform-action-primary" data-testid="event-mini-setup" disabled={busy} onClick={()=>setMiniSetupOpen(true)}>بدء فعالية</button>}
     <PurchaseButton amountMinor={price?.amountMinor??0} originalAmountMinor={price?.promotion?price.baseAmountMinor:undefined} secondary={canMiniStart||canMiniResume} data-testid="product-card-mini-buy" disabled={busy||promoLoading||!!promoError||paymentHold||account.dashboard?.paymentReview} loading={activeAction==='purchase'} priceLoading={!price} onClick={()=>void buy()}/>
    </div>
-   {account.dashboard?.miniLocalMissing&&<BudNotice tone="warning" persistent>التقدم المحلي لميني قيمز غير موجود في هذا المتصفح.</BudNotice>}
+   {miniStartHint&&<p className="platform-event-keys" role="status">{miniStartHint}{(!account.dashboard||account.dashboard.miniLocalMissing)&&<> <button type="button" disabled={busy} onClick={()=>void account.refresh()}>تحديث حالة الجلسة</button></>}</p>}
   </div>
  </div>
 </article>}><article className="platform-product-card" data-node-id="383:11116"><Suspense fallback={<div className="event-preview" role="status" aria-label="جارٍ تحميل معاينة الفعالية…" />}><EventPreview key={locale} locale={locale} /></Suspense><div className="platform-product-information"><p className="platform-product-eyebrow">{t.productEyebrow}</p><h2><ComicEventTitle>{t.product}</ComicEventTitle></h2><p className="platform-product-description">{t.productDescription}</p><div className="platform-features" aria-label="مميزات الفعالية">{["إدارة للهوست","جوائز","مؤقت اختياري"].map(feature=><BudBadge key={feature} variant="outline">{feature}</BudBadge>)}</div><div className="platform-event-ownership">

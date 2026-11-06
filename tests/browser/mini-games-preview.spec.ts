@@ -142,3 +142,29 @@ test('five-step pattern illuminates its four unlettered pads silently and then e
  await expect(pads.first()).toBeEnabled();
  await expect(modal.locator('button[aria-label="تفعيل الصوت"],button[aria-label="كتم الصوت"]')).toHaveCount(0);
 });
+
+test('saving a winner restores game focus and unassigned reveal requires confirmation',async({page})=>{
+ const button=(name:string)=>page.getByRole('button',{name,exact:true});
+ await page.goto('/?screen=mini-preview');
+ await button('بدء المعاينة').click();
+ const scramble=button('الكلمة المبعثرة');
+ await scramble.click();
+ await button('بدء اللعبة').click();
+ await button('إنهاء التحدي').click();
+ await button('تسجيل فائز').click();
+ await page.getByRole('textbox',{name:'اسم الفائز'}).fill('مختبر');
+ await button('حفظ الفائز').click();
+ await expect(scramble).toBeFocused();
+
+ await button('الجوائز').click();
+ const prize=button('الجائزة 1');
+ page.once('dialog',dialog=>dialog.dismiss());
+ await prize.click();
+ await expect(prize).toBeEnabled();
+ await expect(button('العودة للألعاب')).toBeEnabled();
+
+ await button('1 مختبر بانتظار الجائزة').click();
+ await prize.click();
+ await expect(button('العودة للألعاب')).toBeDisabled();
+ await expect(page.getByText('بعد كشف أول جائزة، يمكنك متابعة التوزيع أو الانتقال إلى الختام.')).toBeVisible();
+});
