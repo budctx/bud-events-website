@@ -129,18 +129,20 @@ test('finished local event navigates to the unified review and thanks page witho
  await expect(page).toHaveURL(/\/review(?:[?#]|$)/);
  await expect(page.getByRole('heading',{name:'شاركنا رأيك'})).toBeVisible();
  await expect(page.getByText('حساب محلي')).toBeVisible();
- await expect(page.getByRole('textbox',{name:'شاركنا رايك'})).toBeVisible();
- await page.getByRole('textbox',{name:'شاركنا رايك'}).fill('فعالية ممتعة');
- await page.getByRole('button',{name:'إرسال',exact:true}).click();
+ await page.getByRole('radio',{name:'5 من 5'}).check();
+ await expect(page.getByRole('textbox',{name:'تعليقك'})).toBeVisible();
+ await page.getByRole('textbox',{name:'تعليقك'}).fill('فعالية ممتعة');
+ await page.getByRole('checkbox',{name:/أوافق على نشر/}).check();
+ await page.getByRole('button',{name:'إرسال التقييم',exact:true}).click();
  await expect(page.getByRole('heading',{name:'شكرًا لك!'})).toBeVisible();
  await expect(page.getByRole('link',{name:'العودة للرئيسية'})).toHaveAttribute('href','/');
- expect(requests.filter(r=>r.action==='submit')).toEqual([{action:'submit',comment:'فعالية ممتعة'}]);
+ expect(requests.filter(r=>r.action==='submit')).toEqual([{action:'submit',rating:5,comment:'فعالية ممتعة',publishConsent:true}]);
  expect(JSON.stringify(requests)).not.toContain('جائزة محلية خاصة');
 });
 
 test('latest community review card puts compact author above text without date or platform caption',async({page})=>{
  await page.route('**/api/owner?public=latest-reviews*',route=>route.fulfill(ok({
-  items:[{id:'33333333-3333-4333-8333-333333333333',name:'407i',comment:'تجربة ممتعة',avatarUrl:null,publishedAt:'2026-11-02T12:00:00Z'}],
+  items:[{id:'33333333-3333-4333-8333-333333333333',name:'407i',comment:'تجربة ممتعة',rating:5,avatarUrl:null,publishedAt:'2026-11-02T12:00:00Z'}],
   hasMore:false
  })));
  await page.goto('/review');
@@ -148,6 +150,7 @@ test('latest community review card puts compact author above text without date o
  await expect(card).toBeVisible();
  await expect(card.locator('figcaption')).toContainText('407i');
  await expect(card.locator('blockquote')).toHaveText('تجربة ممتعة');
+ await expect(card.getByLabel('5 من 5')).toBeVisible();
  await expect(card.locator('time')).toHaveCount(0);
  await expect(card.getByText('حساب Discord')).toHaveCount(0);
  const metrics=await card.evaluate(el=>({

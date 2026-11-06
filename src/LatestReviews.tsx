@@ -1,8 +1,9 @@
 import {useCallback,useEffect,useState} from 'react';
+import {Star} from 'lucide-react';
 import {ReviewIdentity} from './ReviewIdentity';
 import './reviews.css';
 
-type RecentReview={id:string;name:string;comment:string;avatarUrl:string|null;publishedAt:string};
+type RecentReview={id:string;name:string;comment:string;rating:number;avatarUrl:string|null;publishedAt:string};
 type Page={items:RecentReview[];hasMore:boolean};
 const PAGE_SIZE=12;
 export function LatestReviews({refreshKey=0}:{refreshKey?:number}){
@@ -42,6 +43,7 @@ export function LatestReviews({refreshKey=0}:{refreshKey?:number}){
   <div className="bud-latest-reviews-grid">
    {rows.map(item=><figure className="bud-review-card" key={item.id}>
     <figcaption><ReviewIdentity name={item.name} avatarUrl={item.avatarUrl}/></figcaption>
+    <div className="bud-review-rating" aria-label={`${item.rating} من 5`}>{[1,2,3,4,5].map(value=><Star key={value} aria-hidden="true" fill={value<=item.rating?'currentColor':'none'}/>)}</div>
     <blockquote dir="auto">{item.comment}</blockquote>
    </figure>)}
   </div>
