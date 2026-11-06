@@ -62,11 +62,12 @@ export function MiniGameStage({game,now,send}:Props){
    const idle=game.startedAt===null,elapsed=idle?0:now-game.startedAt!;
    const spinning=!idle&&!finished;
    return <>
-    <div className="mini-wheel-track" aria-live={finished?'polite':'off'}>
+    <div className="mini-wheel-track" aria-hidden="true">
      <div className="mini-wheel-reel" aria-label="تصنيف">{idle?<span className="mini-wheel-idle">الفئة</span>:elapsed<2600?<div key={'cat'+game.draws} className="mini-wheel-spinning">{[...CATEGORIES,...CATEGORIES,...CATEGORIES].map((c,i)=><span key={i}>{c}</span>)}</div>:<strong>{game.category}</strong>}</div>
      <span className="mini-wheel-divider" aria-hidden="true">|</span>
      <div className="mini-wheel-reel" aria-label="حرف">{idle?<span className="mini-wheel-idle">الحرف</span>:elapsed<3800?<div key={'letter'+game.draws} className="mini-wheel-spinning mini-wheel-long">{[...LETTERS,...LETTERS,...LETTERS].map((c,i)=><span key={i}>{c}</span>)}</div>:<strong>{game.letter}</strong>}</div>
     </div>
+    <span className="bud-sr-only" role="status">{spinning?'جارٍ الدوران…':finished?`نتيجة السحب: ${game.category}، الحرف ${game.letter}`:''}</span>
     <button type="button" className={'mini-wheel-lever'+(spinning?' is-spinning':'')} disabled={spinning} aria-label={idle?'سحب المقبض':'إعادة السحب'} onClick={()=>send({type:'spin'})}>
      <span className="mini-wheel-lever-art" aria-hidden="true"><span className="mini-wheel-lever-knob"/><span className="mini-wheel-lever-shaft"/><span className="mini-wheel-lever-base"/></span>
      <span>{spinning?'جارٍ الدوران…':idle?'اسحب المقبض':'إعادة السحب'}</span>

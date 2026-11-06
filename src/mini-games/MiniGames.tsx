@@ -22,6 +22,7 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
  const [selected,setSelected]=useState<MiniGameKind|null>(null),[pairs,setPairs]=useState<5|7>(5),[seconds,setSeconds]=useState(60),[help,setHelp]=useState<MiniGameKind|null>(null);
  const [clock,setClock]=useState(Date.now()),[confirmExit,setConfirmExit]=useState(false),[winnerForm,setWinnerForm]=useState(false),[name,setName]=useState(''),[notice,setNotice]=useState('');
  const [pickedWinner,setPickedWinner]=useState<string|null>(null),[reveal,setReveal]=useState<{name:string;winnerId:string|null}|null>(null);
+ const gameTrigger=useRef<HTMLButtonElement|null>(null);
  const dialog=useRef<HTMLDialogElement>(null),helpDialog=useRef<HTMLDialogElement>(null),helpTrigger=useRef<HTMLButtonElement|null>(null);
  const send=(action:MiniAction)=>{
   const next=miniReducer(latest.current,action,Date.now());
@@ -36,7 +37,7 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
  const modalOpen=!!selected||!!state.active;
  useEffect(()=>{
   const node=dialog.current;if(!node)return;
-  const previous=document.activeElement as HTMLElement|null;
+  const previous=gameTrigger.current;
   if(modalOpen){if(!node.open)node.showModal();document.body.style.overflow='hidden';}
   else{if(node.open)node.close();document.body.style.overflow='';}
   return()=>{if(node.open)node.close();document.body.style.overflow='';if(previous?.isConnected)previous.focus({preventScroll:true});};
@@ -55,7 +56,7 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
   confirmClose();
  };
  const confirmClose=()=>{send({type:'close'});setSelected(null);setConfirmExit(false);setWinnerForm(false);setName('');};
- const open=(kind:MiniGameKind)=>{setPairs(5);setSeconds(kind==='form-word'?60:30);setConfirmExit(false);setNotice('');setSelected(kind);};
+ const open=(kind:MiniGameKind,trigger:HTMLButtonElement)=>{gameTrigger.current=trigger;setPairs(5);setSeconds(kind==='form-word'?60:30);setConfirmExit(false);setNotice('');setSelected(kind);};
  const start=()=>{if(!selected)return;send({type:'open',game:selected,pairs,seconds});setSelected(null);setClock(Date.now());};
  const capacity=state.prizes.length,filled=state.winners.length,full=filled>=capacity;
  const canRecord=recordableWinner(state,clock);
@@ -70,6 +71,20 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
  const copyResults=async()=>{try{await navigator.clipboard.writeText(formatEventResults(state,'ar')||'لم يُسجل فائزون');setNotice('تم نسخ الملخص.');}catch{setNotice('تعذر النسخ. يمكنك تحديد النص يدويًا.');}};
  const winner=state.winners.find(w=>w.id===pickedWinner);
  const canAward=winner&&!state.prizes.some(p=>p.winnerId===winner.id);
+ const awardedWinners=new Set(state.prizes.map(prize=>prize.winnerId));
+ const hasWaitingWinner=state.winners.some(w=>!awardedWinners.has(w.id));
+ const prizesStarted=state.prizes.some(prize=>prize.revealed);
+ const revealPrize=(prize:MiniSession['prizes'][number])=>{
+  const assigned=canAward?winner:null;
+  if(!assigned&&hasWaitingWinner){
+   if(winner){setNotice('اختر فائزًا من القائمة أولًا.');return;}
+   if(!window.confirm('هناك فائز بانتظار جائزة. كشف هذه البطاقة دون اسم سيجعلها غير متاحة للتخصيص. هل تريد المتابعة؟'))return;
+  }
+  if(assigned)send({type:'award',prizeId:prize.id,winnerId:assigned.id});
+  else send({type:'open-prize',prizeId:prize.id});
+  setNotice('');
+  setReveal({name:prize.name,winnerId:assigned?.id??null});
+ };
  return <main className="mini-root" dir="rtl" lang="ar">
   <header className="mini-top"><div className="mini-top-heading"><button type="button" className="mini-icon-button" aria-label="عودة إلى بُعد" onClick={onExit}><ArrowRight size={20}/></button><div><span className="mini-eyebrow">فعاليات بُعد</span><h1>{sessionName}</h1></div></div><div className="mini-top-actions"><span className="mini-winner-count"><Trophy size={17}/> الفائزون {num(filled)} / {num(capacity)}</span>{phase==='live'&&<button className="mini-cta mini-secondary" onClick={()=>send({type:'phase',phase:'prizes'})}><Gift size={17}/> الجوائز <ArrowLeft size={17}/></button>}</div></header>
   <div className="mini-steps" aria-label="مراحل الفعالية"><span className="is-past">الإعداد</span><span className={phase==='live'?'is-current':'is-past'}>شاشة الفعالية</span><span className={phase==='prizes'?'is-current':phase==='closing'?'is-past':''}>الجوائز</span><span className={phase==='closing'?'is-current':''}>الختام</span></div>
@@ -77,7 +92,7 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
    {capacity===0&&<p className="mini-notice" role="status">لا توجد جوائز مجهّزة — تستطيع اللعب، لكن تسجيل الفائزين غير متاح.</p>}
    {capacity>0&&full&&<p className="mini-notice" role="status">تم تسجيل جميع الفائزين — تستطيع مواصلة اللعب دون تسجيل فائزين جدد.</p>}
    <div className="mini-hub-grid">{GAME_IDS.map(id=>{const Icon=icons[id];return <div key={id} className="mini-hub-card">
-    <button type="button" className="mini-hub-main" onClick={()=>open(id)}><span className="mini-hub-icon"><Icon size={35} strokeWidth={1.75}/></span><strong>{GAME_LABELS[id]}</strong></button>
+    <button type="button" className="mini-hub-main" onClick={event=>open(id,event.currentTarget)}><span className="mini-hub-icon"><Icon size={35} strokeWidth={1.75}/></span><strong>{GAME_LABELS[id]}</strong></button>
     <button type="button" className="mini-hub-info" aria-label={'شرح '+GAME_LABELS[id]} onClick={event=>{helpTrigger.current=event.currentTarget;setHelp(id);}}><Info size={19}/></button>
    </div>;})}</div>
   </section>}
@@ -86,9 +101,10 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
     {capacity===0&&<p className="mini-notice">لا توجد جوائز مجهّزة.</p>}
    </aside>
    <section className="mini-prize-main"><h2><Gift size={20}/> كشف الجوائز</h2>
-    {reveal?<PrizeReveal key={reveal.name+reveal.winnerId} name={reveal.name} winner={state.winners.find(w=>w.id===reveal.winnerId)||null} locale="ar" celebration={true} onClose={()=>setReveal(null)}/>:capacity===0?<div className="mini-empty">لا توجد جوائز في هذه الفعالية. يمكنك الانتقال مباشرة إلى الختام.</div>:<div className="mini-prize-grid">{state.prizes.map((p,i)=><button key={p.id} className={'mini-prize-card'+(p.revealed?' is-revealed':'')} disabled={p.revealed} onClick={()=>{const assigned=canAward?winner:null;if(assigned)send({type:'award',prizeId:p.id,winnerId:assigned.id});else if(!winner||state.winners.every(w=>state.prizes.some(z=>z.winnerId===w.id)))send({type:'open-prize',prizeId:p.id});else {setNotice('اختر فائزًا من القائمة أولًا.');return;}setReveal({name:p.name,winnerId:assigned?.id||null});}}>{p.revealed?<span>{p.name}</span>:<><Gift size={28}/><strong>الجائزة {num(i+1)}</strong></>}</button>)}</div>}
+    {reveal?<PrizeReveal key={reveal.name+reveal.winnerId} name={reveal.name} winner={state.winners.find(w=>w.id===reveal.winnerId)||null} locale="ar" celebration={true} onClose={()=>setReveal(null)}/>:capacity===0?<div className="mini-empty">لا توجد جوائز في هذه الفعالية. يمكنك الانتقال مباشرة إلى الختام.</div>:<div className="mini-prize-grid">{state.prizes.map((p,i)=><button key={p.id} className={'mini-prize-card'+(p.revealed?' is-revealed':'')} disabled={p.revealed} onClick={()=>revealPrize(p)}>{p.revealed?<span>{p.name}</span>:<><Gift size={28}/><strong>الجائزة {num(i+1)}</strong></>}</button>)}</div>}
     {notice&&<p className="mini-notice" role="status">{notice}</p>}
-    <div className="mini-action-row"><button className="mini-cta mini-secondary" disabled={state.prizes.some(p=>p.revealed)} onClick={()=>send({type:'phase',phase:'live'})}><ArrowRight size={17}/> العودة للألعاب</button><button className="mini-cta mini-primary" onClick={()=>send({type:'phase',phase:'closing'})}>الختام <ArrowLeft size={17}/></button></div>
+    {prizesStarted&&<p className="mini-subtle">بعد كشف أول جائزة، يمكنك متابعة التوزيع أو الانتقال إلى الختام.</p>}
+    <div className="mini-action-row"><button className="mini-cta mini-secondary" disabled={prizesStarted} onClick={()=>send({type:'phase',phase:'live'})}><ArrowRight size={17}/> العودة للألعاب</button><button className="mini-cta mini-primary" onClick={()=>send({type:'phase',phase:'closing'})}>الختام <ArrowLeft size={17}/></button></div>
    </section></section>}
   {phase==='closing'&&<section className="mini-closing"><Trophy size={46}/><h2>شكرًا لمشاركتكم!</h2><p>اكتملت الفعالية، وهذه نتائجها.</p><textarea readOnly aria-label="ملخص الفعالية" value={formatEventResults(state,'ar')||'لم يُسجل فائزون'} rows={Math.max(4,Math.min(12,state.winners.length+1))}/><button className="mini-cta mini-primary" onClick={()=>void copyResults()}><Copy size={17}/> نسخ الملخص</button>{notice&&<p role="status">{notice}</p>}{onExit&&<button className="mini-cta mini-secondary" onClick={onExit}>العودة إلى بُعد</button>}</section>}
   <dialog ref={dialog} className="mini-dialog" aria-label={selected?GAME_LABELS[selected]:state.active?GAME_LABELS[state.active.kind]:'إعداد اللعبة'} onCancel={e=>{e.preventDefault();requestClose();}}>
