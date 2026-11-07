@@ -19,7 +19,7 @@ test('six-game preview runs with zero prizes and never requests a paid start',as
  await expect(page.getByText('لا توجد جوائز مجهّزة',{exact:false}).last()).toBeVisible();
  const resultLayer=page.locator('.mini-result-layer'),resultDialog=page.getByRole('dialog',{name:'القنبلة'});
  await expect(resultLayer).toBeVisible();
- const resultGeometry=await page.evaluate(()=>{const layer=document.querySelector('.mini-result-layer')!.getBoundingClientRect(),dialog=document.querySelector('dialog[aria-label="القنبلة"]')!.getBoundingClientRect();return {covers:Math.abs(layer.left-dialog.left)<=3&&Math.abs(layer.right-dialog.right)<=3&&Math.abs(layer.top-dialog.top)<=3&&Math.abs(layer.bottom-dialog.bottom)<=3,buttons:[...document.querySelectorAll('.mini-result-layer button')].every(node=>{const box=node.getBoundingClientRect();return box.top>=dialog.top&&box.bottom<=dialog.bottom;})};});
+ const resultGeometry=await page.evaluate(()=>{const layer=document.querySelector('.mini-result-layer')!.getBoundingClientRect();return {covers:Math.abs(layer.left)<=3&&Math.abs(layer.right-innerWidth)<=3&&Math.abs(layer.top)<=3&&Math.abs(layer.bottom-innerHeight)<=3,buttons:[...document.querySelectorAll('.mini-result-layer button')].every(node=>{const box=node.getBoundingClientRect();return box.top>=0&&box.bottom<=innerHeight;})};});
  expect(resultGeometry).toEqual({covers:true,buttons:true});
  await expect(resultDialog.getByRole('button',{name:'تسجيل فائز'})).toHaveCount(0);
  await page.getByRole('button',{name:'إنهاء اللعبة دون فائز'}).click();
@@ -27,10 +27,12 @@ test('six-game preview runs with zero prizes and never requests a paid start',as
  await page.getByRole('button',{name:/الجوائز/}).first().click();
  await expect(page.getByText('لا توجد جوائز مسجلة.')).toBeVisible();
  await page.getByRole('button',{name:'انهاء'}).click();
- await expect(page.getByRole('heading',{name:'شكرًا لمشاركتكم!'})).toBeVisible();
+ await expect(page.getByRole('dialog',{name:'إنهاء الفعالية؟'})).toBeVisible();
+ await page.getByRole('button',{name:'إنهاء وعرض النتائج'}).click();
+ await expect(page.getByRole('heading',{name:'شكرًا لكم على المشاركة'})).toBeVisible();
  expect(requests).toEqual([]);
 });
-test('wheel stops category before letter, reshuffles and never shows excluded letters',async({page})=>{
+test('wheel stops category before letter, stays balanced and never shows excluded letters',async({page})=>{
  await page.clock.install();
  await page.goto('/?screen=mini-preview');
  await page.getByRole('button',{name:/بدء المعاينة/}).click();
@@ -49,8 +51,8 @@ test('wheel stops category before letter, reshuffles and never shows excluded le
  expect(Math.abs(reels[0]-reels[1])).toBeLessThan(1);
  const letter=await modal.locator('.mini-wheel-reel strong').last().textContent();
  expect(letter).not.toMatch(/[ثذضظ]/);
- await modal.getByRole('button',{name:'إعادة السحب'}).click();
- await expect(modal.locator('.mini-wheel-reel strong')).toHaveCount(0);
+ await expect(page.locator('.mini-result-layer')).toBeVisible();
+ await expect(page.getByText('اكتملت اللعبة',{exact:true})).toBeVisible();
 });
 test('responsive mini-game hub has usable modals and no horizontal page overflow',async({page})=>{
  await page.setViewportSize({width:390,height:844});

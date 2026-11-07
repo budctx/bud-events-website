@@ -117,7 +117,7 @@ for(const locale of ['ar','en']) test(`manual journey ${locale}`,async({page},in
   await page.getByLabel(ar?'اسم الفائز':'Winner name',{exact:true}).fill('Test Winner');
   await page.getByRole('button',{name:ar?'إضافة فائز':'Add winner',exact:true}).click();
   await expect(winnerDialog).not.toBeVisible();
-  await expect(page.locator('.mg-header h1')).toBeFocused();
+  await expect(page.locator('.event-journey-heading h1')).toBeFocused();
   await page.screenshot({path:info.outputPath(`game-${locale}.png`),fullPage:true,animations:'disabled'});
   await page.getByRole('button',{name:ar?'الجوائز':'Prize page',exact:true}).click();
   await page.locator('.mg-winner-option').click();
@@ -127,8 +127,8 @@ for(const locale of ['ar','en']) test(`manual journey ${locale}`,async({page},in
   await expect(page.locator('.mg-prize-card')).toContainText('Test Winner');
   await page.getByRole('button',{name:ar?'انهاء':'End event',exact:true}).click();
   await page.getByRole('button',{name:ar?'إنهاء وعرض النتائج':'End and view results',exact:true}).click();
-  await expect(page.locator('.mg-results')).toContainText('Test Winner');
-  await expect(page.locator('.mg-results')).not.toContainText('local-manual');
+  await expect(page.locator('.event-closing-panel textarea')).toHaveValue(/Test Winner/);
+  await expect(page.locator('.event-closing-panel textarea')).not.toHaveValue(/local-manual/);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth+1)).toBeTruthy();
   await page.screenshot({path:info.outputPath(`closing-${locale}.png`),fullPage:true,animations:'disabled'});
 });

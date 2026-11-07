@@ -240,9 +240,10 @@ test('winners + icon, deletion confirmation and automatic reveal of leftover pri
   await expect(page.locator('.mg-prize-card').nth(2)).toContainText('دون اسم');
   await page.getByRole('button',{name:'انهاء',exact:true}).click();
   await page.getByRole('button',{name:'إنهاء وعرض النتائج',exact:true}).click();
-  await expect(page.locator('.mg-unnamed-results')).toContainText(revealedUnnamed);
-  await expect(page.locator('.mg-results')).toContainText('Ali');
-  await expect(page.locator('.mg-results')).toContainText('Sara');
+  const results=page.locator('.event-closing-panel textarea');
+  await expect(results).toHaveValue(new RegExp(revealedUnnamed));
+  await expect(results).toHaveValue(/Ali/);
+  await expect(results).toHaveValue(/Sara/);
 });
 
 test('all prizes can be manually opened with an empty winner list', async ({page}) => {

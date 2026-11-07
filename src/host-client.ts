@@ -59,12 +59,17 @@ export async function startBrowserHostEvent(ownerId:string,payload:StartHostEven
 export const closeBrowserHostRun=(eventId:string)=>request('/api/host',{action:'localFinish',eventId});
 
 /** Start one four-hour Mini Games session. The credit debit is only made by the server once. */
-export async function startMiniHostEvent(ownerId:string,idempotencyKey:string,prizeText:string):Promise<MiniRun>{
+export async function startMiniHostEvent(ownerId:string,idempotencyKey:string,title:string,prizeText:string,onProgress?:(step:0|1|2)=>void):Promise<MiniRun>{
  if(!browserStorageReady())throw new HostClientError('LOCAL_STORAGE_UNAVAILABLE',409);
- const receipt=await request<{eventId:string;ownerId:string;storage:string;kind:string}>('/api/host',{action:'miniStart',idempotencyKey,title:'ميني قيمز'});
+ const cleanTitle=title.trim();
+ if(!cleanTitle||cleanTitle.length>100)throw new HostClientError('VALIDATION_ERROR',400);
+ onProgress?.(0);
+ const receipt=await request<{eventId:string;ownerId:string;storage:string;kind:string}>('/api/host',{action:'miniStart',idempotencyKey,title:cleanTitle});
  if(receipt.ownerId!==ownerId||receipt.storage!=='browser-v2'||receipt.kind!=='mini-games')throw new HostClientError('LOCAL_CONTENT_INVALID',503);
+ onProgress?.(1);
  const pkg=await request<{ownerId:string;eventId:string;title:string;expiresAt:string;kind:string;storage:string}>('/api/host',{action:'miniContent',eventId:receipt.eventId});
  if(pkg.ownerId!==ownerId||pkg.eventId!==receipt.eventId||pkg.kind!=='mini-games'||pkg.storage!=='browser-v2')throw new HostClientError('LOCAL_CONTENT_INVALID',503);
+ onProgress?.(2);
  try{return createMiniRun({ownerId,eventId:pkg.eventId,title:pkg.title,expiresAt:pkg.expiresAt,prizeText});}
  catch{throw new HostClientError('LOCAL_STORAGE_UNAVAILABLE',409);}
 }
