@@ -18,17 +18,20 @@ export async function handleReview(request:Request,env:AuthEnv=environment(),tra
  catch{return liveResponse(400,'INVALID_REQUEST');}
  if(!record(body)||!['mine','submit','feature'].includes(String(body.action)))return liveResponse(400,'INVALID_REQUEST');
  const action=String(body.action);
- const expected=action==='mine'?['action']:action==='submit'?['action','comment']:['action','id','rank','operationId'];
+ const expected=action==='mine'?['action']:action==='submit'?['action','rating','comment','publishConsent']:['action','id','rank','operationId'];
  if(Object.keys(body).length!==expected.length||!expected.every(key=>Object.prototype.hasOwnProperty.call(body,key)))return liveResponse(400,'INVALID_REQUEST');
- if(action==='submit'&&(typeof body.comment!=='string'||body.comment.trim().length<3||body.comment.length>500))return liveResponse(400,'INVALID_REQUEST');
+ if(action==='submit'&&(!Number.isInteger(body.rating)||Number(body.rating)<1||Number(body.rating)>5
+  ||typeof body.comment!=='string'||body.comment.trim().length<3||body.comment.length>500
+  ||typeof body.publishConsent!=='boolean'))return liveResponse(400,'INVALID_REQUEST');
  if(action==='feature'&&(!uuid.test(String(body.id))||!uuid.test(String(body.operationId))||!(body.rank===null||Number.isInteger(body.rank)&&Number(body.rank)>=1&&Number(body.rank)<=5)))return liveResponse(400,'INVALID_REQUEST');
  const limited=await enforceRateLimit(request,env,transport,action==='mine'?'host':'checkout');if(limited)return limited;
  const session=await resolveOwnerSession(request,env,transport);if(!session)return liveResponse(401,'DISCORD_AUTH_REQUIRED');
  const userLimited=await enforceRateLimit(request,env,transport,action==='mine'?'host':'checkout','review:'+session.hostId);if(userLimited)return userLimited;
  try{
   if(action==='mine')return liveResponse(200,'OK',await liveRpc('bud_review_mine',{p_host:session.hostId},secret,transport),session.headers);
-  if(action==='submit')return liveResponse(200,'OK',await liveRpc('bud_review_submit_text',{
-   p_host:session.hostId,p_comment:(body.comment as string).trim(),p_name:session.displayName.trim().slice(0,60),p_avatar:session.avatarUrl
+  if(action==='submit')return liveResponse(200,'OK',await liveRpc('bud_review_submit_rated',{
+   p_host:session.hostId,p_rating:body.rating,p_comment:(body.comment as string).trim(),p_name:session.displayName.trim().slice(0,60),
+   p_avatar:session.avatarUrl,p_consent:body.publishConsent
   },secret,transport),session.headers);
   if(!session.discordId)return liveResponse(403,'OWNER_REQUIRED',undefined,session.headers);
   const result=await liveRpc('bud_review_feature',{

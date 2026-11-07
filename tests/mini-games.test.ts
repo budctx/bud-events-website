@@ -118,6 +118,18 @@ test('winner count never exceeds prize count and repeated names retain different
  assert.equal(s.phase,'closing');
 });
 
+test('shared prize stage can add a bounded winner without reopening an activity',()=>{
+ let state=createMiniSession('أولى\nثانية',first);
+ state=miniReducer(state,{type:'phase',phase:'prizes'});
+ const added=miniReducer(state,{type:'add-winner',name:'  نورة  '});
+ assert.equal(added.phase,'prizes');
+ assert.equal(added.active,null);
+ assert.deepEqual(added.winners,[{id:'winner-1',name:'نورة'}]);
+ const second=miniReducer(added,{type:'add-winner',name:'نورة'});
+ assert.equal(second.winners.length,2);
+ assert.strictEqual(miniReducer(second,{type:'add-winner',name:'زائد'}),second);
+});
+
 test('new sessions start fixed 4x4 bomb, five emoji pairs and a five-step pattern',()=>{
  const b=createMiniGame('bomb',{type:'open',game:'bomb',size:6},0,first);
  assert.equal(b.kind,'bomb');if(b.kind==='bomb')assert.equal(b.size,4);

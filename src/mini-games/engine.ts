@@ -28,6 +28,7 @@ export type MiniAction=
  | {type:'spin'}
  | {type:'close'}
  | {type:'winner';name:string}
+ | {type:'add-winner';name:string}
  | {type:'rename-winner';winnerId:string;name:string}
  | {type:'delete-winner';winnerId:string}
  | {type:'open-prize';prizeId:string}
@@ -126,6 +127,12 @@ export function miniReducer(state:MiniSession,action:MiniAction,now=Date.now(),p
   if(!state.winners.some(w=>w.id===action.winnerId))return state;
   return {...state,winners:state.winners.filter(w=>w.id!==action.winnerId),
    prizes:state.prizes.map(p=>p.winnerId===action.winnerId?{...p,winnerId:null,revealed:false}:p)};
+ }
+ if(action.type==='add-winner'){
+  const name=action.name.trim();
+  if(state.phase!=='prizes'||!name||name.length>80||state.winners.length>=state.prizes.length)return state;
+  const winner={id:'winner-'+state.nextWinnerNumber,name};
+  return {...state,winners:[...state.winners,winner],nextWinnerNumber:state.nextWinnerNumber+1};
  }
  if(action.type==='award'){
   if(state.phase!=='prizes'||!state.winners.some(w=>w.id===action.winnerId)||state.prizes.some(p=>p.winnerId===action.winnerId))return state;

@@ -4,14 +4,13 @@ import {readMiniRun,saveMiniRun,selectMiniRun} from './session.ts';
 import type {MiniRun} from './session.ts';
 import type {MiniSession} from './engine.ts';
 import {closeMiniHostEvent} from '../host-client';
-import {ReviewModal} from '../ReviewModal';
 import {BudNotice} from '../BudUI';
 
 export default function MiniGamesHost({initial,onExit,onHome}:{initial:MiniRun;onExit:()=>void;onHome:()=>void}){
  const [run,setRun]=useState(()=>readMiniRun(initial.ownerId,initial.eventId)??initial),current=useRef(run);
  const [access,setAccess]=useState<'checking'|'ready'|'locked'|'unsupported'>('checking');
  const [expired,setExpired]=useState(()=>Date.now()>=Date.parse(run.expiresAt)&&run.state.phase!=='closing');
- const [storageError,setStorageError]=useState(''),[showReview,setShowReview]=useState(false);
+ const [storageError,setStorageError]=useState('');
  useEffect(()=>{
   let disposed=false,release:(()=>void)|undefined;
   if(!navigator.locks){setAccess('unsupported');return;}
@@ -48,8 +47,7 @@ export default function MiniGamesHost({initial,onExit,onHome}:{initial:MiniRun;o
    }).catch(()=>{/* A later dashboard refresh retries lifecycle acknowledgement, never uploads results. */});
   }
  };
- const exit=()=>{if(current.current.state.phase==='closing')setShowReview(true);else onExit();};
- if(showReview)return <ReviewModal eventId={run.eventId} onExit={onExit}/>;
+ const exit=()=>{if(current.current.state.phase==='closing')location.assign('/review');else onExit();};
  if(access!=='ready'||expired)return <main className="host-portal" dir="rtl"><section className="host-panel host-access">
   <BudNotice tone="warning" persistent>{expired?'انتهت مدة تشغيل الفعالية (4 ساعات).':access==='checking'?'':access==='locked'?'الفعالية مفتوحة في تبويب آخر. أغلق التبويب الآخر أولًا.':'متصفحك لا يدعم الحفظ المحلي والقفل اللازمين لهذه الفعالية.'}</BudNotice>
   <h1>{access==='checking'&&!expired?'جارٍ فتح ميني قيمز…':'تعذر فتح الفعالية'}</h1>

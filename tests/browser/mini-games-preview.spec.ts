@@ -1,5 +1,6 @@
 import {expect,test} from '@playwright/test';
 test('six-game preview runs with zero prizes and never requests a paid start',async({page})=>{
+ await page.setViewportSize({width:390,height:844});
  const requests:string[]=[];
  page.on('request',r=>{if(r.url().includes('/api/host')||r.url().includes('/api/checkout'))requests.push(r.url());});
  await page.goto('/?screen=mini-preview');
@@ -16,11 +17,16 @@ test('six-game preview runs with zero prizes and never requests a paid start',as
  }
  await expect(page.getByText(/خسر اللاعب/)).toBeVisible();
  await expect(page.getByText('لا توجد جوائز مجهّزة',{exact:false}).last()).toBeVisible();
+ const resultLayer=page.locator('.mini-result-layer'),resultDialog=page.getByRole('dialog',{name:'القنبلة'});
+ await expect(resultLayer).toBeVisible();
+ const resultGeometry=await page.evaluate(()=>{const layer=document.querySelector('.mini-result-layer')!.getBoundingClientRect(),dialog=document.querySelector('dialog[aria-label="القنبلة"]')!.getBoundingClientRect();return {covers:Math.abs(layer.left-dialog.left)<=3&&Math.abs(layer.right-dialog.right)<=3&&Math.abs(layer.top-dialog.top)<=3&&Math.abs(layer.bottom-dialog.bottom)<=3,buttons:[...document.querySelectorAll('.mini-result-layer button')].every(node=>{const box=node.getBoundingClientRect();return box.top>=dialog.top&&box.bottom<=dialog.bottom;})};});
+ expect(resultGeometry).toEqual({covers:true,buttons:true});
+ await expect(resultDialog.getByRole('button',{name:'تسجيل فائز'})).toHaveCount(0);
  await page.getByRole('button',{name:'إنهاء اللعبة دون فائز'}).click();
  await expect(page.locator('.mini-hub-card')).toHaveCount(6);
  await page.getByRole('button',{name:/الجوائز/}).first().click();
- await expect(page.getByText('لا توجد جوائز في هذه الفعالية')).toBeVisible();
- await page.getByRole('button',{name:/الختام/}).last().click();
+ await expect(page.getByText('لا توجد جوائز مسجلة.')).toBeVisible();
+ await page.getByRole('button',{name:'انهاء'}).click();
  await expect(page.getByRole('heading',{name:'شكرًا لمشاركتكم!'})).toBeVisible();
  expect(requests).toEqual([]);
 });
@@ -39,6 +45,8 @@ test('wheel stops category before letter, reshuffles and never shows excluded le
  await expect(modal.locator('.mini-wheel-reel strong')).toHaveCount(1);
  await page.clock.runFor(1300);
  await expect(modal.locator('.mini-wheel-reel strong')).toHaveCount(2);
+ const reels=await modal.locator('.mini-wheel-reel').evaluateAll(nodes=>nodes.map(node=>node.getBoundingClientRect().width));
+ expect(Math.abs(reels[0]-reels[1])).toBeLessThan(1);
  const letter=await modal.locator('.mini-wheel-reel strong').last().textContent();
  expect(letter).not.toMatch(/[ثذضظ]/);
  await modal.getByRole('button',{name:'إعادة السحب'}).click();
@@ -143,7 +151,7 @@ test('five-step pattern illuminates its four unlettered pads silently and then e
  await expect(modal.locator('button[aria-label="تفعيل الصوت"],button[aria-label="كتم الصوت"]')).toHaveCount(0);
 });
 
-test('saving a winner restores game focus and unassigned reveal requires confirmation',async({page})=>{
+test('saving a winner restores game focus and the shared prize stage assigns and locks a reveal',async({page})=>{
  const button=(name:string)=>page.getByRole('button',{name,exact:true});
  await page.goto('/?screen=mini-preview');
  await button('بدء المعاينة').click();
@@ -157,14 +165,14 @@ test('saving a winner restores game focus and unassigned reveal requires confirm
  await expect(scramble).toBeFocused();
 
  await button('الجوائز').click();
- const prize=button('الجائزة 1');
- page.once('dialog',dialog=>dialog.dismiss());
- await prize.click();
- await expect(prize).toBeEnabled();
- await expect(button('العودة للألعاب')).toBeEnabled();
-
+ await expect(page.locator('[data-event-section="shared-prizes"]')).toBeVisible();
+ const prize=button('فتح الجائزة 1');
+ await expect(prize).toBeDisabled();
+ await expect(button('عودة')).toBeEnabled();
  await button('1 مختبر بانتظار الجائزة').click();
+ await expect(prize).toBeEnabled();
  await prize.click();
- await expect(button('العودة للألعاب')).toBeDisabled();
- await expect(page.getByText('بعد كشف أول جائزة، يمكنك متابعة التوزيع أو الانتقال إلى الختام.')).toBeVisible();
+ await expect(page.getByRole('dialog',{name:'نتيجة الجائزة'})).toBeVisible();
+ await page.keyboard.press('Escape');
+ await expect(button('عودة')).toBeDisabled();
 });

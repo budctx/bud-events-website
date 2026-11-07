@@ -21,7 +21,6 @@ export function MiniGameStage({game,now,send}:Props){
      return <button key={index} type="button" className={'mini-cell mini-bomb-cell'+(opened?' is-open':'')+(isBomb?' is-bomb':'')} aria-label={'المربع '+num(index+1)+(opened?' مكشوف':'')} disabled={opened||game.finished} onClick={()=>send({type:'tap',index})}>{opened?(isBomb?'💣':'✓'):num(index+1)}</button>;
     })}
    </div>
-   {game.finished&&<p className="mini-outcome" role="status">💥 خسر {playerLabel(game.loser!)} · فاز {playerLabel(winner!)}</p>}
   </>}
   {(game.kind==='form-word'||game.kind==='scramble')&&<>
    <div className="mini-timer" role="timer" aria-label="الوقت المتبقي"><Timer size={19}/><strong>{num(remainingSeconds(game,now))}</strong><span>ثانية</span></div>
@@ -29,7 +28,7 @@ export function MiniGameStage({game,now,send}:Props){
    <p className="mini-hint">{game.kind==='form-word'?'من يكوّن أطول كلمة صحيحة من هذه الأحرف؟':'ما الكلمة الصحيحة بعد ترتيب هذه الأحرف؟'}</p>
    {!finished?<button type="button" className="mini-cta mini-secondary" onClick={()=>send({type:'finish'})}>إنهاء التحدي</button>:game.kind==='scramble'&&!game.revealed?<button type="button" className="mini-cta mini-secondary" onClick={()=>send({type:'reveal'})}>إظهار الكلمة</button>:null}
   </>}
-  {game.kind==='pattern'&&(game.finished?<p className="mini-outcome" role="status">{game.draw?'لم يفز أحد':('فاز '+playerLabel(winner!))}</p>:(()=>{
+  {game.kind==='pattern'&&!game.finished&&(()=>{
     const elapsed=now-game.startedAt;
     const displaying=elapsed<game.level*700+800;
     const index=elapsed>=500?Math.floor((elapsed-500)/700):-1;
@@ -44,7 +43,7 @@ export function MiniGameStage({game,now,send}:Props){
      <div className="mini-pattern-pads" aria-label="لوحة ألوان احفظ النمط">{PATTERN_COLORS.map(value=><button type="button" key={value} aria-label={'اللون '+value} className={'mini-pattern-pad '+colorClass(value)+(active===value?' is-lit':'')} disabled={displaying} aria-disabled={displaying} onClick={()=>send({type:'color',color:value})}/>)}</div>
      <button type="button" className="mini-icon-text" onClick={()=>send({type:'replay'})}><RotateCcw size={18}/> إعادة عرض النمط</button>
     </>;
-   })())}
+   })()}
   {game.kind==='emoji'&&<>
    <div className="mini-scorebar"><span>اللاعب 1 <strong>{num(game.scores[0])}</strong></span><span>الدور: <strong>{playerLabel(game.turn)}</strong></span><span>اللاعب 2 <strong>{num(game.scores[1])}</strong></span></div>
    <div className="mini-emoji-grid" style={{gridTemplateColumns:'repeat('+game.pairs+',minmax(0,1fr))'}} aria-label="بطاقات ذاكرة الإيموجي">
@@ -61,7 +60,7 @@ export function MiniGameStage({game,now,send}:Props){
    return <>
     <div className="mini-wheel-track" aria-hidden="true">
      <div className="mini-wheel-reel" aria-label="تصنيف">{idle?<span className="mini-wheel-idle">الفئة</span>:elapsed<2600?<div key={'cat'+game.draws} className="mini-wheel-spinning">{[...CATEGORIES,...CATEGORIES,...CATEGORIES].map((c,i)=><span key={i}>{c}</span>)}</div>:<strong>{game.category}</strong>}</div>
-     <span className="mini-wheel-divider" aria-hidden="true">|</span>
+     <span className="mini-wheel-divider" aria-hidden="true"/>
      <div className="mini-wheel-reel" aria-label="حرف">{idle?<span className="mini-wheel-idle">الحرف</span>:elapsed<3800?<div key={'letter'+game.draws} className="mini-wheel-spinning mini-wheel-long">{[...LETTERS,...LETTERS,...LETTERS].map((c,i)=><span key={i}>{c}</span>)}</div>:<strong>{game.letter}</strong>}</div>
     </div>
     <span className="bud-sr-only" role="status">{spinning?'جارٍ الدوران…':finished?`نتيجة السحب: ${game.category}، الحرف ${game.letter}`:''}</span>
