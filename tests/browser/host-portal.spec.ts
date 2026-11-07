@@ -404,6 +404,8 @@ test('mobile Mini Games reuses the Question & Condition setup shell and prize ed
  await expect(modal).toBeVisible();
  await expect(modal).toHaveClass(/bud-event-setup-modal/);
  await expect(modal.locator('.host-portal.host-embedded .host-panel')).toBeVisible();
+  await expect(modal.getByLabel('اسم الفعالية')).toHaveValue('ميني قيمز');
+  await expect(modal.getByText('شاشة الفعالية',{exact:true})).toBeVisible();
  await expect(modal.locator('[data-event-prize-editor="shared"]')).toBeVisible();
  await expect(modal.getByLabel('الجوائز',{exact:true})).not.toBeFocused();
  await expect(modal.locator('.host-heading h1')).toBeFocused();
@@ -415,6 +417,8 @@ test('mobile Mini Games reuses the Question & Condition setup shell and prize ed
  await page.getByRole('button',{name:'عرض فعالية سؤال وشرط',exact:true}).click();
  await page.getByTestId('event-setup').tap();
  const qc=page.getByRole('dialog',{name:'إعداد الفعالية',exact:true});
+  await expect(qc.getByLabel('اسم الفعالية')).toHaveValue('سؤال وشرط');
+  await expect(qc.getByText('شاشة الفعالية',{exact:true})).toBeVisible();
  await expect(qc.locator('[data-event-prize-editor="shared"]')).toBeVisible();
  await expect(qc.locator('.host-heading h1')).toBeFocused();
  await expect(qc.getByLabel('الجوائز',{exact:true})).not.toBeFocused();

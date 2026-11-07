@@ -1,11 +1,11 @@
 import {BudNotice,BudSkeleton} from './BudUI';
 import { useEffect, useRef, useState } from 'react';
 import { AnimatedSwitch } from './InterfaceControls';
-import {EventPrizeFields} from './EventPrizeFields';
+import {EventSetupStage} from './EventJourney';
 import {ButtonUtility} from './ButtonUtility';
 import {EventStartLoader} from './EventStartLoader';
 import {RefreshCw,Copy,X,ArrowRight} from 'lucide-react';
-import { BudSteps,useBudToast } from './BudUI';
+import {useBudToast } from './BudUI';
 import { parsePrizeLines } from './prize-lines';
 import {clearHostSetupDraft,readHostSetupDraft,saveHostSetupDraft} from './host-setup-draft';
 import { formatEventResults } from './event-summary';
@@ -95,13 +95,13 @@ export default function HostPortal({ onPlay, onExit, locale, view, onAuthLost,on
       <BudNotice tone="danger">{error}</BudNotice>
       {status!=='loading'&&status!=='ready'&&status!=='signed-out'&&<BudNotice tone="danger">{t.unavailable}</BudNotice>}{status === 'loading' ? <BudSkeleton label={t.loading}/> : status !== 'ready' ? <section className="host-panel host-access"><h2>{status === 'signed-out' ? t.signin : 'تعذر فتح مساحتك'}</h2>{status==='signed-out'&&<p>{t.intro}</p>}{status === 'signed-out' && <button className="host-discord" disabled={busy} onClick={() => void perform(() => signInHost({page:'events',locale}))}><img src="/assets/discord-symbol-white.svg" width="24" height="18" alt="Discord" />{t.signin}</button>}<ButtonUtility label="إعادة المحاولة" icon={RefreshCw} isDisabled={busy} onPress={() => setReload(value => value + 1)}/></section> : dashboard && <>
         {!view && <section className="host-balance host-panel" aria-label={t.slots}><div><h2>{t.slots}</h2><p>{t.slotHint}</p></div><strong>{dashboard.credits}</strong></section>}
-        <div className={view ? 'host-single' : 'host-grid'}>{view !== 'history' && <section className="host-panel"><BudSteps steps={locale==='ar'?['الإعداد','شاشة الفعالية','الجوائز','الختام']:['Setup','Live','Prizes','Closing']} current={0}/><h2>{t.setup}</h2>{draftRestored&&<BudNotice>استُعيدت مسودة الإعداد من هذا المتصفح. لا تُحفظ المسودة على الخادم.</BudNotice>}<form onSubmit={event => { event.preventDefault(); void start(); }}>
+        <div className={view ? 'host-single' : 'host-grid'}>{view !== 'history' && <section className="host-panel">{draftRestored&&<BudNotice>استُعيدت مسودة الإعداد من هذا المتصفح. لا تُحفظ المسودة على الخادم.</BudNotice>}<form onSubmit={event => { event.preventDefault(); void start(); }}>
           {uncertain&&<BudNotice tone="warning" persistent resolveOnUnmount>{t.confirmChange}</BudNotice>}
-          <fieldset disabled={busy || uncertain}><div className="host-setup-field-group" aria-labelledby="host-setup-basic-title"><h3 id="host-setup-basic-title">{locale==='ar'?'بيانات الفعالية':'Event details'}</h3><label htmlFor="host-title">{t.eventTitle}</label><input id="host-title" value={title} maxLength={100} onChange={event => setTitle(event.target.value)} required /></div>
+          <fieldset disabled={busy || uncertain}><EventSetupStage eventName="سؤال وشرط" title={title} titleId="host-title" onTitleChange={setTitle} prizeId="host-prizes" prizeHeadingId="host-setup-prizes-title" prizeText={prizeText} onPrizeChange={setPrizeText} parsed={parsed}>
             <div className="host-setup-field-group" aria-labelledby="host-setup-timer-title"><h3 id="host-setup-timer-title">{locale==='ar'?'التوقيت':'Timing'}</h3><div className="host-options"><AnimatedSwitch label={t.timer} checked={config.timerEnabled} onCheckedChange={timerEnabled => setConfig(previous => ({ ...previous, timerEnabled }))} /></div>
             {config.timerEnabled && <div className="host-duration"><label htmlFor="host-duration">{t.duration}</label><input id="host-duration" type="number" min={3} max={30} step={1} value={config.duration} onChange={event => setConfig(previous => ({ ...previous, duration: Number(event.target.value) }))} required /></div>}
             </div>
-            <EventPrizeFields id="host-prizes" headingId="host-setup-prizes-title" value={prizeText} onChange={setPrizeText} parsed={parsed}/>
+            </EventSetupStage>
           </fieldset>
           <div className="host-start-actions">
             {startDisabledReason&&<p id="host-start-hint" className="host-start-hint" role="status">{startDisabledReason}</p>}
