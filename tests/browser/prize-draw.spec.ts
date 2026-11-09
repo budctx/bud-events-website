@@ -301,3 +301,29 @@ test('Question & Condition winner manager heading stays clear at mobile and desk
   if(width===390)await page.screenshot({path:info.outputPath('question-winners-header-390.png')});
  }
 });
+
+
+test('Question & Condition setup, activity, prizes and closing hide decorative stage tabs',async({page},info)=>{
+ for(const width of [390,1440]){
+  await page.setViewportSize({width,height:width===1440?900:844});
+  await page.goto('/?screen=game&lang=ar');
+  const tabs=page.locator('.bud-steps, .event-journey-steps');
+  await expect(tabs).toHaveCount(0);
+  await page.getByLabel('أدخل الجوائز').fill('هدية اختبار');
+  await page.getByRole('button',{name:'بدء الفعالية',exact:true}).click();
+  await expect(page.locator('.mg-live')).toBeVisible();
+  await expect(tabs).toHaveCount(0);
+  await expect(page.getByRole('button',{name:/^الفائزون/})).toBeVisible();
+  await expect(page.locator('.event-journey-prizes')).toBeVisible();
+  await page.locator('.event-journey-prizes').click();
+  await expect(page.locator('.mg-prize-card')).toHaveCount(1);
+  await expect(tabs).toHaveCount(0);
+  await page.getByRole('button',{name:'انهاء',exact:true}).click();
+  await page.getByRole('button',{name:'إنهاء وعرض النتائج',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'شكرًا لكم على المشاركة'})).toBeVisible();
+  await expect(tabs).toHaveCount(0);
+  await expect(page.getByRole('button',{name:'نسخ النتائج'})).toBeVisible();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+  await page.screenshot({path:info.outputPath('question-no-stage-tabs-'+width+'.png'),animations:'disabled'});
+ }
+});
