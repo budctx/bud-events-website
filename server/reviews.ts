@@ -1,7 +1,7 @@
 import {liveBackend,liveResponse} from './live-commerce.ts';
 import {boundedProviderText} from './whop.ts';
 import type {AuthEnv} from './auth.ts';
-type PublicReview={id:string;name:string;comment:string;rating:number;avatarUrl:string|null};
+type PublicReview={id:string;name:string;comment:string;avatarUrl:string|null};
 const discordAvatar=/^https:\/\/cdn\.discordapp\.com\/(?:avatars\/[1-9][0-9]{5,19}\/(?:a_)?[a-f0-9]{32}\.png\?size=64|embed\/avatars\/[0-5]\.png)$/;
 export async function handlePublicReviews(request:Request,env:AuthEnv=(globalThis as unknown as {process?:{env?:AuthEnv}}).process?.env??{},transport:typeof fetch=fetch){
  const url=new URL(request.url);
@@ -17,9 +17,8 @@ export async function handlePublicReviews(request:Request,env:AuthEnv=(globalThi
    const v=row as Record<string,unknown>;
    if(typeof v.id!=='string'||typeof v.name!=='string'||v.name.length<1||v.name.length>60
     ||typeof v.comment!=='string'||v.comment.length<3||v.comment.length>500
-    ||!Number.isInteger(v.rating)||Number(v.rating)<1||Number(v.rating)>5
     ||!(v.avatarUrl===null||(typeof v.avatarUrl==='string'&&discordAvatar.test(v.avatarUrl))))throw Error();
-   return {id:v.id,name:v.name,comment:v.comment,rating:Number(v.rating),avatarUrl:v.avatarUrl as string|null};
+   return {id:v.id,name:v.name,comment:v.comment,avatarUrl:v.avatarUrl as string|null};
   });
   return liveResponse(200,'OK',safe);
  }catch{return liveResponse(503,'REVIEWS_UNAVAILABLE');}
@@ -48,9 +47,8 @@ export async function handleLatestReviews(request:Request,env:AuthEnv=(globalThi
    const v=row as Record<string,unknown>;
    if(typeof v.id!=='string'||typeof v.name!=='string'||v.name.length<1||v.name.length>60
    ||typeof v.comment!=='string'||v.comment.length<3||v.comment.length>500
-   ||!Number.isInteger(v.rating)||Number(v.rating)<1||Number(v.rating)>5
    ||typeof v.publishedAt!=='string'||!(v.avatarUrl===null||(typeof v.avatarUrl==='string'&&discordAvatar.test(v.avatarUrl))))throw Error();
-   return {id:v.id,name:v.name,comment:v.comment,rating:Number(v.rating),avatarUrl:v.avatarUrl,publishedAt:v.publishedAt};
+   return {id:v.id,name:v.name,comment:v.comment,avatarUrl:v.avatarUrl,publishedAt:v.publishedAt};
   });
   return liveResponse(200,'OK',{items,hasMore:value.hasMore});
  }catch{return liveResponse(503,'REVIEWS_UNAVAILABLE');}

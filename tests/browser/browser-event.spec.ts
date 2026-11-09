@@ -129,20 +129,49 @@ test('finished local event navigates to the unified review and thanks page witho
  await expect(page).toHaveURL(/\/review(?:[?#]|$)/);
  await expect(page.getByRole('heading',{name:'شاركنا رأيك'})).toBeVisible();
  await expect(page.getByText('حساب محلي')).toBeVisible();
- await page.getByRole('radio',{name:'5 من 5'}).check();
- await expect(page.getByRole('textbox',{name:'تعليقك'})).toBeVisible();
- await page.getByRole('textbox',{name:'تعليقك'}).fill('فعالية ممتعة');
+ await expect(page.getByRole('radio')).toHaveCount(0);
+ await expect(page.getByRole('link',{name:'تخطي التقييم'})).toHaveAttribute('href','/');
+ await expect(page.getByRole('textbox',{name:'رأيك في التجربة'})).toBeVisible();
+ await page.getByRole('textbox',{name:'رأيك في التجربة'}).fill('فعالية ممتعة');
  await page.getByRole('checkbox',{name:/أوافق على نشر/}).check();
  await page.getByRole('button',{name:'إرسال التقييم',exact:true}).click();
  await expect(page.getByRole('heading',{name:'شكرًا لك!'})).toBeVisible();
  await expect(page.getByRole('link',{name:'العودة للرئيسية'})).toHaveAttribute('href','/');
- expect(requests.filter(r=>r.action==='submit')).toEqual([{action:'submit',rating:5,comment:'فعالية ممتعة',publishConsent:true}]);
+ expect(requests.filter(r=>r.action==='submit')).toEqual([{action:'submit',comment:'فعالية ممتعة',publishConsent:true}]);
  expect(JSON.stringify(requests)).not.toContain('جائزة محلية خاصة');
+});
+
+
+test('optional review has a text skip hyperlink that returns home without submitting',async({page})=>{
+ await setup(page);await start(page);
+ await page.evaluate(({owner,id})=>{
+  const key=`bud-browser-event:v1:${owner}:${id}`;
+  const run=JSON.parse(localStorage.getItem(key)!);run.state.phase='closing';localStorage.setItem(key,JSON.stringify(run));
+ },{owner,id});
+ const submitted:any[]=[];
+ await page.route('**/api/owner?flow=review',route=>{
+  const body=route.request().postDataJSON();submitted.push(body);
+  if(body.action==='mine')return route.fulfill(ok({}));
+  return route.fulfill({status:400,json:{code:'INVALID_REQUEST'}});
+ });
+ await page.reload();
+ await page.getByRole('button',{name:'الختام',exact:true}).click();
+ await expect(page).toHaveURL(/\/review(?:[?#]|$)/);
+ const skip=page.getByRole('link',{name:'تخطي التقييم'});
+ await expect(skip).toBeVisible();
+ await expect(skip).toHaveAttribute('href','/');
+ await expect(page.getByRole('radio')).toHaveCount(0);
+ const submitButton=await page.getByRole('button',{name:'إرسال التقييم'}).boundingBox();
+ const skipLink=await skip.boundingBox();
+ expect(submitButton&&skipLink&&skipLink.y>=submitButton.y+submitButton.height).toBe(true);
+ await skip.click();
+ await expect(page).toHaveURL(new URL('/',page.url()).href);
+ expect(submitted.filter(item=>item.action==='submit')).toEqual([]);
 });
 
 test('latest community review card puts compact author above text without date or platform caption',async({page})=>{
  await page.route('**/api/owner?public=latest-reviews*',route=>route.fulfill(ok({
-  items:[{id:'33333333-3333-4333-8333-333333333333',name:'407i',comment:'تجربة ممتعة',rating:5,avatarUrl:null,publishedAt:'2026-11-02T12:00:00Z'}],
+  items:[{id:'33333333-3333-4333-8333-333333333333',name:'407i',comment:'تجربة ممتعة',avatarUrl:null,publishedAt:'2026-11-02T12:00:00Z'}],
   hasMore:false
  })));
  await page.goto('/review');
@@ -150,7 +179,7 @@ test('latest community review card puts compact author above text without date o
  await expect(card).toBeVisible();
  await expect(card.locator('figcaption')).toContainText('407i');
  await expect(card.locator('blockquote')).toHaveText('تجربة ممتعة');
- await expect(card.getByLabel('5 من 5')).toBeVisible();
+ await expect(card.locator('.bud-review-rating,svg.lucide-star')).toHaveCount(0);
  await expect(card.locator('time')).toHaveCount(0);
  await expect(card.getByText('حساب Discord')).toHaveCount(0);
  const metrics=await card.evaluate(el=>({
