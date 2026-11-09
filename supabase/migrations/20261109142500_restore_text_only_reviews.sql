@@ -19,12 +19,11 @@ begin
  values(p_host,null,btrim(p_comment),btrim(p_name),p_avatar,p_consent,
   case when p_consent then 'published' else 'pending' end)
  on conflict(host_id) do update set
-  rating=null,comment=excluded.comment,display_name=excluded.display_name,
+  comment=excluded.comment,display_name=excluded.display_name,
   avatar_url=excluded.avatar_url,publish_consent=excluded.publish_consent,
   updated_at=clock_timestamp(),
   status=case when excluded.publish_consent then 'published' else 'pending' end,
   featured_rank=case when not excluded.publish_consent
-   or bud_platform.event_reviews.rating is not null
    or bud_platform.event_reviews.comment is distinct from excluded.comment
    or bud_platform.event_reviews.display_name is distinct from excluded.display_name
    or bud_platform.event_reviews.avatar_url is distinct from excluded.avatar_url
