@@ -158,3 +158,31 @@ test('wheel remains stopped until a host spin action; cannot double spin while t
  state=miniReducer(state,{type:'spin'},8801,first);
  assert.equal(state.active?.kind==='wheel'&&state.active.draws,2);
 });
+
+test('winner management works across live and prizes without interrupting active games',()=>{
+ let s=createMiniSession('أولى\nثانية',first);
+ s=miniReducer(s,{type:'add-winner',name:'سارة'});
+ s=miniReducer(s,{type:'add-winner',name:'سارة'});
+ assert.deepEqual(s.winners.map(w=>w.id),['winner-1','winner-2']);
+ assert.equal(s.winners[0].name,s.winners[1].name);
+ assert.strictEqual(miniReducer(s,{type:'add-winner',name:'زائد'}),s);
+ s=miniReducer(s,{type:'rename-winner',winnerId:'winner-2',name:'نورة'});
+ assert.equal(s.winners[1].name,'نورة');
+ const active=miniReducer(s,{type:'open',game:'bomb',size:4},1000,first);
+ assert.strictEqual(miniReducer(active,{type:'add-winner',name:'خاطئ'}),active);
+ s=miniReducer(active,{type:'close'});
+ s=miniReducer(s,{type:'phase',phase:'prizes'});
+ s=miniReducer(s,{type:'award',prizeId:'prize-1',winnerId:'winner-1'});
+ assert.equal(s.prizes[0].revealed,true);
+ s=miniReducer(s,{type:'delete-winner',winnerId:'winner-1'});
+ assert.equal(s.prizes[0].revealed,false);
+ assert.equal(s.prizes[0].winnerId,null);
+ s=miniReducer(s,{type:'add-winner',name:'سارة'});
+ assert.deepEqual(s.winners.map(w=>w.id),['winner-2','winner-3']);
+ s=miniReducer(s,{type:'phase',phase:'closing'});
+ assert.strictEqual(miniReducer(s,{type:'rename-winner',winnerId:'winner-2',name:'غير مسموح'}),s);
+ assert.strictEqual(miniReducer(s,{type:'delete-winner',winnerId:'winner-2'}),s);
+ assert.strictEqual(miniReducer(s,{type:'add-winner',name:'غير مسموح'}),s);
+ const empty=createMiniSession('',first);
+ assert.strictEqual(miniReducer(empty,{type:'add-winner',name:'لا جوائز'}),empty);
+});

@@ -53,6 +53,6 @@ export default function MiniGamesHost({initial,onExit,onHome}:{initial:MiniRun;o
   <h1>{access==='checking'&&!expired?'جارٍ فتح ميني قيمز…':'تعذر فتح الفعالية'}</h1>
   <button onClick={onHome}>العودة إلى بُعد</button>
  </section></main>;
- return <><MiniGames key={run.eventId} initial={run.state} onChange={save} onExit={exit} sessionName="ميني قيمز"/>
+ return <><MiniGames key={run.eventId} initial={run.state} onChange={save} onExit={exit} sessionName={run.title.trim() || 'ميني قيمز'}/>
   {storageError&&<div className="mini-save-warning" role="alert">{storageError}</div>}</>;
 }

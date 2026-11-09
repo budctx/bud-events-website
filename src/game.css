@@ -92,10 +92,14 @@
 .mg-draw-footer { display:flex; align-items:center; justify-content:space-between; gap:18px; flex-wrap:wrap; }
 .mg-draw-footer .mg-toggle { font-size:12px; min-height:44px; }
 .mg-management { padding:0 0 18px; background:#f4f1e9; }
-.mg-management h2 { margin:0; padding:16px 48px 16px 44px; border-bottom:2px solid #333; font-size:20px; }
-.mg-management>.mg-winner-list,.mg-management>form,.mg-management>div:not(.mg-management-mark) { margin:16px; }
+/* Use a real grid row for the dialog heading and actions; absolute positioning
+   previously made the title, trophy and add action overlap on narrow screens. */
+.mg-management[open] { display:grid; grid-template-columns:minmax(0,1fr) auto auto; align-items:center; column-gap:8px; }
+.mg-management[open]::before { content:''; grid-column:1/-1; grid-row:1; align-self:stretch; border-bottom:2px solid #333; pointer-events:none; }
+.mg-management>h2 { grid-column:1; grid-row:1; min-width:0; min-height:68px; margin:0; padding:12px 8px 12px 18px; display:flex; align-items:center; border:0; font-size:20px; line-height:1.5; }
+.mg-management>.mg-winner-list,.mg-management>form,.mg-management>div:not(.mg-management-heading),.mg-management>.mg-winners-empty,.mg-management>.mg-help,.mg-management>.mg-sync-error { grid-column:1/-1; margin:16px; }
 .mg-dialog-close { position:absolute; inset-inline-end:8px; top:8px; font-size:28px; background:transparent; border:0; }
-.mg-management-mark { position:absolute; top:20px; inset-inline-start:18px; color:#b16c00; }
+.mg-management-mark { color:#b16c00; }
 .mg-award-confirm,.mg-award-result { text-align:center; }
 .mg-confirm-gift { color:#fbb03b; margin-bottom:14px; }
 .mg-confirm-gift svg { width:54px; height:54px; }
@@ -163,8 +167,9 @@
 .mg-add-winner { width:40px; height:40px; padding:7px; flex:0 0 40px; }
 .mg-add-winner svg { width:22px; height:22px; }
 .mg-add-winner:disabled { opacity:.45; cursor:not-allowed; }
-.mg-management>.mg-management-heading { position:absolute; z-index:1; top:8px; inset-inline-start:58px; margin:0; display:flex; align-items:center; gap:8px; }
-.mg-management-heading .mg-management-mark { position:static; color:#b16c00; }
+.mg-management>.mg-management-heading { grid-column:2; grid-row:1; position:static; z-index:1; margin:0; display:flex; align-items:center; gap:8px; }
+.mg-management>.mg-dialog-close { grid-column:3; grid-row:1; position:static; z-index:1; margin:0 0 0 10px; }
+.mg-management-heading .mg-management-mark { position:static; flex:0 0 auto; display:flex; align-items:center; color:#b16c00; }
 
 /* Sidebar award selection and deletion are separate targets: avoid nested buttons. */
 .mg-winner-select-row { display:flex; align-items:center; gap:8px; min-width:0; }

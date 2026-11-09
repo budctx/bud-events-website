@@ -64,3 +64,18 @@ test('idle wheel can persist and resume without an implicit spin',()=>{
  assert.equal(saveMiniRun(next),true);
  assert.deepEqual(readMiniRun(next.ownerId,next.eventId),next);
 });
+
+test('custom Mini Games title is preserved across local saves and session restoration',()=>{
+ local.clear();session.clear();
+ const custom='مسابقة ديسمبر — تحدي الفرق';
+ const run=createMiniRun({...payload,eventId:'custom-title',title:custom});
+ assert.equal(run.title,custom);
+ selectMiniRun(run);
+ const restored=restoreMiniRun(run.eventId);
+ assert.ok(restored);
+ assert.equal(restored.title,custom);
+ const updated=stepMiniRun(restored,{type:'add-winner',name:'سارة'});
+ assert.equal(saveMiniRun(updated),true);
+ assert.equal(readMiniRun(run.ownerId,run.eventId)?.title,custom);
+ assert.equal(restoreMiniRun(run.eventId)?.title,custom);
+});

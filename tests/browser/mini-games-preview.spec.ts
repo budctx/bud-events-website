@@ -19,7 +19,7 @@ test('six-game preview runs with zero prizes and never requests a paid start',as
  await expect(page.getByText('لا توجد جوائز مجهّزة',{exact:false}).last()).toBeVisible();
  const resultLayer=page.locator('.mini-result-layer'),resultDialog=page.getByRole('dialog',{name:'القنبلة'});
  await expect(resultLayer).toBeVisible();
- const resultGeometry=await page.evaluate(()=>{const layer=document.querySelector('.mini-result-layer')!.getBoundingClientRect(),dialog=document.querySelector('dialog[aria-label="القنبلة"]')!.getBoundingClientRect();return {covers:Math.abs(layer.left-dialog.left)<=3&&Math.abs(layer.right-dialog.right)<=3&&Math.abs(layer.top-dialog.top)<=3&&Math.abs(layer.bottom-dialog.bottom)<=3,buttons:[...document.querySelectorAll('.mini-result-layer button')].every(node=>{const box=node.getBoundingClientRect();return box.top>=dialog.top&&box.bottom<=dialog.bottom;})};});
+ const resultGeometry=await page.evaluate(()=>{const layer=document.querySelector('.mini-result-layer')!.getBoundingClientRect();return {covers:Math.abs(layer.left)<=3&&Math.abs(layer.right-innerWidth)<=3&&Math.abs(layer.top)<=3&&Math.abs(layer.bottom-innerHeight)<=3,buttons:[...document.querySelectorAll('.mini-result-layer button')].every(node=>{const box=node.getBoundingClientRect();return box.top>=0&&box.bottom<=innerHeight;})};});
  expect(resultGeometry).toEqual({covers:true,buttons:true});
  await expect(resultDialog.getByRole('button',{name:'تسجيل فائز'})).toHaveCount(0);
  await page.getByRole('button',{name:'إنهاء اللعبة دون فائز'}).click();
@@ -27,10 +27,12 @@ test('six-game preview runs with zero prizes and never requests a paid start',as
  await page.getByRole('button',{name:/الجوائز/}).first().click();
  await expect(page.getByText('لا توجد جوائز مسجلة.')).toBeVisible();
  await page.getByRole('button',{name:'انهاء'}).click();
- await expect(page.getByRole('heading',{name:'شكرًا لمشاركتكم!'})).toBeVisible();
+ await expect(page.getByRole('dialog',{name:'إنهاء الفعالية؟'})).toBeVisible();
+ await page.getByRole('button',{name:'إنهاء وعرض النتائج'}).click();
+ await expect(page.getByRole('heading',{name:'شكرًا لكم على المشاركة'})).toBeVisible();
  expect(requests).toEqual([]);
 });
-test('wheel stops category before letter, reshuffles and never shows excluded letters',async({page})=>{
+test('wheel stops category before letter, stays balanced and never shows excluded letters',async({page})=>{
  await page.clock.install();
  await page.goto('/?screen=mini-preview');
  await page.getByRole('button',{name:/بدء المعاينة/}).click();
@@ -49,8 +51,8 @@ test('wheel stops category before letter, reshuffles and never shows excluded le
  expect(Math.abs(reels[0]-reels[1])).toBeLessThan(1);
  const letter=await modal.locator('.mini-wheel-reel strong').last().textContent();
  expect(letter).not.toMatch(/[ثذضظ]/);
- await modal.getByRole('button',{name:'إعادة السحب'}).click();
- await expect(modal.locator('.mini-wheel-reel strong')).toHaveCount(0);
+ await expect(page.locator('.mini-result-layer')).toBeVisible();
+ await expect(page.getByText('اكتملت اللعبة',{exact:true})).toBeVisible();
 });
 test('responsive mini-game hub has usable modals and no horizontal page overflow',async({page})=>{
  await page.setViewportSize({width:390,height:844});
@@ -175,4 +177,83 @@ test('saving a winner restores game focus and the shared prize stage assigns and
  await expect(page.getByRole('dialog',{name:'نتيجة الجائزة'})).toBeVisible();
  await page.keyboard.press('Escape');
  await expect(button('عودة')).toBeDisabled();
+});
+
+test('Mini Games winner management matches the shared event journey, including duplicate records, prizes and read-only closing',async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ await page.goto('/?screen=mini-preview');
+ await page.getByRole('button',{name:/بدء المعاينة/}).click();
+ const headerWinners=page.getByRole('button',{name:/^الفائزون/});
+ await headerWinners.click();
+ const manager=page.getByRole('dialog',{name:'الفائزون'});
+ await expect(manager).toBeVisible();
+ await expect(manager).toContainText('لا يوجد فائزون بعد');
+ await manager.getByRole('button',{name:'إضافة فائز'}).click();
+ await manager.getByRole('textbox',{name:'اسم الفائز'}).fill('سارة');
+ await manager.getByRole('button',{name:'إضافة فائز'}).click();
+ await expect(manager.locator('.mg-winner-row')).toHaveCount(1);
+ await manager.getByRole('button',{name:'إضافة فائز'}).click();
+ await manager.getByRole('textbox',{name:'اسم الفائز'}).fill('سارة');
+ await expect(manager).toContainText('الاسم مسجل سابقًا');
+ await manager.getByRole('button',{name:'إضافة فائز'}).click();
+ await expect(manager.locator('.mg-winner-row')).toHaveCount(2);
+ await expect(manager.locator('[data-winner-id="winner-2"]')).toContainText('سارة');
+ await manager.getByRole('button',{name:'تعديل سارة #2'}).click();
+ await manager.getByRole('textbox',{name:/تعديل اسم الفائز/}).fill('نورة');
+ await manager.getByRole('button',{name:'حفظ',exact:true}).click();
+ await expect(manager.locator('[data-winner-id="winner-2"]')).toContainText('نورة');
+ await manager.getByRole('button',{name:'إغلاق'}).click();
+ await expect(manager).not.toBeVisible();
+ await expect(headerWinners).toContainText('2/3');
+ await page.getByRole('button',{name:'الجوائز',exact:true}).click();
+ await page.locator('.mg-winner-option').first().click();
+ await page.getByRole('button',{name:'فتح الجائزة 1'}).click();
+ await expect(page.getByRole('dialog',{name:'نتيجة الجائزة'})).toBeVisible();
+ await page.keyboard.press('Escape');
+ await expect(page.locator('.mg-prize-card').first()).toHaveAttribute('data-revealed','true');
+ await headerWinners.click();
+ await manager.getByRole('button',{name:'حذف سارة #1'}).click();
+ await expect(manager).toContainText('ستُعاد جائزته إلى البطاقات المتاحة للسحب');
+ await manager.getByRole('button',{name:'تأكيد الحذف'}).click();
+ await expect(manager.locator('[data-winner-id="winner-1"]')).toHaveCount(0);
+ await manager.getByRole('button',{name:'إغلاق'}).click();
+ await expect(page.locator('.mg-prize-card').first()).toHaveAttribute('data-revealed','false');
+ await page.getByRole('button',{name:'انهاء'}).click();
+ await page.getByRole('button',{name:'إنهاء وعرض النتائج'}).click();
+ await headerWinners.click();
+ await expect(manager).toBeVisible();
+ await expect(manager.locator('.mg-winner-tools')).toHaveCount(0);
+ await expect(manager.getByRole('button',{name:'إضافة فائز'})).toHaveCount(0);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+});
+
+
+
+/** Regression: winner-management title, trophy, + action and close must never overlap. */
+async function expectManagementHeaderClear(page:import('@playwright/test').Page){
+ const dialog=page.locator('dialog.mg-management');
+ await expect(dialog).toBeVisible();
+ const data=await dialog.evaluate(node=>{
+  const selectors=[':scope > h2',':scope > .mg-management-heading',':scope > .mg-dialog-close'];
+  const parts=selectors.map(s=>node.querySelector<HTMLElement>(s)?.getBoundingClientRect());
+  const bound=node.getBoundingClientRect();
+  const overlap=(a:DOMRect,b:DOMRect)=>Math.max(0,Math.min(a.right,b.right)-Math.max(a.left,b.left))*Math.max(0,Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top));
+  return {present:parts.every(Boolean),
+   overlapping:parts.some((a,i)=>!!a&&parts.some((b,j)=>j>i&&!!b&&overlap(a,b)>1)),
+   inside:parts.every(p=>!!p&&p.left>=bound.left-1&&p.right<=bound.right+1&&p.top>=bound.top-1&&p.bottom<=bound.bottom+1),
+   horizontalOverflow:document.documentElement.scrollWidth>innerWidth+1
+  };
+ });
+ expect(data).toEqual({present:true,overlapping:false,inside:true,horizontalOverflow:false});
+}
+
+test('Mini Games winner manager heading stays clear at mobile and desktop widths',async({page},info)=>{
+ await page.goto('/?screen=mini-preview');
+ await page.getByRole('button',{name:/بدء المعاينة/}).click();
+ await page.getByRole('button',{name:/^الفائزون/}).click();
+ for(const width of [320,390,1440]){
+  await page.setViewportSize({width,height:width===1440?900:844});
+  await expectManagementHeaderClear(page);
+  if(width===390)await page.screenshot({path:info.outputPath('mini-winners-header-390.png')});
+ }
 });

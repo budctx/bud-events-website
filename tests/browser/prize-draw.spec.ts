@@ -240,9 +240,10 @@ test('winners + icon, deletion confirmation and automatic reveal of leftover pri
   await expect(page.locator('.mg-prize-card').nth(2)).toContainText('دون اسم');
   await page.getByRole('button',{name:'انهاء',exact:true}).click();
   await page.getByRole('button',{name:'إنهاء وعرض النتائج',exact:true}).click();
-  await expect(page.locator('.mg-unnamed-results')).toContainText(revealedUnnamed);
-  await expect(page.locator('.mg-results')).toContainText('Ali');
-  await expect(page.locator('.mg-results')).toContainText('Sara');
+  const results=page.locator('.event-closing-panel textarea');
+  await expect(results).toHaveValue(new RegExp(revealedUnnamed));
+  await expect(results).toHaveValue(/Ali/);
+  await expect(results).toHaveValue(/Sara/);
 });
 
 test('all prizes can be manually opened with an empty winner list', async ({page}) => {
@@ -269,4 +270,34 @@ test('winner utility controls retain Arabic names and toast feedback inside the 
  await expect(dialog.locator('.bud-toast').last()).toContainText('حُذف الفائز.');
  await dialog.getByRole('button',{name:'إغلاق',exact:true}).click();
  await expect(page.locator('.bud-toast').last()).toContainText('حُذف الفائز.');
+});
+
+
+
+/** Regression: winner-management title, trophy, + action and close must never overlap. */
+async function expectManagementHeaderClear(page:import('@playwright/test').Page){
+ const dialog=page.locator('dialog.mg-management');
+ await expect(dialog).toBeVisible();
+ const data=await dialog.evaluate(node=>{
+  const selectors=[':scope > h2',':scope > .mg-management-heading',':scope > .mg-dialog-close'];
+  const parts=selectors.map(s=>node.querySelector<HTMLElement>(s)?.getBoundingClientRect());
+  const bound=node.getBoundingClientRect();
+  const overlap=(a:DOMRect,b:DOMRect)=>Math.max(0,Math.min(a.right,b.right)-Math.max(a.left,b.left))*Math.max(0,Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top));
+  return {present:parts.every(Boolean),
+   overlapping:parts.some((a,i)=>!!a&&parts.some((b,j)=>j>i&&!!b&&overlap(a,b)>1)),
+   inside:parts.every(p=>!!p&&p.left>=bound.left-1&&p.right<=bound.right+1&&p.top>=bound.top-1&&p.bottom<=bound.bottom+1),
+   horizontalOverflow:document.documentElement.scrollWidth>innerWidth+1
+  };
+ });
+ expect(data).toEqual({present:true,overlapping:false,inside:true,horizontalOverflow:false});
+}
+
+test('Question & Condition winner manager heading stays clear at mobile and desktop widths',async({page},info)=>{
+ await start(page,true);
+ await page.getByRole('button',{name:/^الفائزون/}).click();
+ for(const width of [320,390,1440]){
+  await page.setViewportSize({width,height:width===1440?900:844});
+  await expectManagementHeaderClear(page);
+  if(width===390)await page.screenshot({path:info.outputPath('question-winners-header-390.png')});
+ }
 });

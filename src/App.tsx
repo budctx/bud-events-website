@@ -39,7 +39,7 @@ export default function App() {
   if(screen==='game'&&event&&isMiniRun(event))return <Suspense fallback={fallback}><MiniGamesHost key={event.eventId} initial={event} onExit={leaveHost} onHome={leaveHome}/></Suspense>;
   const qcEvent=event&&!isMiniRun(event)?event:null;
   if(screen==='game'&&qcEvent?.storage==='browser-v1'&&'content' in qcEvent)return <Suspense fallback={fallback}><BrowserGame key={qcEvent.eventId} initial={qcEvent as BrowserRun} onExit={leaveHost} onHome={leaveHome}/></Suspense>;
-  if (screen === 'game' && (qcEvent || import.meta.env.DEV)) return <Suspense fallback={fallback}><Seo locale={locale} screen="game" /><Game key={qcEvent?.eventId ?? 'development'} locale={locale} initialState={qcEvent?.state} cards={qcEvent?.cards} serverNow={qcEvent?.serverNow} onAction={qcEvent ? async (command, key) => {
+  if (screen === 'game' && (qcEvent || import.meta.env.DEV)) return <Suspense fallback={fallback}><Seo locale={locale} screen="game" /><Game key={qcEvent?.eventId ?? 'development'} eventTitle={qcEvent?.title} locale={locale} initialState={qcEvent?.state} cards={qcEvent?.cards} serverNow={qcEvent?.serverNow} onAction={qcEvent ? async (command, key) => {
     if (!currentEvent.current) throw new Error('No active session');
     try { const next = await dispatchHostAction(currentEvent.current, command, key); currentEvent.current = next; setEvent(next); return next; }
     catch (reason) { if (reason instanceof HostClientError && reason.status === 409) { const fresh = await resumeHostEvent(currentEvent.current.eventId); currentEvent.current = fresh; setEvent(fresh); throw new HostClientError(reason.code, 409, fresh); } throw reason; }
