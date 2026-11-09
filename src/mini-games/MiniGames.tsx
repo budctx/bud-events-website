@@ -177,7 +177,7 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
    <h2>الفائزون</h2>
    <ButtonUtility className="mg-dialog-close" label="إغلاق" icon={X} onPress={closeManager}/>
    <div className="mg-management-heading"><div className="mg-management-mark" aria-hidden="true"><WinnerIcon kind="trophy"/></div>
-    {managerMode==='list'&&phase!=='closing'&&<ButtonUtility className="mg-add-winner" label="إضافة فائز" icon={Plus} isDisabled={full||!!state.active} onPress={()=>{setManagerMode('add');setManagerName('');setManagerNotice('');}}/>}
+    {managerMode==='list'&&phase!=='closing'&&<ButtonUtility className="mg-add-winner" label="إضافة فائز" icon={Plus} isDisabled={full||!!state.active} onPress={()=>{setManagerMode('add');setManagerWinnerId('');setManagerName('');setManagerNotice('');}}/>}
    </div>
    {(managerMode==='add'||managerMode==='edit')&&phase!=='closing'?<form onSubmit={saveManager}>
     <label htmlFor="mini-manager-name">{managerMode==='add'?'اسم الفائز':<>تعديل اسم الفائز {managerWinner&&<WinnerNumber id={managerWinner.id}/>}</>}</label>
