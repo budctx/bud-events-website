@@ -257,3 +257,29 @@ test('Mini Games winner manager heading stays clear at mobile and desktop widths
   if(width===390)await page.screenshot({path:info.outputPath('mini-winners-header-390.png')});
  }
 });
+
+
+test('Mini Games activity, prizes and closing hide decorative stage tabs and preserve host controls',async({page},info)=>{
+ for(const width of [390,1440]){
+  await page.setViewportSize({width,height:width===1440?900:844});
+  await page.goto('/?screen=mini-preview');
+  const tabs=page.locator('.bud-steps, .event-journey-steps');
+  await expect(tabs).toHaveCount(0);
+  await page.getByRole('button',{name:/بدء المعاينة/}).click();
+  await expect(page.getByRole('heading',{name:'اختر لعبتك'})).toBeVisible();
+  await expect(page.locator('.mini-hub-card')).toHaveCount(6);
+  await expect(tabs).toHaveCount(0);
+  await expect(page.getByRole('button',{name:/^الفائزون/})).toBeVisible();
+  await expect(page.locator('.event-journey-prizes')).toBeVisible();
+  await page.locator('.event-journey-prizes').click();
+  await expect(page.getByText('لا توجد جوائز مسجلة.')).toBeVisible();
+  await expect(tabs).toHaveCount(0);
+  await page.getByRole('button',{name:'انهاء'}).click();
+  await page.getByRole('button',{name:'إنهاء وعرض النتائج'}).click();
+  await expect(page.getByRole('heading',{name:'شكرًا لكم على المشاركة'})).toBeVisible();
+  await expect(tabs).toHaveCount(0);
+  await expect(page.getByRole('button',{name:'نسخ النتائج'})).toBeVisible();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+  await page.screenshot({path:info.outputPath('mini-no-stage-tabs-'+width+'.png'),animations:'disabled'});
+ }
+});
