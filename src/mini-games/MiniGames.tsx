@@ -1,4 +1,5 @@
 import {useEffect,useRef,useState} from 'react';
+import type {FormEvent} from 'react';
 import {ArrowLeft,Bomb,BookOpen,ChevronDown,Dices,Grid3X3,Info,RotateCcw,Settings2,Sparkles,Trophy,X} from 'lucide-react';
 import type {LucideIcon} from 'lucide-react';
 import {Plus} from 'lucide-react';
@@ -126,7 +127,7 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
    (target??root?.querySelector<HTMLElement>('.mg-dialog-close'))?.focus({preventScroll:true});
   });
  };
- const saveManager=(event:React.FormEvent<HTMLFormElement>)=>{
+ const saveManager=(event:FormEvent<HTMLFormElement>)=>{
   event.preventDefault();
   const value=managerName.trim();
   if(!value||value.length>80||phase==='closing')return;
