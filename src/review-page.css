@@ -24,10 +24,6 @@
 
 .bud-review-previous{margin:0;padding:11px 13px;border:1px solid #d6bf89;background:#fff8e7;border-radius:9px;font-size:13px;line-height:1.8;color:#594324}
 .bud-review-count{display:block;justify-self:end;font-size:12px;color:#64605b;font-variant-numeric:tabular-nums;margin-top:-5px}
-.bud-review-rating-field{border:0;padding:0;margin:0;display:grid;gap:4px}
-.bud-review-rating-field legend{font-weight:600;font-size:13px}
-.bud-review-page-card .bud-review-stars{display:flex;gap:clamp(8px,3vw,14px);padding-block:6px}
-.bud-review-page-card .bud-review-stars svg{width:30px;height:30px}
 .bud-review-publish-consent{display:flex;align-items:flex-start;gap:9px;font-size:12px;line-height:1.75;font-weight:400!important}
 .bud-review-publish-consent input{width:18px;height:18px;flex:0 0 auto;margin-top:2px;accent-color:#ae6f12}
 .bud-review-publish-consent:has(input:focus-visible){outline:3px solid #FBB03B;outline-offset:3px;border-radius:6px}
@@ -71,9 +67,6 @@
  .bud-review-page-heading p{font-size:12px;line-height:1.45}
  .bud-review-page-card form{gap:7px}
  .bud-review-page-card form label{font-size:12px}
- .bud-review-rating-field legend{font-size:11px}
- .bud-review-page-card .bud-review-stars{padding-block:2px;gap:12px}
- .bud-review-page-card .bud-review-stars svg{width:24px;height:24px}
  .bud-review-publish-consent{font-size:10px;line-height:1.45}
  .bud-review-identity{padding:5px 9px}
  .bud-review-identity .bud-review-avatar{width:28px;height:28px;flex-basis:28px}
@@ -131,3 +124,7 @@
 @media(max-width:540px){
  .bud-latest-reviews .bud-review-card{padding:13px 15px;gap:10px}
 }
+
+/* Optional feedback: quiet text hyperlink under the submit control. */
+.bud-review-skip{display:block;justify-self:center;text-align:center;color:#333;font-size:13px;text-decoration:underline;text-underline-offset:3px;padding:5px 12px;line-height:1.8}
+.bud-review-skip:focus-visible{outline:3px solid #FBB03B;outline-offset:2px;border-radius:4px}
