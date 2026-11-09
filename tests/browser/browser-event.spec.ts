@@ -165,7 +165,7 @@ test('optional review has a text skip hyperlink that returns home without submit
  const skipLink=await skip.boundingBox();
  expect(submitButton&&skipLink&&skipLink.y>=submitButton.y+submitButton.height).toBe(true);
  await skip.click();
- await expect(page).toHaveURL(/^https?:\\/\\/[^/]+\\/(?:\\?.*)?$/);
+ await expect(page).toHaveURL(new URL('/',page.url()).href);
  expect(submitted.filter(item=>item.action==='submit')).toEqual([]);
 });
 
