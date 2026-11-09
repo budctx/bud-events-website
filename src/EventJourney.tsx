@@ -1,14 +1,12 @@
 import {useEffect,useRef} from 'react';
 import type {ReactNode,Ref} from 'react';
 import {ArrowLeft,ArrowRight,Copy,Gift,Trophy} from 'lucide-react';
-import {BudSteps} from './BudUI';
 import {ButtonUtility} from './ButtonUtility';
 import {EventPrizeFields} from './EventPrizeFields';
 import type {PrizeLinesResult} from './prize-lines';
 import './event-journey.css';
 
 export type EventJourneyPhase='live'|'prizes'|'closing';
-const steps=['الإعداد','شاشة الفعالية','الجوائز','الختام'];
 
 export function EventSetupStage({eventName,title,titleId,onTitleChange,prizeId,prizeHeadingId,prizeText,onPrizeChange,parsed,children}:{
  eventName:string;title:string;onTitleChange:(value:string)=>void;
@@ -17,7 +15,6 @@ export function EventSetupStage({eventName,title,titleId,onTitleChange,prizeId,p
  children?:ReactNode;
 }){
  return <>
-  <BudSteps steps={steps} current={0}/>
   <h2>{eventName}</h2>
   <div className="host-setup-field-group" aria-labelledby={`${prizeId}-basic-title`}>
    <h3 id={`${prizeId}-basic-title`}>بيانات الفعالية</h3>
@@ -37,10 +34,6 @@ export function EventJourneyHeader({title,phase,winnerCount,prizeCount,onExit,on
   <div className="event-journey-heading"><ButtonUtility className="event-journey-exit" label="العودة إلى بُعد" icon={ArrowRight} isDisabled={disabled} onPress={onExit}/><div><span>فعاليات بُعد</span><h1 ref={headingRef} tabIndex={-1}>{title}</h1></div></div>
   <div className="event-journey-actions">{status}{onWinners?<button type="button" className="event-journey-winners" onClick={onWinners}><Trophy aria-hidden="true" size={17}/> الفائزون <bdi>({winnerCount}{prizeCount>0?`/${prizeCount}`:''})</bdi></button>:<span className="event-journey-winners"><Trophy aria-hidden="true" size={17}/> الفائزون <bdi>{winnerCount} / {prizeCount}</bdi></span>}{phase==='live'&&<button type="button" className="event-journey-prizes" disabled={disabled} onClick={onPrizes}><Gift aria-hidden="true" size={17}/> الجوائز <ArrowLeft aria-hidden="true" size={17}/></button>}</div>
  </header>;
-}
-
-export function EventJourneySteps({phase}:{phase:EventJourneyPhase}){
- return <div className="event-journey-steps"><BudSteps steps={steps} current={phase==='live'?1:phase==='prizes'?2:3}/></div>;
 }
 
 export function EventFinishDialog({open,onCancel,onConfirm,confirmDisabled=false}:{open:boolean;onCancel:()=>void;onConfirm:()=>void;confirmDisabled?:boolean}){

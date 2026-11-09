@@ -10,12 +10,15 @@ test('every event reuses the shared journey outside its activity screen',async()
  ]);
  for(const implementation of [questionCondition,miniGames]){
   assert.match(implementation,/EventJourneyHeader/);
-  assert.match(implementation,/EventJourneySteps/);
+  assert.doesNotMatch(implementation,/EventJourneySteps|<BudSteps/);
   assert.match(implementation,/EventClosingStage/);
   assert.match(implementation,/EventFinishDialog/);
  }
  assert.doesNotMatch(miniGames,/className="mini-steps"|className="mini-closing"/);
- assert.match(journey,/الإعداد.*شاشة الفعالية.*الجوائز.*الختام/s);
+ // Phase changes remain driven by actual host controls, not a visible stepper.
+ assert.doesNotMatch(journey,/EventJourneySteps|<BudSteps|const steps=/);
+ assert.match(journey,/className="event-journey-prizes"/);
+ assert.match(journey,/className="event-journey-winners"/);
  assert.match(journey,/إنهاء الفعالية\؟/);
  assert.match(journey,/شكرًا لكم على المشاركة/);
  assert.match(journey,/نسخ النتائج/);
@@ -28,6 +31,7 @@ test('both paid setup flows reuse the shared setup stage and start loader',async
  for(const implementation of [questionSetup,miniSetup]){
   assert.match(implementation,/EventSetupStage/);
   assert.match(implementation,/EventStartLoader/);
+  assert.doesNotMatch(implementation,/<BudSteps|EventJourneySteps/);
  }
  assert.match(miniSetup,/startMiniHostEvent\(ownerId,pendingKey\.current,title\.trim\(\),prizeText,setStartStep\)/);
 });

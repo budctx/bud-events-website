@@ -14,7 +14,7 @@ import {PrizeReveal} from '../PrizeReveal';
 import {formatEventResults} from '../event-summary';
 import {EventPrizeStage} from '../EventPrizeStage';
 import {parsePrizeLines} from '../prize-lines';
-import {EventClosingStage,EventFinishDialog,EventJourneyHeader,EventJourneySteps} from '../EventJourney';
+import {EventClosingStage,EventFinishDialog,EventJourneyHeader} from '../EventJourney';
 import '../game.css';
 import './mini-games.css';
 
@@ -153,7 +153,6 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
  const managerDuplicate=managerName.trim()&&state.winners.some(w=>w.id!==managerWinnerId&&w.name.trim()===managerName.trim());
  return <main className="mini-root" dir="rtl" lang="ar">
   <EventJourneyHeader title={sessionName} phase={phase} winnerCount={filled} prizeCount={capacity} onExit={()=>onExit?.()} onPrizes={()=>send({type:'phase',phase:'prizes'})} onWinners={()=>openManager()}/>
-  <EventJourneySteps phase={phase}/>
   {phase==='live'&&<section className="mini-hub"><div className="mini-intro"><h2>اختر لعبتك</h2></div>
    {capacity===0&&<p className="mini-notice" role="status">لا توجد جوائز مجهّزة — تستطيع اللعب، لكن تسجيل الفائزين غير متاح.</p>}
    {capacity>0&&full&&<p className="mini-notice" role="status">تم تسجيل جميع الفائزين — تستطيع مواصلة اللعب دون تسجيل فائزين جدد.</p>}
