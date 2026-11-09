@@ -107,7 +107,7 @@ test('text-only cutover preserves older rated rows without exposing their stars 
   const submitted=(await db.query<{result:any}>('select public.bud_review_submit_comment($1,$2,$3,$4,$5) result',[host,'رأي جديد بلا نجوم','عضو سابق',null,true])).rows[0].result;
   assert.equal(submitted.id,before.id);
   const updated=(await db.query<{rating:number|null,comment:string}>('select rating,comment from bud_platform.event_reviews where host_id=$1',[host])).rows[0];
-  assert.equal(updated.rating,null);
+  assert.equal(updated.rating,4); // Legacy audit value is retained, never displayed or required.
   assert.equal(updated.comment,'رأي جديد بلا نجوم');
  }finally{await db.close();}
 });
