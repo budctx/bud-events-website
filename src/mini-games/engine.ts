@@ -130,7 +130,7 @@ export function miniReducer(state:MiniSession,action:MiniAction,now=Date.now(),p
  }
  if(action.type==='add-winner'){
   const name=action.name.trim();
-  if(state.phase!=='prizes'||!name||name.length>80||state.winners.length>=state.prizes.length)return state;
+  if(!['live','prizes'].includes(state.phase)||state.active!==null||!name||name.length>80||state.winners.length>=state.prizes.length)return state;
   const winner={id:'winner-'+state.nextWinnerNumber,name};
   return {...state,winners:[...state.winners,winner],nextWinnerNumber:state.nextWinnerNumber+1};
  }
