@@ -43,7 +43,7 @@ export function ReviewManager({rows,onNext,onBack,offset,onRefresh}:{rows:Row[];
    return <article className="owner-card" key={id}>
     <div className="owner-block-heading"><h3><ReviewIdentity name={String(row.display_name)} avatarUrl={typeof row.avatar_url==='string'?row.avatar_url:null}/></h3>
      <span>{rank!==null?'معروض بالمركز '+rank:row.status==='hidden'?'مخفي عن الجمهور':row.status==='published'?'منشور للجميع':'غير منشور'}</span></div>
-    <p className="owner-subtle">{String(row.rating)} / 5 · {row.publish_consent?'وافق على النشر العام':'لم يوافق على النشر العام'}</p>
+    <p className="owner-subtle">{row.publish_consent?'وافق على النشر العام':'لم يوافق على النشر العام'}</p>
     <p dir="auto" style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{String(row.comment)}</p>
     <div className="owner-actions"><label htmlFor={'feature-'+id}>موقعه في الرئيسية</label>
      <select id={'feature-'+id} className="owner-button" disabled={busy!==null||row.publish_consent!==true} value={rank??''} onChange={e=>{void change(id,e.target.value===''?null:Number(e.target.value));}}>
