@@ -265,6 +265,7 @@ test('Mini Games activity, prizes and closing hide decorative stage tabs and pre
   await page.goto('/?screen=mini-preview');
   const tabs=page.locator('.bud-steps, .event-journey-steps');
   await expect(tabs).toHaveCount(0);
+  await page.getByLabel('الجوائز (اختياري، كل سطر جائزة)').fill('');
   await page.getByRole('button',{name:/بدء المعاينة/}).click();
   await expect(page.getByRole('heading',{name:'اختر لعبتك'})).toBeVisible();
   await expect(page.locator('.mini-hub-card')).toHaveCount(6);
