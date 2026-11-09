@@ -161,8 +161,11 @@ test('optional review has a text skip hyperlink that returns home without submit
  await expect(skip).toBeVisible();
  await expect(skip).toHaveAttribute('href','/');
  await expect(page.getByRole('radio')).toHaveCount(0);
+ const submitButton=await page.getByRole('button',{name:'إرسال التقييم'}).boundingBox();
+ const skipLink=await skip.boundingBox();
+ expect(submitButton&&skipLink&&skipLink.y>=submitButton.y+submitButton.height).toBe(true);
  await skip.click();
- await expect(page).toHaveURL(/\/?(?:\?.*)?$/);
+ await expect(page).toHaveURL(/^https?:\\/\\/[^/]+\\/(?:\\?.*)?$/);
  expect(submitted.filter(item=>item.action==='submit')).toEqual([]);
 });
 
