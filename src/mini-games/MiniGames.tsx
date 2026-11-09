@@ -1,6 +1,9 @@
 import {useEffect,useRef,useState} from 'react';
 import {ArrowLeft,Bomb,BookOpen,ChevronDown,Dices,Grid3X3,Info,RotateCcw,Settings2,Sparkles,Trophy,X} from 'lucide-react';
 import type {LucideIcon} from 'lucide-react';
+import {Plus} from 'lucide-react';
+import {ButtonUtility} from '../ButtonUtility';
+import {WinnerList,WinnerNumber,WinnerIcon} from '../WinnerList';
 import {createMiniSession,gameFinished,gameWinner,miniReducer,recordableWinner} from './engine.ts';
 import type {MiniSession,MiniAction} from './engine.ts';
 import {GAME_IDS,GAME_LABELS} from './catalog.ts';
@@ -17,6 +20,7 @@ import './mini-games.css';
 const icons:Record<MiniGameKind,LucideIcon>={bomb:Bomb,'form-word':BookOpen,scramble:RotateCcw,pattern:Grid3X3,emoji:Sparkles,wheel:Dices};
 type Props={initial:MiniSession;onChange?:(session:MiniSession)=>void;onExit?:()=>void;sessionName?:string};
 const num=(v:number)=>new Intl.NumberFormat('ar-u-nu-latn').format(v);
+type ManagementMode='list'|'add'|'edit'|'delete';
 const resultPlayer=(player:1|2)=>player===1?'اللاعب الأول':'اللاعب الثاني';
 
 export function MiniGames({initial,onChange,onExit,sessionName='ميني قيمز'}:Props){
@@ -24,6 +28,9 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
  const [selected,setSelected]=useState<MiniGameKind|null>(null),[pairs,setPairs]=useState<5|7>(5),[seconds,setSeconds]=useState(60),[help,setHelp]=useState<MiniGameKind|null>(null);
  const [clock,setClock]=useState(Date.now()),[confirmExit,setConfirmExit]=useState(false),[confirmFinish,setConfirmFinish]=useState(false),[winnerForm,setWinnerForm]=useState(false),[name,setName]=useState(''),[notice,setNotice]=useState('');
  const [pickedWinner,setPickedWinner]=useState<string|null>(null),[reveal,setReveal]=useState<{name:string;winnerId:string|null}|null>(null);
+ const [managerOpen,setManagerOpen]=useState(false),[managerMode,setManagerMode]=useState<ManagementMode>('list');
+ const [managerWinnerId,setManagerWinnerId]=useState(''),[managerName,setManagerName]=useState(''),[managerNotice,setManagerNotice]=useState('');
+ const managerDialog=useRef<HTMLDialogElement>(null),managerTrigger=useRef<HTMLElement|null>(null);
  const gameTrigger=useRef<HTMLButtonElement|null>(null);
  const dialog=useRef<HTMLDialogElement>(null),helpDialog=useRef<HTMLDialogElement>(null),prizeRevealDialog=useRef<HTMLDialogElement>(null),helpTrigger=useRef<HTMLButtonElement|null>(null);
  const send=(action:MiniAction)=>{
@@ -44,6 +51,14 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
   else{if(node.open)node.close();document.body.style.overflow='';}
   return()=>{if(node.open)node.close();document.body.style.overflow='';if(previous?.isConnected)previous.focus({preventScroll:true});};
  },[modalOpen]);
+ useEffect(()=>{
+  const node=managerDialog.current;if(!node)return;
+  if(managerOpen&&!node.open){
+   node.showModal();
+   (node.querySelector<HTMLElement>('[data-autofocus]')??node.querySelector<HTMLElement>('.mg-dialog-close'))?.focus({preventScroll:true});
+  }else if(!managerOpen&&node.open)node.close();
+  return()=>{if(node.open)node.close();if(managerOpen&&managerTrigger.current?.isConnected)managerTrigger.current.focus({preventScroll:true});};
+ },[managerOpen]);
  useEffect(()=>{
   const node=helpDialog.current;if(!node)return;
   if(help){if(!node.open)node.showModal();}else if(node.open)node.close();
@@ -98,8 +113,45 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
   setNotice('');
   setReveal({name:prize.name,winnerId:assigned?.id??null});
  };
+ const openManager=(mode:ManagementMode='list',winner?:MiniSession['winners'][number])=>{
+  managerTrigger.current=document.activeElement as HTMLElement|null;
+  setManagerMode(mode);setManagerWinnerId(winner?.id??'');setManagerName(mode==='edit'?winner?.name??'':'');
+  setManagerNotice('');setManagerOpen(true);
+ };
+ const closeManager=()=>{setManagerOpen(false);setManagerMode('list');setManagerWinnerId('');setManagerName('');setManagerNotice('');};
+ const focusManagerRecord=(id?:string)=>{
+  requestAnimationFrame(()=>{
+   const root=managerDialog.current;
+   const target=id?root?.querySelector<HTMLElement>(`[data-winner-id="${id}"] .mg-winner-tools button`):null;
+   (target??root?.querySelector<HTMLElement>('.mg-dialog-close'))?.focus({preventScroll:true});
+  });
+ };
+ const saveManager=(event:React.FormEvent<HTMLFormElement>)=>{
+  event.preventDefault();
+  const value=managerName.trim();
+  if(!value||value.length>80||phase==='closing')return;
+  if(managerMode==='add'){
+   if(full||state.active)return;
+   const id=`winner-${state.nextWinnerNumber}`;
+   send({type:'add-winner',name:value});
+   setManagerNotice('أُضيف الفائز.');setManagerMode('list');setManagerName('');focusManagerRecord(id);
+  }else if(managerMode==='edit'){
+   if(!state.winners.some(w=>w.id===managerWinnerId))return;
+   send({type:'rename-winner',winnerId:managerWinnerId,name:value});
+   setManagerNotice('عُدّل اسم الفائز.');setManagerMode('list');setManagerName('');focusManagerRecord(managerWinnerId);
+  }
+ };
+ const deleteManagerWinner=()=>{
+  if(phase==='closing'||!state.winners.some(w=>w.id===managerWinnerId))return;
+  send({type:'delete-winner',winnerId:managerWinnerId});
+  if(pickedWinner===managerWinnerId)setPickedWinner(null);
+  setManagerMode('list');setManagerWinnerId('');setManagerNotice('حُذف الفائز، وأُعيدت جائزته إلى البطاقات إن كانت مخصصة له.');
+  focusManagerRecord();
+ };
+ const managerWinner=state.winners.find(w=>w.id===managerWinnerId);
+ const managerDuplicate=managerName.trim()&&state.winners.some(w=>w.id!==managerWinnerId&&w.name.trim()===managerName.trim());
  return <main className="mini-root" dir="rtl" lang="ar">
-  <EventJourneyHeader title={sessionName} phase={phase} winnerCount={filled} prizeCount={capacity} onExit={()=>onExit?.()} onPrizes={()=>send({type:'phase',phase:'prizes'})}/>
+  <EventJourneyHeader title={sessionName} phase={phase} winnerCount={filled} prizeCount={capacity} onExit={()=>onExit?.()} onPrizes={()=>send({type:'phase',phase:'prizes'})} onWinners={()=>openManager()}/>
   <EventJourneySteps phase={phase}/>
   {phase==='live'&&<section className="mini-hub"><div className="mini-intro"><h2>اختر لعبتك</h2></div>
    {capacity===0&&<p className="mini-notice" role="status">لا توجد جوائز مجهّزة — تستطيع اللعب، لكن تسجيل الفائزين غير متاح.</p>}
@@ -110,8 +162,8 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
    </div>;})}</div>
   </section>}
   {phase==='prizes'&&<><EventPrizeStage winners={state.winners} prizes={state.prizes} selectedWinnerId={pickedWinner??''} onSelectWinner={setPickedWinner}
-   onDeleteWinner={winner=>{if(window.confirm('هل تريد حذف الفائز وإعادة جائزته إلى البطاقات؟'))send({type:'delete-winner',winnerId:winner.id});}}
-   onAddWinner={()=>{setName('');setWinnerForm(true);}} addDisabled={full} onOpenPrize={revealPrize}
+   onDeleteWinner={winner=>openManager('delete',winner)}
+   onAddWinner={()=>openManager('add')} addDisabled={full} onOpenPrize={revealPrize}
    onBack={()=>send({type:'phase',phase:'live'})} backDisabled={prizesStarted} onFinish={()=>setConfirmFinish(true)}/>
    {notice&&<p className="mini-notice" role="status">{notice}</p>}</>}
   {phase==='closing'&&<EventClosingStage
@@ -120,6 +172,28 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
    notice={notice}
    onExit={()=>onExit?.()}/>}
   <EventFinishDialog open={confirmFinish} onCancel={()=>setConfirmFinish(false)} onConfirm={()=>{send({type:'phase',phase:'closing'});setConfirmFinish(false);}}/>
+  <dialog ref={managerDialog} className="mg-dialog mg-management" dir="rtl" aria-label="الفائزون" onCancel={event=>{event.preventDefault();closeManager();}}>
+   <h2>الفائزون</h2>
+   <ButtonUtility className="mg-dialog-close" label="إغلاق" icon={X} onPress={closeManager}/>
+   <div className="mg-management-heading"><div className="mg-management-mark" aria-hidden="true"><WinnerIcon kind="trophy"/></div>
+    {managerMode==='list'&&phase!=='closing'&&<ButtonUtility className="mg-add-winner" label="إضافة فائز" icon={Plus} isDisabled={full||!!state.active} onPress={()=>{setManagerMode('add');setManagerName('');setManagerNotice('');}}/>}
+   </div>
+   {(managerMode==='add'||managerMode==='edit')&&phase!=='closing'?<form onSubmit={saveManager}>
+    <label htmlFor="mini-manager-name">{managerMode==='add'?'اسم الفائز':<>تعديل اسم الفائز {managerWinner&&<WinnerNumber id={managerWinner.id}/>}</>}</label>
+    <input id="mini-manager-name" key={managerMode+managerWinnerId} data-autofocus autoFocus required autoComplete="off" maxLength={80} value={managerName} onChange={event=>setManagerName(event.target.value)}/>
+    {managerDuplicate&&<p className="mg-help" role="status">الاسم مسجل سابقًا، ويمكن تسجيله مجددًا كفائز مستقل.</p>}
+    <div className="mg-actions"><button type="submit" className="mg-button mg-primary" disabled={!managerName.trim()||managerName.trim().length>80||managerMode==='add'&&full}>{managerMode==='add'?'إضافة فائز':'حفظ'}</button>
+     <button type="button" className="mg-button" onClick={()=>setManagerMode('list')}>إلغاء</button></div>
+   </form>:managerMode==='delete'&&managerWinner&&phase!=='closing'?<div>
+    <p>حذف سجل الفائز <strong dir="auto">{managerWinner.name}</strong> <WinnerNumber id={managerWinner.id}/>؟</p>
+    {state.prizes.some(prize=>prize.winnerId===managerWinner.id)&&<p className="mg-help">ستُعاد جائزته إلى البطاقات المتاحة للسحب.</p>}
+    <div className="mg-actions"><button type="button" className="mg-button" data-autofocus autoFocus onClick={()=>setManagerMode('list')}>إلغاء</button>
+     <button type="button" className="mg-button mg-primary" onClick={deleteManagerWinner}>تأكيد الحذف</button></div>
+   </div>:<WinnerList winners={state.winners} prizes={state.prizes} locale="ar" readOnly={phase==='closing'}
+    onEdit={winner=>{setManagerMode('edit');setManagerWinnerId(winner.id);setManagerName(winner.name);setManagerNotice('');}}
+    onDelete={winner=>{setManagerMode('delete');setManagerWinnerId(winner.id);setManagerNotice('');}}/>}
+   {managerNotice&&<p className="mg-help" role="status">{managerNotice}</p>}
+  </dialog>
   <dialog ref={dialog} className="mini-dialog" aria-label={winnerForm&&!state.active?'تسجيل فائز':selected?GAME_LABELS[selected]:state.active?GAME_LABELS[state.active.kind]:'إعداد اللعبة'} onCancel={e=>{e.preventDefault();requestClose();}}>
    <div className="mini-dialog-head"><h2>{selected?GAME_LABELS[selected]:state.active?GAME_LABELS[state.active.kind]:'اللعبة'}</h2><button type="button" className="mini-icon-button" aria-label="إغلاق اللعبة" onClick={requestClose}><X size={21}/></button></div>
    {confirmExit?<div className="mini-confirm"><h3>لم يتم تحديد فائز، هل أنت متأكد؟</h3><p>يمكنك العودة للعبة أو إنهاؤها دون تسجيل فائز.</p><div className="mini-action-row"><button className="mini-cta mini-secondary" onClick={()=>setConfirmExit(false)}>العودة</button><button className="mini-cta mini-primary" onClick={confirmClose}>إنهاء بدون فائز</button></div></div>:selected?<div className="mini-standby">
