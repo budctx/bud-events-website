@@ -200,7 +200,7 @@ export function miniReducer(state:MiniSession,action:MiniAction,now=Date.now(),p
    const matched=[...game.matched,a,b],scores:[number,number]=[...game.scores];
    scores[game.turn-1]++;
    const finished=matched.length===game.tiles.length;
-   return {...state,active:{...game,opened:[],matched,scores,finished,completedAt:finished?now:undefined,winner:finished?(scores[0]>scores[1]?1:2):null}};
+   return {...state,active:{...game,opened:[],matched,scores,finished,completedAt:finished?now:undefined,winner:finished?(scores[0]===scores[1]?null:scores[0]>scores[1]?1:2):null}};
   }
   return {...state,active:{...game,opened,mismatchUntil:now+1000}};
  }
