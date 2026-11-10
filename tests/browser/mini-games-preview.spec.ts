@@ -122,7 +122,6 @@ test('all six cards offer independent info dialogs and default-collapsed setup o
  await help.getByRole('button',{name:'إغلاق الشرح'}).click();
  await page.getByRole('button',{name:'ذاكرة الإيموجي',exact:true}).click();
  const setup=page.getByRole('dialog',{name:'ذاكرة الإيموجي'});
- await expect(setup.locator('details')).not.toHaveAttribute('open',/.+/);
  await expect(setup.getByRole('button',{name:'بدء اللعبة'})).toBeVisible();
  await expect(setup.locator('details')).toHaveCount(0); // Always 8 pairs in a 4×4 square.
 });
@@ -376,7 +375,7 @@ test('emoji mismatch flips both cards back while preserving fair turn rotation',
  await page.clock.runFor(1100);
  await expect(cards.nth(0)).toHaveAttribute('data-revealed','false');
  await expect(cards.nth(other)).toHaveAttribute('data-revealed','false');
- await expect(modal.locator('.mini-scorebar')).toContainText('اللاعب 2');
+ await expect(modal.locator('.mini-scorebar span').nth(1)).toContainText('اللاعب 2');
 });
 test('bomb explosion card flips before completion layer appears',async({page})=>{
  await page.clock.install();
