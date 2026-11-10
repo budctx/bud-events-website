@@ -49,7 +49,7 @@ export function MiniGameStage({game,now,send}:Props){
      </div>
      <div className="mini-pattern-board">
       <div className="mini-pattern-pads" aria-label="لوحة ألوان احفظ النمط">{PATTERN_COLORS.map(value=><button type="button" key={value} aria-label={'اللون '+value} className={'mini-pattern-pad '+colorClass(value)+(active===value?' is-lit':'')} disabled={displaying} aria-disabled={displaying} onClick={()=>send({type:'color',color:value})}/>)}</div>
-      {announcing&&<div className="mini-pattern-announcement" role="status"><strong>دور {playerLabel(game.turn)}</strong><span>استعد لحفظ التسلسل</span></div>}
+      {announcing&&<div className="mini-pattern-announcement" role="status"><strong>{game.turn===1?'دور اللاعب الأول':'دور اللاعب الثاني'}</strong><span>استعد لحفظ التسلسل</span></div>}
      </div>
      <button type="button" className="mini-icon-text" onClick={()=>send({type:'replay'})}><RotateCcw size={18}/> إعادة عرض النمط</button>
     </>;
