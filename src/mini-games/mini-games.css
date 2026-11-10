@@ -136,7 +136,8 @@
 .mini-bomb-grid,.mini-emoji-grid{width:100%;direction:rtl;align-items:stretch;justify-content:center}
 .mini-bomb-grid{max-width:min(510px,100%);gap:clamp(5px,1.4vw,10px)}
 .mini-bomb-cell,.mini-emoji-cell{width:100%;min-width:0;aspect-ratio:1 / 1;height:auto;min-height:0;border-radius:clamp(7px,1.6vw,13px);font-variant-numeric:tabular-nums;font-size:clamp(17px,4.5vw,27px);font-weight:800}
-.mini-emoji-grid{max-width:min(660px,100%);gap:clamp(4px,.85vw,9px);margin-inline:auto}
+/* Keep the full 4x4 board within the host modal, including at desktop heights. */
+.mini-emoji-grid{width:min(100%,660px,max(250px,calc(92dvh - 250px)));max-width:660px;gap:clamp(4px,.85vw,9px);margin-inline:auto}
 .mini-emoji-cell{font-size:clamp(14px,3.4vw,29px)}
 .mini-emoji-cell.is-open,.mini-emoji-cell.is-matched{font-size:clamp(18px,4.2vw,30px)}
 .mini-pattern-turn{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;width:min(470px,100%);margin:12px auto;padding:14px 22px;border-radius:18px;border:2px solid #333;background:#fff3d5;isolation:isolate}
