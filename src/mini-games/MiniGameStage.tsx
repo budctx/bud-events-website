@@ -36,17 +36,21 @@ export function MiniGameStage({game,now,send}:Props){
   </>}
   {game.kind==='pattern'&&!game.finished&&(()=>{
     const elapsed=now-game.startedAt;
-    const displaying=elapsed<game.level*700+800;
-    const index=elapsed>=500?Math.floor((elapsed-500)/700):-1;
-    const pulse=(elapsed-500)%700; // A dark gap makes repeated adjacent colors perceptible as distinct steps.
+    const announcing=game.replays===0&&elapsed>=0&&elapsed<PATTERN_TURN_NOTICE_MS;
+    const sequenceElapsed=elapsed-(game.replays===0?PATTERN_TURN_NOTICE_MS:0);
+    const displaying=sequenceElapsed<game.level*PATTERN_FLASH_STEP_MS+PATTERN_DISPLAY_TAIL_MS;
+    const index=sequenceElapsed>=500?Math.floor((sequenceElapsed-500)/PATTERN_FLASH_STEP_MS):-1;
+    const pulse=(sequenceElapsed-500)%PATTERN_FLASH_STEP_MS;
     const active=displaying&&index>=0&&index<game.level&&pulse<480?game.sequences[game.turn-1][index]:null;
-    const turnChanging=elapsed>=0&&elapsed<1250;
     return <>
-     <div className={'mini-pattern-turn'+(turnChanging?' is-turn-shifting':'')} role="status">
+     <div className="mini-pattern-turn" role="status">
       <span>الدور الآن</span><strong>{playerLabel(game.turn)}</strong>
       <small>{displaying?'شاهد الأضواء':num(game.progress)+' / '+num(game.level)}</small>
      </div>
-     <div className="mini-pattern-pads" aria-label="لوحة ألوان احفظ النمط">{PATTERN_COLORS.map(value=><button type="button" key={value} aria-label={'اللون '+value} className={'mini-pattern-pad '+colorClass(value)+(active===value?' is-lit':'')} disabled={displaying} aria-disabled={displaying} onClick={()=>send({type:'color',color:value})}/>)}</div>
+     <div className="mini-pattern-board">
+      <div className="mini-pattern-pads" aria-label="لوحة ألوان احفظ النمط">{PATTERN_COLORS.map(value=><button type="button" key={value} aria-label={'اللون '+value} className={'mini-pattern-pad '+colorClass(value)+(active===value?' is-lit':'')} disabled={displaying} aria-disabled={displaying} onClick={()=>send({type:'color',color:value})}/>)}</div>
+      {announcing&&<div className="mini-pattern-announcement" role="status"><strong>دور {playerLabel(game.turn)}</strong><span>استعد لحفظ التسلسل</span></div>}
+     </div>
      <button type="button" className="mini-icon-text" onClick={()=>send({type:'replay'})}><RotateCcw size={18}/> إعادة عرض النمط</button>
     </>;
    })()}
