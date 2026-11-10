@@ -21,7 +21,7 @@ export function MiniGameStage({game,now,send}:Props){
      const opened=game.opened.includes(index),isBomb=opened&&index===game.bomb;
      return <MiniFlipCard key={index} className={'mini-cell mini-bomb-cell'+(opened?' is-open':'')+(isBomb?' is-bomb':'')}
       label={'المربع '+num(index+1)+(opened?' مكشوف':'')} disabled={opened||game.finished}
-      revealed={opened} back={num(index+1)} front={isBomb?'💣':'✓'} onPress={()=>send({type:'tap',index})}/>;
+      revealed={opened} explode={isBomb} back={num(index+1)} front={isBomb?'💣':'✓'} onPress={()=>send({type:'tap',index})}/>;
     })}
    </div>
   </>}
