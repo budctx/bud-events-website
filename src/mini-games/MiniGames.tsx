@@ -10,6 +10,7 @@ import type {MiniSession,MiniAction} from './engine.ts';
 import {GAME_IDS,GAME_LABELS} from './catalog.ts';
 import type {MiniGameKind} from './catalog.ts';
 import {MiniGameStage} from './MiniGameStage.tsx';
+import {MINI_FLIP_RESULT_DELAY_MS} from './MiniFlipCard';
 import {PrizeReveal} from '../PrizeReveal';
 import {formatEventResults} from '../event-summary';
 import {EventPrizeStage} from '../EventPrizeStage';
@@ -87,9 +88,9 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
  const start=()=>{if(!selected)return;send({type:'open',game:selected,seconds});setSelected(null);setClock(Date.now());};
  const capacity=state.prizes.length,filled=state.winners.length,full=filled>=capacity;
  const canRecord=recordableWinner(state,clock);
- // Allow the final 3D flip to complete before opening the generic result layer.
+ // First show the whole flip and an additional readable hold before the result overlay.
  const flipReady=state.active?.kind==='bomb'||state.active?.kind==='emoji'
-  ?clock-(state.active.completedAt??0)>=900:true;
+  ?clock-(state.active.completedAt??0)>=MINI_FLIP_RESULT_DELAY_MS:true;
  // Keep the category and letter visible long enough to read before showing host choices.
  const wheelActionsReady=state.active?.kind==='wheel'&&state.active.startedAt!==null
   &&clock-state.active.startedAt>=WHEEL_LETTER_STOP_MS+WHEEL_RESULT_HOLD_MS;

@@ -389,6 +389,68 @@ test('bomb explosion card flips before completion layer appears',async({page})=>
  }
  await expect(modal.locator('.mini-bomb-cell.is-bomb')).toHaveCount(1);
  await expect(modal.locator('.mini-result-layer')).toHaveCount(0);
- await page.clock.runFor(1000);
+ await expect(modal.locator('.mini-bomb-cell.is-bomb')).toHaveCSS('animation-delay','0.56s');
+ await expect(modal.locator('.mini-bomb-cell.is-bomb .mini-flip-front')).toHaveCSS('background-color','rgb(255, 156, 120)');
+ await expect(modal.locator('.mini-bomb-cell.is-bomb .mini-flip-front')).toHaveCSS('border-top-left-radius',/px/);
+ await page.clock.runFor(1500);
+ await expect(modal.locator('.mini-result-layer')).toHaveCount(0);
+ await page.clock.runFor(300);
  await expect(modal.locator('.mini-result-layer')).toBeVisible();
 });
+
+
+for(const width of [390,1440]){
+ test(`legacy card geometry, palette and hover stay intact with real 3D flip ${width}`,async({page},info)=>{
+  await page.setViewportSize({width,height:width===390?844:900});
+  await page.goto('/?screen=mini-preview');
+  await page.getByRole('button',{name:/بدء المعاينة/}).click();
+  await page.getByRole('button',{name:'ذاكرة الإيموجي',exact:true}).click();
+  const dialog=page.getByRole('dialog',{name:'ذاكرة الإيموجي'});
+  await dialog.getByRole('button',{name:'بدء اللعبة'}).click();
+  const cells=dialog.locator('.mini-emoji-cell');
+  await expect(cells).toHaveCount(16);
+  const layout=await dialog.locator('.mini-emoji-grid').evaluate(node=>{
+   const modal=node.closest('dialog')!,board=node.getBoundingClientRect(),frame=modal.getBoundingClientRect();
+   return {bottom:board.bottom,visibleBottom:Math.min(frame.bottom,innerHeight),width:board.width,height:board.height};
+  });
+  expect(Math.abs(layout.width-layout.height)).toBeLessThan(1.5);
+  expect(layout.bottom).toBeLessThanOrEqual(layout.visibleBottom-12); // Last row stays visible, not clipped.
+  const card=cells.first(),back=card.locator('.mini-flip-back'),front=card.locator('.mini-flip-front');
+  const geometry=await card.evaluate(el=>{
+   const inside=el.querySelector('.mini-flip-inner')!;
+   const face=el.querySelector('.mini-flip-back')!;
+   const outer=el.getBoundingClientRect(),inner=inside.getBoundingClientRect(),cover=face.getBoundingClientRect();
+   const radius=(node:Element)=>getComputedStyle(node).borderTopLeftRadius;
+   return {outerW:outer.width,outerH:outer.height,innerW:inner.width,innerH:inner.height,faceW:cover.width,faceH:cover.height,
+    radii:[radius(el),radius(inside),radius(face)],back:getComputedStyle(face).backgroundColor,
+    border:getComputedStyle(el).borderTopWidth,shadow:getComputedStyle(el).boxShadow};
+  });
+  expect(Math.abs(geometry.outerW-geometry.outerH)).toBeLessThan(1.1);
+  expect(geometry.innerW).toBeGreaterThan(geometry.outerW-5);
+  expect(geometry.innerH).toBeGreaterThan(geometry.outerH-5);
+  expect(geometry.faceW).toBeGreaterThan(geometry.outerW-5);
+  expect(geometry.faceH).toBeGreaterThan(geometry.outerH-5);
+  expect(geometry.radii).toEqual([geometry.radii[0],geometry.radii[0],geometry.radii[0]]);
+  expect(parseFloat(geometry.radii[0])).toBeGreaterThan(5);
+  expect(geometry.back).toBe('rgb(255, 239, 207)');
+  expect(parseFloat(geometry.border)).toBeGreaterThan(0);
+  expect(geometry.shadow).not.toBe('none');
+  await card.hover();
+  await expect(back).toHaveCSS('background-color','rgb(251, 176, 59)');
+  await card.click();
+  await expect(card).toHaveAttribute('data-revealed','true');
+  await expect(front).toHaveCSS('background-color','rgb(255, 255, 255)');
+  await expect.poll(async()=>card.locator('.mini-flip-inner').evaluate(el=>new DOMMatrixReadOnly(getComputedStyle(el).transform).m11))
+   .toBeLessThan(-0.98);
+  await expect(back).toHaveCSS('border-top-left-radius',geometry.radii[0]);
+  await page.screenshot({path:info.outputPath('integrated-emoji-flip-'+width+'.png'),animations:'allow'});
+  const symbols=await cells.locator('.mini-flip-front').allTextContents();
+  const matching=symbols.findIndex((value,i)=>i!==0&&value===symbols[0]);
+  expect(matching).toBeGreaterThan(0);
+  await cells.nth(matching).click();
+  await expect(cells.first()).toHaveClass(/is-matched/);
+  await expect(front).toHaveCSS('background-color','rgb(219, 235, 207)');
+  await expect(cells.first()).toHaveCSS('border-color','rgb(128, 173, 101)');
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+ });
+}

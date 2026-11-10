@@ -42,10 +42,10 @@
 .mini-status{text-align:center;font-size:16px;background:#fff5df;padding:13px;border-radius:12px;margin-bottom:17px}
 .mini-status strong{color:#a26705}
 .mini-bomb-grid{display:grid;gap:8px;max-width:520px;margin:18px auto}
-.mini-cell{display:grid;place-items:center;aspect-ratio:1;border:1.5px solid #333;border-radius:12px;font-size:clamp(17px,3vw,29px);font-weight:700;background:#fff0d0;box-shadow:2px 3px 0 #b9afa0;transition:transform .14s ease,background .16s ease}
-.mini-cell:not(:disabled):hover{background:var(--mini-gold);transform:translateY(-2px)}
-.mini-bomb-cell.is-open{background:#dcebd4;box-shadow:none;color:#527a32}
-.mini-bomb-cell.is-bomb{background:#ff9c78;color:#333;animation:mini-explosion .42s both}
+.mini-cell{--mini-flip-back:#fff0d0;--mini-flip-front:#dcebd4;--mini-flip-front-ink:#527a32;display:grid;place-items:center;aspect-ratio:1;border:1.5px solid #333;border-radius:12px;font-size:clamp(17px,3vw,29px);font-weight:700;background:var(--mini-flip-back);box-shadow:2px 3px 0 #b9afa0;transition:transform .14s ease,background .16s ease}
+.mini-cell:not(:disabled):hover{--mini-flip-back:var(--mini-gold);background:var(--mini-flip-back);transform:translateY(-2px)}
+.mini-bomb-cell.is-open{--mini-flip-front:#dcebd4;background:var(--mini-flip-front);box-shadow:none;color:#527a32}
+.mini-bomb-cell.is-bomb{--mini-flip-front:#ff9c78;--mini-flip-front-ink:#333;background:var(--mini-flip-front);color:#333;animation:mini-explosion .42s ease-out var(--mini-flip-duration,560ms) 1 forwards}
 .mini-outcome{background:#fff1cf;border:2px solid #e7a52f;text-align:center;font-size:17px;font-weight:750;padding:14px;border-radius:14px;margin:18px 0}
 .mini-result-layer{position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:clamp(16px,4vw,34px);background:rgba(25,22,18,.78);backdrop-filter:blur(3px)}
 .mini-result-card{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;width:min(530px,100%);padding:clamp(20px,4vw,34px);background:#fffdf8;border:2px solid #333;border-radius:22px;box-shadow:7px 9px 0 rgba(0,0,0,.3)}
@@ -71,9 +71,9 @@
 .mini-scorebar span{display:flex;gap:7px;align-items:center}
 .mini-scorebar strong{font-size:18px}
 .mini-emoji-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(6px,1.3vw,11px);max-width:480px;width:100%;margin:24px auto}
-.mini-emoji-cell{background:#ffefcf;font-size:clamp(21px,4.3vw,35px);border-radius:14px}
-.mini-emoji-cell.is-open{background:#fff}
-.mini-emoji-cell.is-matched{background:#dbebcf;border-color:#80ad65;box-shadow:none}
+.mini-emoji-cell{--mini-flip-back:#ffefcf;--mini-flip-front-ink:#333;background:var(--mini-flip-back);font-size:clamp(21px,4.3vw,35px);border-radius:14px}
+.mini-emoji-cell.is-open{--mini-flip-front:#fff;background:var(--mini-flip-front)}
+.mini-emoji-cell.is-matched{--mini-flip-front:#dbebcf;background:var(--mini-flip-front);border-color:#80ad65;box-shadow:none}
 .mini-wheel-track{display:grid;grid-template-columns:minmax(0,1fr) 2px minmax(0,1fr);align-items:center;column-gap:clamp(10px,2.5vw,20px);width:min(560px,100%);background:#f7f2e7;border:2px solid #333;border-radius:25px;padding:18px clamp(10px,2.5vw,18px);margin:30px auto 20px;box-shadow:5px 6px 0 #e7d0a3}
 .mini-wheel-reel{position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;width:100%;min-width:0;height:110px;background:#fff;border:2px solid #333;border-radius:16px;box-shadow:inset 0 0 0 6px #fff7e7}
 .mini-wheel-reel:after{content:'';position:absolute;inset:31px 0;border-top:1.5px solid #e9ad44;border-bottom:1.5px solid #e9ad44;pointer-events:none;background:rgba(251,176,59,.11)}
@@ -136,7 +136,8 @@
 .mini-bomb-grid,.mini-emoji-grid{width:100%;direction:rtl;align-items:stretch;justify-content:center}
 .mini-bomb-grid{max-width:min(510px,100%);gap:clamp(5px,1.4vw,10px)}
 .mini-bomb-cell,.mini-emoji-cell{width:100%;min-width:0;aspect-ratio:1 / 1;height:auto;min-height:0;border-radius:clamp(7px,1.6vw,13px);font-variant-numeric:tabular-nums;font-size:clamp(17px,4.5vw,27px);font-weight:800}
-.mini-emoji-grid{max-width:min(660px,100%);gap:clamp(4px,.85vw,9px);margin-inline:auto}
+/* Keep the full 4x4 board within the host modal, including at desktop heights. */
+.mini-emoji-grid{width:min(100%,660px,max(250px,calc(92dvh - 250px)));max-width:660px;gap:clamp(4px,.85vw,9px);margin-inline:auto}
 .mini-emoji-cell{font-size:clamp(14px,3.4vw,29px)}
 .mini-emoji-cell.is-open,.mini-emoji-cell.is-matched{font-size:clamp(18px,4.2vw,30px)}
 .mini-pattern-turn{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;width:min(470px,100%);margin:12px auto;padding:14px 22px;border-radius:18px;border:2px solid #333;background:#fff3d5;isolation:isolate}
@@ -175,17 +176,17 @@
 @media(max-width:360px){.mini-hub-main{min-height:108px;flex-direction:row;gap:12px}.mini-bomb-grid{gap:4px}}
 @media(prefers-reduced-motion:reduce){.mini-standby-options[open] .mini-options-content,.mini-pattern-turn.is-turn-shifting:after{animation:none}.mini-pattern-pad{transition:none}.mini-pattern-turn.is-turn-shifting:after{display:none}}
 
-/* Motion 3D card-flip composition; see motion.dev/docs/3d-transforms. */
-.mini-root .mini-flip-card{position:relative;display:block;padding:0;perspective:850px;transform-style:flat;background:transparent}
+/* Integrate the Motion flip inside the original square button's border, radius,
+   shadow and hover. One set of --mini-flip-* tokens owns both card faces. */
+.mini-root .mini-flip-card{position:relative;display:block;padding:0;perspective:850px;background:transparent}
+.mini-root .mini-flip-card:not(:disabled):hover{background:transparent}
 .mini-root .mini-flip-card:disabled{opacity:1;cursor:default}
-.mini-flip-inner{display:block;position:relative;width:100%;height:100%;transform-style:preserve-3d;will-change:transform}
-.mini-flip-face{position:absolute;inset:0;display:grid;place-items:center;border-radius:inherit;font-size:inherit;font-weight:inherit;backface-visibility:hidden;-webkit-backface-visibility:hidden}
-.mini-flip-back{background:#fff0d0;color:#333}
-.mini-flip-front{transform:rotateY(180deg);background:#dcebd4;color:#335f22}
-.mini-emoji-cell .mini-flip-front{background:#fff;color:#333;font-size:clamp(19px,4vw,32px)}
-.mini-emoji-cell.is-matched .mini-flip-front{background:#d9efd3;box-shadow:inset 0 0 0 3px #8dbb71}
-.mini-bomb-cell.is-bomb .mini-flip-front{background:#ff9878;color:#333;box-shadow:inset 0 0 0 3px #d95729;font-size:clamp(26px,5vw,46px)}
-.mini-bomb-cell.is-open:not(.is-bomb) .mini-flip-front{background:#dcebd4}
+.mini-flip-inner{position:absolute;inset:0;display:block;border-radius:inherit;transform-style:preserve-3d;will-change:transform}
+.mini-flip-face{position:absolute;inset:0;display:grid;place-items:center;border-radius:inherit;font-size:inherit;font-weight:inherit;backface-visibility:hidden;-webkit-backface-visibility:hidden;transition:background-color .16s ease}
+.mini-flip-back{background:var(--mini-flip-back);color:var(--mini-ink,#333)}
+.mini-flip-front{transform:rotateY(180deg);background:var(--mini-flip-front);color:var(--mini-flip-front-ink,#333)}
+/* Neither face invents alternative card dimensions or overrides matched/bomb colors. */
+@media(prefers-reduced-motion:reduce){.mini-dialog .mini-bomb-cell.is-bomb{animation-delay:0ms}}
 .mini-word-actions{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin:18px auto 8px}
 .mini-word-actions .mini-cta{flex:1 1 155px;max-width:250px}
 .mini-word-actions .mini-cta:disabled{opacity:.55}
