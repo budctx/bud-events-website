@@ -30,11 +30,13 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
  const [selected,setSelected]=useState<MiniGameKind|null>(null),[seconds,setSeconds]=useState(60),[help,setHelp]=useState<MiniGameKind|null>(null);
  const [clock,setClock]=useState(Date.now()),[confirmExit,setConfirmExit]=useState(false),[confirmFinish,setConfirmFinish]=useState(false),[winnerForm,setWinnerForm]=useState(false),[name,setName]=useState(''),[notice,setNotice]=useState('');
  const [pickedWinner,setPickedWinner]=useState<string|null>(null),[reveal,setReveal]=useState<{name:string;winnerId:string|null}|null>(null);
+ const [pendingPrize,setPendingPrize]=useState<{prizeId:string;winnerId:string|null}|null>(null);
  const [managerOpen,setManagerOpen]=useState(false),[managerMode,setManagerMode]=useState<ManagementMode>('list');
  const [managerWinnerId,setManagerWinnerId]=useState(''),[managerName,setManagerName]=useState(''),[managerNotice,setManagerNotice]=useState('');
  const managerDialog=useRef<HTMLDialogElement>(null),managerTrigger=useRef<HTMLElement|null>(null);
  const gameTrigger=useRef<HTMLButtonElement|null>(null);
- const dialog=useRef<HTMLDialogElement>(null),helpDialog=useRef<HTMLDialogElement>(null),prizeRevealDialog=useRef<HTMLDialogElement>(null),helpTrigger=useRef<HTMLButtonElement|null>(null);
+ const dialog=useRef<HTMLDialogElement>(null),helpDialog=useRef<HTMLDialogElement>(null),prizeRevealDialog=useRef<HTMLDialogElement>(null),prizeConfirmDialog=useRef<HTMLDialogElement>(null),helpTrigger=useRef<HTMLButtonElement|null>(null);
+ const prizeConfirmTrigger=useRef<HTMLElement|null>(null);
  const send=(action:MiniAction)=>{
   const at=Date.now();
   const next=miniReducer(latest.current,action,at);
@@ -75,6 +77,18 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
   if(reveal){if(!node.open)node.showModal();}else if(node.open)node.close();
   return()=>{if(node.open)node.close();};
  },[reveal]);
+ useEffect(()=>{
+  const node=prizeConfirmDialog.current;if(!node)return;
+  if(pendingPrize){
+   if(!node.open)node.showModal();
+   node.querySelector<HTMLElement>('[data-autofocus]')?.focus({preventScroll:true});
+  }else if(node.open){
+   node.close();
+   const trigger=prizeConfirmTrigger.current;
+   if(trigger?.isConnected&&!trigger.matches(':disabled'))trigger.focus({preventScroll:true});
+  }
+  return()=>{if(node.open)node.close();};
+ },[pendingPrize]);
  const closeHelp=()=>{setHelp(null);helpTrigger.current?.focus({preventScroll:true});};
  const requestClose=()=>{
   if(winnerForm){setWinnerForm(false);return;}
@@ -115,16 +129,35 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
   :state.active.kind==='pattern'?(state.active.draw?'لم يفز أحد':`فاز ${resultPlayer(gameWinner(state.active)!)}`)
   :state.active.kind==='emoji'?(gameWinner(state.active)?`فاز ${resultPlayer(gameWinner(state.active)!)}`:'تعادل اللاعبان'):'اكتملت اللعبة':null;
  const revealPrize=(prize:MiniSession['prizes'][number])=>{
+  // Selecting a card drafts an intent; no game state changes until explicit confirmation.
+  if(state.phase!=='prizes'||prize.revealed)return;
   const assigned=canAward?winner:null;
-  if(!assigned&&hasWaitingWinner){
-   if(winner){setNotice('اختر فائزًا من القائمة أولًا.');return;}
-   if(!window.confirm('هناك فائز بانتظار جائزة. كشف هذه البطاقة دون اسم سيجعلها غير متاحة للتخصيص. هل تريد المتابعة؟'))return;
-  }
-  if(assigned)send({type:'award',prizeId:prize.id,winnerId:assigned.id});
-  else send({type:'open-prize',prizeId:prize.id});
+  if(!assigned&&hasWaitingWinner){setNotice('اختر فائزًا من القائمة أولًا.');return;}
+  prizeConfirmTrigger.current=document.activeElement instanceof HTMLElement?document.activeElement:null;
+  setPendingPrize({prizeId:prize.id,winnerId:assigned?.id??null});
   setNotice('');
-  setReveal({name:prize.name,winnerId:assigned?.id??null});
  };
+ const confirmPrize=()=>{
+  if(!pendingPrize)return;
+  const current=latest.current;
+  const prize=current.prizes.find(p=>p.id===pendingPrize.prizeId);
+  const recipient=pendingPrize.winnerId?current.winners.find(w=>w.id===pendingPrize.winnerId):null;
+  const available=recipient&&!current.prizes.some(p=>p.winnerId===recipient.id);
+  const unassignedAllowed=!recipient&&current.winners.every(w=>current.prizes.some(p=>p.winnerId===w.id));
+  if(current.phase!=='prizes'||!prize||prize.revealed||(!available&&!unassignedAllowed)){
+   setPendingPrize(null);setNotice('تعذر تأكيد فتح الجائزة. اختر بطاقة متاحة من جديد.');return;
+  }
+  const action:MiniAction=available?{type:'award',prizeId:prize.id,winnerId:recipient.id}:{type:'open-prize',prizeId:prize.id};
+  send(action);
+  const opened=latest.current.prizes.find(p=>p.id===prize.id);
+  setPendingPrize(null);
+  if(!opened?.revealed)return;
+  setPickedWinner(null);
+  setNotice('');
+  setReveal({name:opened.name,winnerId:opened.winnerId});
+ };
+ const pendingPrizeRecord=pendingPrize?state.prizes.find(p=>p.id===pendingPrize.prizeId):null;
+ const pendingRecipient=pendingPrize?.winnerId?state.winners.find(w=>w.id===pendingPrize.winnerId):null;
  const openManager=(mode:ManagementMode='list',winner?:MiniSession['winners'][number])=>{
   managerTrigger.current=document.activeElement as HTMLElement|null;
   setManagerMode(mode);setManagerWinnerId(winner?.id??'');setManagerName(mode==='edit'?winner?.name??'':'');
@@ -183,6 +216,17 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
    notice={notice}
    onExit={()=>onExit?.()}/>}
   <EventFinishDialog open={confirmFinish} onCancel={()=>setConfirmFinish(false)} onConfirm={()=>{send({type:'phase',phase:'closing'});setConfirmFinish(false);}}/>
+  <dialog ref={prizeConfirmDialog} className="mg-dialog mg-award-confirm" aria-label="تأكيد فتح الجائزة" onCancel={e=>{e.preventDefault();setPendingPrize(null);}}>
+   <h2>تأكيد فتح الجائزة</h2>
+   <div className="mg-confirm-gift"><WinnerIcon kind="gift"/></div>
+   <p>{pendingRecipient?'هل أنت متأكد من فتح هذه الجائزة لـ':'هل تريد فتح الجائزة دون تخصيصها لفائز؟'}</p>
+   {pendingRecipient&&<p className="mg-confirm-winner"><strong dir="auto">{pendingRecipient.name}</strong><WinnerNumber id={pendingRecipient.id}/></p>}
+   <p className="mg-help">جائزة <bdi>{state.prizes.findIndex(p=>p.id===pendingPrize?.prizeId)+1}</bdi> · {pendingRecipient?'ستُربط بهذا السجل بعد التأكيد':'ستُكشف فقط ولن ترتبط بأي اسم'}</p>
+   <div className="mg-actions">
+    <button type="button" className="mg-button mg-primary" disabled={!pendingPrizeRecord||pendingPrizeRecord.revealed} onClick={confirmPrize}>فتح الجائزة</button>
+    <button type="button" className="mg-button" data-autofocus onClick={()=>setPendingPrize(null)}>إلغاء</button>
+   </div>
+  </dialog>
   <dialog ref={managerDialog} className="mg-dialog mg-management" dir="rtl" aria-label="الفائزون" onCancel={event=>{event.preventDefault();closeManager();}}>
    <h2>الفائزون</h2>
    <ButtonUtility className="mg-dialog-close" label="إغلاق" icon={X} onPress={closeManager}/>
