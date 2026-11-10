@@ -152,7 +152,10 @@
 .mini-root .mini-pattern-pad:disabled{opacity:1;cursor:default}
 .mini-pattern-board{position:relative;width:min(420px,100%);margin:22px auto}
 .mini-pattern-board .mini-pattern-pads{margin:0;width:100%}
-.mini-pattern-announcement{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;pointer-events:none;text-align:center}
+.mini-pattern-announcement{position:absolute;inset:0;z-index:2;isolation:isolate;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;pointer-events:none;text-align:center}
+/* Dim only the board behind the three-second announcement; do not desaturate the colors. */
+.mini-pattern-announcement::before{content:'';position:absolute;inset:0;border-radius:clamp(18px,4vw,30px);background:rgba(25,24,23,.23);z-index:-1}
+.mini-pattern-announcement>*{position:relative;z-index:1}
 .mini-pattern-announcement strong{font-size:clamp(18px,4vw,27px);font-weight:850;padding:15px 24px;border:2px solid #333;border-radius:15px;background:#fbb03b;box-shadow:5px 6px 0 #333;max-width:95%}
 .mini-pattern-announcement span{font-size:12px;font-weight:700;background:#fff;border-radius:10px;padding:6px 12px;border:1px solid #d8c4a2}
 .mini-wheel-idle{font-size:clamp(19px,3vw,25px);color:#83735d}
