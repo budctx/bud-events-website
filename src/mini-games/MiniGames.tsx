@@ -82,8 +82,8 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
   if(pendingPrize){
    if(!node.open)node.showModal();
    node.querySelector<HTMLElement>('[data-autofocus]')?.focus({preventScroll:true});
-  }else if(node.open){
-   node.close();
+  }else{
+   if(node.open)node.close();
    const trigger=prizeConfirmTrigger.current;
    if(trigger?.isConnected&&!trigger.matches(':disabled'))trigger.focus({preventScroll:true});
   }
