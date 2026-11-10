@@ -1,15 +1,15 @@
 import {parsePrizeLines} from '../prize-lines.ts';
 import {shufflePrizeNames} from '../manual-game.ts';
 import type {ManualWinner,ManualPrize} from '../manual-game.ts';
-import {WORDS,EMOJI_SYMBOLS,PATTERN_COLORS,availableWheelPairs} from './catalog.ts';
+import {WORDS,EMOJI_SYMBOLS,PATTERN_COLORS,ARABIC_ALPHABET,availableWheelPairs} from './catalog.ts';
 import type {MiniGameKind,PatternColor,WheelCategory} from './catalog.ts';
 
 /** Mini Games is controlled only by its host, with no participant account or server gameplay mutations. */
 export type Player = 1|2;
-export type BombGame={kind:'bomb';size:4|5|6;bomb:number;opened:number[];turn:Player;loser:Player|null;finished:boolean};
-export type WordGame={kind:'form-word'|'scramble';answer:string;letters:string[];deadline:number;finished:boolean;revealed:boolean};
+export type BombGame={kind:'bomb';size:4|5|6;bomb:number;opened:number[];turn:Player;loser:Player|null;finished:boolean;completedAt?:number};
+export type WordGame={kind:'form-word'|'scramble';answer:string;letters:string[];deadline:number;seconds?:number;finished:boolean;revealed:boolean};
 export type PatternGame={kind:'pattern';level:number;sequences:[PatternColor[],PatternColor[]];turn:Player;progress:number;outcomes:[boolean|null,boolean|null];startedAt:number;replays:number;finished:boolean;winner:Player|null;draw:boolean};
-export type EmojiGame={kind:'emoji';pairs:3|5|7;tiles:string[];opened:number[];matched:number[];turn:Player;scores:[number,number];mismatchUntil:number|null;finished:boolean;winner:Player|null};
+export type EmojiGame={kind:'emoji';pairs:3|5|7|8;tiles:string[];opened:number[];matched:number[];turn:Player;scores:[number,number];mismatchUntil:number|null;finished:boolean;winner:Player|null;completedAt?:number};
 /** The reel reveals are staggered; keep the result readable before host actions appear. */
 export const WHEEL_CATEGORY_STOP_MS=2600;
 export const WHEEL_LETTER_STOP_MS=3800;
@@ -21,6 +21,10 @@ export type MiniSession={
  schema:2;kind:'mini-games';phase:MiniPhase;prizes:ManualPrize[];winners:ManualWinner[];
  nextWinnerNumber:number;active:ActiveMiniGame|null;
 };
+/** The player announcement is visible for 3s before the color sequence. */
+export const PATTERN_TURN_NOTICE_MS=3000;
+export const PATTERN_FLASH_STEP_MS=700;
+export const PATTERN_DISPLAY_TAIL_MS=800;
 export type MiniAction=
  | {type:'open';game:MiniGameKind;size?:4|5|6;pairs?:3|5|7;level?:4|5|6;seconds?:number}
  | {type:'tap';index:number}
@@ -29,6 +33,7 @@ export type MiniAction=
  | {type:'resolve'}
  | {type:'finish'}
  | {type:'reveal'}
+ | {type:'change-word'}
  | {type:'spin'}
  | {type:'close'}
  | {type:'winner';name:string}
@@ -81,7 +86,7 @@ export function createMiniGame(kind:MiniGameKind,opts:Extract<MiniAction,{type:'
   return {kind,size,bomb:choose(Array.from({length:size*size},(_,i)=>i),pick),opened:[],turn:1,loser:null,finished:false};
  }
  if(kind==='emoji'){
-  const pairs=([5,7] as const).includes(opts.pairs as 5|7)?opts.pairs!:5;
+  const pairs=8; // Eight pairs, exactly 4×4; retain legacy sessions as-is.
   const symbols=shuffle(EMOJI_SYMBOLS,pick).slice(0,pairs);
   return {kind,pairs,tiles:shuffle([...symbols,...symbols],pick),opened:[],matched:[],turn:1,scores:[0,0],mismatchUntil:null,finished:false,winner:null};
  }
@@ -91,11 +96,16 @@ export function createMiniGame(kind:MiniGameKind,opts:Extract<MiniAction,{type:'
  }
  if(kind==='form-word'||kind==='scramble'){
   const seconds=Math.min(180,Math.max(10,Math.floor(opts.seconds??(kind==='form-word'?60:30))));
+  if(kind==='form-word'){
+   // Unrestricted: five independent Arabic letter draws; repetitions are allowed.
+   const letters=Array.from({length:5},()=>choose(ARABIC_ALPHABET,pick));
+   // The legacy answer field is structural only; it is never offered as a solution.
+   return {kind,answer:letters.join(''),letters,deadline:now+seconds*1000,seconds,finished:false,revealed:false};
+  }
   const answer=choose(WORDS.filter(value=>Array.from(value).length===5),pick);
-  // A guaranteed solvable set of five letters; never show an impossible collection.
   const letters=shuffle(Array.from(answer),pick);
   if(letters.join('')===answer&&letters.length>1){[letters[0],letters[1]]=[letters[1],letters[0]];}
-  return {kind,answer,letters,deadline:now+seconds*1000,finished:false,revealed:false};
+  return {kind,answer,letters,deadline:now+seconds*1000,seconds,finished:false,revealed:false};
  }
  const value=choose(availableWheelPairs(),pick);
  return {kind:'wheel',...value,startedAt:null,draws:0}; // Idle until the host pulls the lever.
@@ -162,7 +172,16 @@ export function miniReducer(state:MiniSession,action:MiniAction,now=Date.now(),p
   return {...state,winners:[...state.winners,winner],nextWinnerNumber:state.nextWinnerNumber+1,active:null};
  }
  if(action.type==='finish'&&(game.kind==='form-word'||game.kind==='scramble'))return {...state,active:{...game,finished:true}};
- if(action.type==='reveal'&&game.kind==='scramble'&&gameFinished(game,now))return {...state,active:{...game,revealed:true}};
+ if(action.type==='reveal'&&game.kind==='scramble'&&!game.revealed)
+  return {...state,active:{...game,revealed:true,finished:true}};
+ if(action.type==='change-word'&&game.kind==='scramble'){
+  const choices=WORDS.filter(value=>Array.from(value).length===5&&value!==game.answer);
+  const answer=choose(choices,pick);
+  const letters=shuffle(Array.from(answer),pick);
+  if(letters.join('')===answer&&letters.length>1){[letters[0],letters[1]]=[letters[1],letters[0]];}
+  const seconds=game.seconds??30; // Legacy sessions may omit the original duration.
+  return {...state,active:{...game,answer,letters,seconds,deadline:now+seconds*1000,finished:false,revealed:false}};
+ }
  if(action.type==='spin'&&game.kind==='wheel'&&(game.startedAt===null||gameFinished(game,now))){
   const value=choose(availableWheelPairs(),pick);
   return {...state,active:{...game,...value,startedAt:now,draws:game.draws+1}};
@@ -170,7 +189,7 @@ export function miniReducer(state:MiniSession,action:MiniAction,now=Date.now(),p
  if(action.type==='tap'&&game.kind==='bomb'){
   if(game.finished||!Number.isInteger(action.index)||action.index<0||action.index>=game.size*game.size||game.opened.includes(action.index))return state;
   const loser=action.index===game.bomb?game.turn:null;
-  return {...state,active:{...game,opened:[...game.opened,action.index],loser,finished:loser!==null,turn:loser?game.turn:(game.turn===1?2:1)}};
+  return {...state,active:{...game,opened:[...game.opened,action.index],loser,finished:loser!==null,completedAt:loser!==null?now:undefined,turn:loser?game.turn:(game.turn===1?2:1)}};
  }
  if(action.type==='tap'&&game.kind==='emoji'){
   if(game.finished||game.mismatchUntil!==null||!Number.isInteger(action.index)||action.index<0||action.index>=game.tiles.length||game.matched.includes(action.index)||game.opened.includes(action.index))return state;
@@ -181,7 +200,7 @@ export function miniReducer(state:MiniSession,action:MiniAction,now=Date.now(),p
    const matched=[...game.matched,a,b],scores:[number,number]=[...game.scores];
    scores[game.turn-1]++;
    const finished=matched.length===game.tiles.length;
-   return {...state,active:{...game,opened:[],matched,scores,finished,winner:finished?(scores[0]>scores[1]?1:2):null}};
+   return {...state,active:{...game,opened:[],matched,scores,finished,completedAt:finished?now:undefined,winner:finished?(scores[0]>scores[1]?1:2):null}};
   }
   return {...state,active:{...game,opened,mismatchUntil:now+1000}};
  }
@@ -192,14 +211,14 @@ export function miniReducer(state:MiniSession,action:MiniAction,now=Date.now(),p
   return {...state,active:{...game,startedAt:now,progress:0,replays:game.replays+1}};
  }
  if(action.type==='color'&&game.kind==='pattern'&&!game.finished){
-  const displayMs=game.level*700+800;
-  if(now<game.startedAt+displayMs)return state;
+  const displayMs=game.level*PATTERN_FLASH_STEP_MS+PATTERN_DISPLAY_TAIL_MS;
+  if(now<game.startedAt+displayMs+(game.replays===0?PATTERN_TURN_NOTICE_MS:0))return state;
   const correct=game.sequences[game.turn-1][game.progress]===action.color;
   const ended=!correct||game.progress+1===game.level;
   if(!ended)return {...state,active:{...game,progress:game.progress+1}};
   const outcomes:[boolean|null,boolean|null]=[...game.outcomes];
   outcomes[game.turn-1]=correct;
-  if(game.turn===1)return {...state,active:{...game,outcomes,turn:2,progress:0,startedAt:now}};
+  if(game.turn===1)return {...state,active:{...game,outcomes,turn:2,progress:0,startedAt:now,replays:0}};
   if(outcomes[0]&&outcomes[1]){
    const level=game.level+1;
    return {...state,active:{...game,level,sequences:distinctSequences(level,pick),outcomes:[null,null],turn:1,progress:0,startedAt:now,replays:0}};
