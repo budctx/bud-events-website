@@ -112,7 +112,7 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
  const resultText=state.active&&gameFinished(state.active,clock)?state.active.kind==='bomb'
   ?`خسر ${resultPlayer(state.active.loser!)} · فاز ${resultPlayer(gameWinner(state.active)!)}`
   :state.active.kind==='pattern'?(state.active.draw?'لم يفز أحد':`فاز ${resultPlayer(gameWinner(state.active)!)}`)
-  :state.active.kind==='emoji'?`فاز ${resultPlayer(gameWinner(state.active)!)}`:'اكتملت اللعبة':null;
+  :state.active.kind==='emoji'?(gameWinner(state.active)?`فاز ${resultPlayer(gameWinner(state.active)!)}`:'تعادل اللاعبان'):'اكتملت اللعبة':null;
  const revealPrize=(prize:MiniSession['prizes'][number])=>{
   const assigned=canAward?winner:null;
   if(!assigned&&hasWaitingWinner){
