@@ -63,13 +63,14 @@ export function MiniGameStage({game,now,send}:Props){
      <span className="mini-wheel-divider" aria-hidden="true"/>
      <div className="mini-wheel-reel" aria-label="حرف">{idle?<span className="mini-wheel-idle">الحرف</span>:elapsed<WHEEL_LETTER_STOP_MS?<div key={'letter'+game.draws} className="mini-wheel-spinning mini-wheel-long">{[...LETTERS,...LETTERS,...LETTERS].map((c,i)=><span key={i}>{c}</span>)}</div>:<strong>{game.letter}</strong>}</div>
     </div>
+    {finished&&<p className="mini-wheel-readout" role="status"><span>التصنيف: <strong>{game.category}</strong></span><span>الحرف: <strong>{game.letter}</strong></span></p>}
     <span className="bud-sr-only" role="status">{spinning?'جارٍ الدوران…':''}</span>
     <button type="button" className={'mini-wheel-lever'+(spinning?' is-spinning':'')} disabled={spinning} aria-label={idle?'سحب المقبض':'إعادة السحب'} onClick={()=>send({type:'spin'})}>
      <span className="mini-wheel-lever-art" aria-hidden="true"><span className="mini-wheel-lever-base"/><span className="mini-wheel-lever-handle"/></span>
      <span>{spinning?'جارٍ الدوران…':idle?'اسحب المقبض':'إعادة السحب'}</span>
     </button>
     {spinning&&<p className="mini-hint">يتوقف التصنيف أولًا، ثم الحرف.</p>}
-     {finished&&<p className="mini-wheel-readout" role="status"><span>التصنيف: <strong>{game.category}</strong></span><span>الحرف: <strong>{game.letter}</strong></span></p>}
+     
    </>;
   })()}
  </section>;
