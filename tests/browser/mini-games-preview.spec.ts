@@ -12,7 +12,7 @@ test('six-game preview runs with zero prizes and never requests a paid start',as
  await page.getByRole('button',{name:'القنبلة',exact:true}).click();
  await page.getByRole('dialog',{name:'القنبلة'}).getByRole('button',{name:'بدء اللعبة'}).click();
  for(let i=0;i<25;i++){
-  if(await page.getByText(/خسر اللاعب/).isVisible())break;
+  if(await page.locator('.mini-bomb-cell.is-bomb').count())break;
   await page.locator('.mini-bomb-cell:not(.is-open)').first().click();
  }
  await expect(page.getByText(/خسر اللاعب/)).toBeVisible();
@@ -91,7 +91,7 @@ test('responsive mini-game hub has usable modals and no horizontal page overflow
  await page.getByRole('button',{name:'ذاكرة الإيموجي',exact:true}).click();
  await expect(page.getByRole('dialog',{name:'ذاكرة الإيموجي'})).toBeVisible();
  await page.getByRole('button',{name:'بدء اللعبة'}).click();
- await expect(page.locator('.mini-emoji-cell')).toHaveCount(10);
+ await expect(page.locator('.mini-emoji-cell')).toHaveCount(16);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
  await page.keyboard.press('Escape');
  await expect(page.getByText('لم يتم تحديد فائز، هل أنت متأكد؟')).toBeVisible();
@@ -122,65 +122,67 @@ test('all six cards offer independent info dialogs and default-collapsed setup o
  await help.getByRole('button',{name:'إغلاق الشرح'}).click();
  await page.getByRole('button',{name:'ذاكرة الإيموجي',exact:true}).click();
  const setup=page.getByRole('dialog',{name:'ذاكرة الإيموجي'});
- await expect(setup.locator('details')).not.toHaveAttribute('open',/.+/);
  await expect(setup.getByRole('button',{name:'بدء اللعبة'})).toBeVisible();
- await setup.locator('summary').click();
- await expect(setup.getByRole('button',{name:'5 أزواج'})).toBeVisible();
- await expect(setup.getByRole('button',{name:'7 أزواج'})).toBeVisible();
- await expect(setup.getByRole('button',{name:'3 أزواج'})).toHaveCount(0);
+ await expect(setup.locator('details')).toHaveCount(0); // Always 8 pairs in a 4×4 square.
 });
-test('new bomb and emoji boards stay numbered square and have balanced rows',async({page})=>{
+test('new bomb and emoji boards are 4×4 squares with Motion flip faces',async({page},info)=>{
  await page.setViewportSize({width:390,height:844});
  await page.goto('/?screen=mini-preview');await page.getByRole('button',{name:/بدء المعاينة/}).click();
  await page.getByRole('button',{name:'القنبلة',exact:true}).click();
  const bomb=page.getByRole('dialog',{name:'القنبلة'});
- await expect(bomb.locator('.mini-chips')).toHaveCount(0);
  await bomb.getByRole('button',{name:'بدء اللعبة'}).click();
  await expect(bomb.locator('.mini-bomb-cell')).toHaveCount(16);
- await expect(bomb.locator('.mini-bomb-cell').first()).toHaveText('1');
- await expect(bomb.locator('.mini-bomb-cell').last()).toHaveText('16');
+ await expect(bomb.locator('.mini-bomb-cell').first().locator('.mini-flip-back')).toHaveText('1');
+ await expect(bomb.locator('.mini-bomb-cell').last().locator('.mini-flip-back')).toHaveText('16');
+ await expect(bomb.locator('.mini-flip-inner').first()).toHaveCSS('transform-style','preserve-3d');
+ await expect(bomb.locator('.mini-flip-front').first()).toHaveCSS('backface-visibility','hidden');
+ await bomb.locator('.mini-bomb-cell').first().click();
+ await expect(bomb.locator('.mini-bomb-cell').first()).toHaveAttribute('data-revealed','true');
+ await page.screenshot({path:info.outputPath('bomb-card-flip-390.png'),animations:'disabled'});
  await bomb.getByRole('button',{name:'إغلاق اللعبة'}).click();
  await bomb.getByRole('button',{name:'إنهاء بدون فائز'}).click();
- for(const [pairs,total] of [[5,10],[7,14]] as const){
-  await page.getByRole('button',{name:'ذاكرة الإيموجي',exact:true}).click();
-  const modal=page.getByRole('dialog',{name:'ذاكرة الإيموجي'});
-  await modal.locator('summary').click();
-  await modal.getByRole('button',{name:pairs+' أزواج'}).click();
-  await modal.getByRole('button',{name:'بدء اللعبة'}).click();
-  await expect(modal.locator('.mini-emoji-cell')).toHaveCount(total);
-  const measures=await modal.locator('.mini-emoji-cell').evaluateAll(nodes=>nodes.map(n=>({width:n.getBoundingClientRect().width,height:n.getBoundingClientRect().height,top:Math.round(n.getBoundingClientRect().top)})));
-  expect(measures.every(m=>Math.abs(m.width-m.height)<1)).toBe(true);
-  expect(new Set(measures.map(m=>m.top)).size).toBe(2);
-  await expect(modal.locator('.mini-emoji-cell').first()).toHaveText('1');
-  await modal.getByRole('button',{name:'إغلاق اللعبة'}).click();
-  await modal.getByRole('button',{name:'إنهاء بدون فائز'}).click();
- }
+ await page.getByRole('button',{name:'ذاكرة الإيموجي',exact:true}).click();
+ const modal=page.getByRole('dialog',{name:'ذاكرة الإيموجي'});
+ await expect(modal.locator('details')).toHaveCount(0);
+ await modal.getByRole('button',{name:'بدء اللعبة'}).click();
+ await expect(modal.locator('.mini-emoji-cell')).toHaveCount(16);
+ const measurements=await modal.locator('.mini-emoji-cell').evaluateAll(nodes=>nodes.map(n=>({width:n.getBoundingClientRect().width,height:n.getBoundingClientRect().height,top:Math.round(n.getBoundingClientRect().top)})));
+ expect(measurements.every(m=>Math.abs(m.width-m.height)<1)).toBe(true);
+ expect(new Set(measurements.map(m=>m.top)).size).toBe(4);
+ await expect(modal.locator('.mini-emoji-cell').first().locator('.mini-flip-back')).toHaveText('1');
+ await expect(modal.locator('.mini-emoji-cell').first().locator('.mini-flip-front')).toHaveCSS('backface-visibility','hidden');
+ await modal.locator('.mini-emoji-cell').first().click();
+ await expect(modal.locator('.mini-emoji-cell').first()).toHaveAttribute('data-revealed','true');
+ await page.screenshot({path:info.outputPath('emoji-card-flip-390.png'),animations:'disabled'});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });
-test('five-step pattern illuminates its four unlettered pads silently and then enables input',async({page})=>{
+test('pattern announces first player above vivid pads for 3 seconds before revealing sequence',async({page})=>{
  await page.clock.install();await page.goto('/?screen=mini-preview');await page.getByRole('button',{name:/بدء المعاينة/}).click();
  await page.getByRole('button',{name:'احفظ النمط',exact:true}).click();
  const modal=page.getByRole('dialog',{name:'احفظ النمط'});
- await expect(modal.locator('.mini-chips')).toHaveCount(0);
- await page.clock.pauseAt(Date.now()+60000); // Pause strictly in the future, never behind the installed browser clock.
+ await page.clock.pauseAt(Date.now()+60000);
  await modal.getByRole('button',{name:'بدء اللعبة'}).click();
  const pads=modal.locator('.mini-pattern-pad');
  await expect(pads).toHaveCount(4);
  await expect(pads.first()).toHaveText('');
- await expect(modal.locator('.mini-pattern-turn')).toContainText('شاهد الأضواء'); // Sequence length 5 is asserted by the engine tests; no redundant onscreen text.
  await expect(pads.first()).toBeDisabled();
- await page.clock.runFor(600);
+ await expect(pads.first()).toHaveCSS('opacity','1');
+ await expect(modal.locator('.mini-pattern-announcement')).toContainText('دور اللاعب الأول');
+ await expect(modal.locator('.mini-pattern-pad.is-lit')).toHaveCount(0);
+ await page.clock.runFor(2900);
+ await expect(modal.locator('.mini-pattern-announcement')).toBeVisible();
+ await expect(modal.locator('.mini-pattern-pad.is-lit')).toHaveCount(0);
+ await page.clock.runFor(700);
+ await expect(modal.locator('.mini-pattern-announcement')).toHaveCount(0);
  await expect(modal.locator('.mini-pattern-pad.is-lit')).toHaveCount(1);
- // The UI ticks every 120 ms. Observe the dark gap well away from either edge.
  await page.clock.runFor(520);
- await expect(modal.locator('.mini-pattern-pad.is-lit')).toHaveCount(0); // Distinct flashes even when a color repeats.
+ await expect(modal.locator('.mini-pattern-pad.is-lit')).toHaveCount(0);
  await page.clock.runFor(250);
  await expect(modal.locator('.mini-pattern-pad.is-lit')).toHaveCount(1);
  await page.clock.runFor(3100);
  await expect(pads.first()).toBeEnabled();
  await expect(modal.locator('button[aria-label="تفعيل الصوت"],button[aria-label="كتم الصوت"]')).toHaveCount(0);
 });
-
 test('saving a winner restores game focus and the shared prize stage assigns and locks a reveal',async({page})=>{
  const button=(name:string)=>page.getByRole('button',{name,exact:true});
  await page.goto('/?screen=mini-preview');
@@ -188,7 +190,7 @@ test('saving a winner restores game focus and the shared prize stage assigns and
  const scramble=button('الكلمة المبعثرة');
  await scramble.click();
  await button('بدء اللعبة').click();
- await button('إنهاء التحدي').click();
+ await button('كشف الكلمة الصحيحة').click();
  await button('تسجيل فائز').click();
  await page.getByRole('textbox',{name:'اسم الفائز'}).fill('مختبر');
  await button('حفظ الفائز').click();
@@ -311,4 +313,82 @@ test('Mini Games activity, prizes and closing hide decorative stage tabs and pre
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
   await page.screenshot({path:info.outputPath('mini-no-stage-tabs-'+width+'.png'),animations:'disabled'});
  }
+});
+
+
+for(const width of [390,1440]){
+ test(`scramble reveals the answer without an overlay and replacement restarts its timer ${width}`,async({page},info)=>{
+  await page.setViewportSize({width,height:width===390?844:900});
+  await page.clock.install();
+  await page.goto('/?screen=mini-preview');
+  await page.getByRole('button',{name:/بدء المعاينة/}).click();
+  await page.getByRole('button',{name:'الكلمة المبعثرة',exact:true}).click();
+  const modal=page.getByRole('dialog',{name:'الكلمة المبعثرة'});
+  await modal.getByRole('button',{name:'بدء اللعبة'}).click();
+  await expect(modal.locator('.mini-letter')).toHaveCount(5);
+  await expect(modal.getByRole('button',{name:'كشف الكلمة الصحيحة'})).toBeVisible();
+  await expect(modal.getByRole('button',{name:'تغيير الكلمة'})).toBeVisible();
+  await page.clock.runFor(4200);
+  await expect(modal.getByRole('timer')).not.toContainText('30');
+  await modal.getByRole('button',{name:'تغيير الكلمة'}).click();
+  await expect(modal.getByRole('timer')).toContainText('30');
+  await expect(modal.locator('.mini-scramble-answer')).toHaveCount(0);
+  await modal.getByRole('button',{name:'كشف الكلمة الصحيحة'}).click();
+  await expect(modal.locator('.mini-scramble-answer')).toBeVisible();
+  const first=await modal.locator('.mini-scramble-answer').textContent();
+  await expect(modal.locator('.mini-result-layer')).toHaveCount(0);
+  await expect(modal.locator('.mini-word-result-actions')).toBeVisible();
+  await modal.getByRole('button',{name:'تغيير الكلمة'}).click();
+  await expect(modal.getByRole('timer')).toContainText('30');
+  await expect(modal.locator('.mini-scramble-answer')).toHaveCount(0);
+  await modal.getByRole('button',{name:'كشف الكلمة الصحيحة'}).click();
+  const second=await modal.locator('.mini-scramble-answer').textContent();
+  expect(second).not.toBe(first);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+  await page.screenshot({path:info.outputPath('scramble-control-'+width+'.png'),animations:'disabled'});
+ });
+}
+test('form-word shows five independent letters with no reveal-answer or change-word actions',async({page})=>{
+ await page.goto('/?screen=mini-preview');await page.getByRole('button',{name:/بدء المعاينة/}).click();
+ await page.getByRole('button',{name:'تكوين كلمة',exact:true}).click();
+ const modal=page.getByRole('dialog',{name:'تكوين كلمة'});
+ await modal.getByRole('button',{name:'بدء اللعبة'}).click();
+ await expect(modal.locator('.mini-letter')).toHaveCount(5);
+ await expect(modal).toContainText('خمسة أحرف عشوائية');
+ await expect(modal.getByRole('button',{name:'كشف الكلمة الصحيحة'})).toHaveCount(0);
+ await expect(modal.getByRole('button',{name:'تغيير الكلمة'})).toHaveCount(0);
+});
+test('emoji mismatch flips both cards back while preserving fair turn rotation',async({page})=>{
+ await page.clock.install();
+ await page.goto('/?screen=mini-preview');await page.getByRole('button',{name:/بدء المعاينة/}).click();
+ await page.getByRole('button',{name:'ذاكرة الإيموجي',exact:true}).click();
+ const modal=page.getByRole('dialog',{name:'ذاكرة الإيموجي'});
+ await modal.getByRole('button',{name:'بدء اللعبة'}).click();
+ const cards=modal.locator('.mini-emoji-cell');
+ const values=await cards.locator('.mini-flip-front').allTextContents();
+ const other=values.findIndex(value=>value!==values[0]);
+ expect(other).toBeGreaterThan(0);
+ await cards.nth(0).click();
+ await cards.nth(other).click();
+ await expect(cards.nth(0)).toHaveAttribute('data-revealed','true');
+ await expect(cards.nth(other)).toHaveAttribute('data-revealed','true');
+ await page.clock.runFor(1100);
+ await expect(cards.nth(0)).toHaveAttribute('data-revealed','false');
+ await expect(cards.nth(other)).toHaveAttribute('data-revealed','false');
+ await expect(modal.locator('.mini-scorebar span').nth(1)).toContainText('اللاعب 2');
+});
+test('bomb explosion card flips before completion layer appears',async({page})=>{
+ await page.clock.install();
+ await page.goto('/?screen=mini-preview');await page.getByRole('button',{name:/بدء المعاينة/}).click();
+ await page.getByRole('button',{name:'القنبلة',exact:true}).click();
+ const modal=page.getByRole('dialog',{name:'القنبلة'});
+ await modal.getByRole('button',{name:'بدء اللعبة'}).click();
+ for(let i=0;i<16;i++){
+  await modal.locator('.mini-bomb-cell:not(.is-open)').first().click();
+  if(await modal.locator('.mini-bomb-cell.is-bomb').count())break;
+ }
+ await expect(modal.locator('.mini-bomb-cell.is-bomb')).toHaveCount(1);
+ await expect(modal.locator('.mini-result-layer')).toHaveCount(0);
+ await page.clock.runFor(1000);
+ await expect(modal.locator('.mini-result-layer')).toBeVisible();
 });

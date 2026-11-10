@@ -16,6 +16,8 @@ export const WORDS = [
   'مدينة', 'كواكب', 'صداقة', 'رسالة', 'نجارة', 'رياح', 'منزل', 'فراشة',
   'تاريخ', 'مزرعة', 'قمرية', 'وردة', 'دراجة', 'جريدة',
 ] as const;
+/** Independent random draws for تكوين كلمة; unlike the curated scramble catalog. */
+export const ARABIC_ALPHABET=[...'ابتثجحخدذرزسشصضطظعغفقكلمنهوي'] as const;
 export const EMOJI_SYMBOLS = ['🐱','🚀','🍉','🐼','⭐','🍋','🐙','🎧','🦋','🌻','🎲','🐝','🍎','🪐','⚽'] as const;
 export const PATTERN_COLORS = ['أحمر','أزرق','أخضر','أصفر'] as const;
 export type PatternColor = typeof PATTERN_COLORS[number];

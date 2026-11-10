@@ -26,7 +26,7 @@ const resultPlayer=(player:1|2)=>player===1?'اللاعب الأول':'اللا�
 
 export function MiniGames({initial,onChange,onExit,sessionName='ميني قيمز'}:Props){
  const [state,setState]=useState(initial),latest=useRef(initial);
- const [selected,setSelected]=useState<MiniGameKind|null>(null),[pairs,setPairs]=useState<5|7>(5),[seconds,setSeconds]=useState(60),[help,setHelp]=useState<MiniGameKind|null>(null);
+ const [selected,setSelected]=useState<MiniGameKind|null>(null),[seconds,setSeconds]=useState(60),[help,setHelp]=useState<MiniGameKind|null>(null);
  const [clock,setClock]=useState(Date.now()),[confirmExit,setConfirmExit]=useState(false),[confirmFinish,setConfirmFinish]=useState(false),[winnerForm,setWinnerForm]=useState(false),[name,setName]=useState(''),[notice,setNotice]=useState('');
  const [pickedWinner,setPickedWinner]=useState<string|null>(null),[reveal,setReveal]=useState<{name:string;winnerId:string|null}|null>(null);
  const [managerOpen,setManagerOpen]=useState(false),[managerMode,setManagerMode]=useState<ManagementMode>('list');
@@ -35,8 +35,12 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
  const gameTrigger=useRef<HTMLButtonElement|null>(null);
  const dialog=useRef<HTMLDialogElement>(null),helpDialog=useRef<HTMLDialogElement>(null),prizeRevealDialog=useRef<HTMLDialogElement>(null),helpTrigger=useRef<HTMLButtonElement|null>(null);
  const send=(action:MiniAction)=>{
-  const next=miniReducer(latest.current,action,Date.now());
-  if(next!==latest.current){latest.current=next;setState(next);onChange?.(next);}
+  const at=Date.now();
+  const next=miniReducer(latest.current,action,at);
+  if(next!==latest.current){
+   latest.current=next;setState(next);onChange?.(next);
+   if(action.type==='change-word')setClock(at); // Restart the displayed timer immediately.
+  }
  };
  useEffect(()=>{
   const tick=()=>{const now=Date.now();setClock(now);const active=latest.current.active;if(active?.kind==='emoji'&&active.mismatchUntil!==null&&now>=active.mismatchUntil)send({type:'resolve'});};
@@ -79,10 +83,13 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
   confirmClose();
  };
  const confirmClose=()=>{send({type:'close'});setSelected(null);setConfirmExit(false);setWinnerForm(false);setName('');};
- const open=(kind:MiniGameKind,trigger:HTMLButtonElement)=>{gameTrigger.current=trigger;setPairs(5);setSeconds(kind==='form-word'?60:30);setConfirmExit(false);setNotice('');setSelected(kind);};
- const start=()=>{if(!selected)return;send({type:'open',game:selected,pairs,seconds});setSelected(null);setClock(Date.now());};
+ const open=(kind:MiniGameKind,trigger:HTMLButtonElement)=>{gameTrigger.current=trigger;setSeconds(kind==='form-word'?60:30);setConfirmExit(false);setNotice('');setSelected(kind);};
+ const start=()=>{if(!selected)return;send({type:'open',game:selected,seconds});setSelected(null);setClock(Date.now());};
  const capacity=state.prizes.length,filled=state.winners.length,full=filled>=capacity;
  const canRecord=recordableWinner(state,clock);
+ // Allow the final 3D flip to complete before opening the generic result layer.
+ const flipReady=state.active?.kind==='bomb'||state.active?.kind==='emoji'
+  ?clock-(state.active.completedAt??0)>=900:true;
  // Keep the category and letter visible long enough to read before showing host choices.
  const wheelActionsReady=state.active?.kind==='wheel'&&state.active.startedAt!==null
   &&clock-state.active.startedAt>=WHEEL_LETTER_STOP_MS+WHEEL_RESULT_HOLD_MS;
@@ -105,7 +112,7 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
  const resultText=state.active&&gameFinished(state.active,clock)?state.active.kind==='bomb'
   ?`خسر ${resultPlayer(state.active.loser!)} · فاز ${resultPlayer(gameWinner(state.active)!)}`
   :state.active.kind==='pattern'?(state.active.draw?'لم يفز أحد':`فاز ${resultPlayer(gameWinner(state.active)!)}`)
-  :state.active.kind==='emoji'?`فاز ${resultPlayer(gameWinner(state.active)!)}`:'اكتملت اللعبة':null;
+  :state.active.kind==='emoji'?(gameWinner(state.active)?`فاز ${resultPlayer(gameWinner(state.active)!)}`:'تعادل اللاعبان'):'اكتملت اللعبة':null;
  const revealPrize=(prize:MiniSession['prizes'][number])=>{
   const assigned=canAward?winner:null;
   if(!assigned&&hasWaitingWinner){
@@ -201,16 +208,20 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
    <div className="mini-dialog-head"><h2>{selected?GAME_LABELS[selected]:state.active?GAME_LABELS[state.active.kind]:'اللعبة'}</h2><button type="button" className="mini-icon-button" aria-label="إغلاق اللعبة" onClick={requestClose}><X size={21}/></button></div>
    {confirmExit?<div className="mini-confirm"><h3>لم يتم تحديد فائز، هل أنت متأكد؟</h3><p>يمكنك العودة للعبة أو إنهاؤها دون تسجيل فائز.</p><div className="mini-action-row"><button className="mini-cta mini-secondary" onClick={()=>setConfirmExit(false)}>العودة</button><button className="mini-cta mini-primary" onClick={confirmClose}>إنهاء بدون فائز</button></div></div>:selected?<div className="mini-standby">
     <button type="button" className="mini-cta mini-primary mini-start" onClick={start}>بدء اللعبة <ArrowLeft size={20}/></button>
-    {(selected==='emoji'||selected==='form-word'||selected==='scramble')&&<details className="mini-standby-options">
+    {(selected==='form-word'||selected==='scramble')&&<details className="mini-standby-options">
      <summary><span><Settings2 size={17}/> خيارات اللعبة</span><ChevronDown size={18} className="mini-options-chevron"/></summary>
      <div className="mini-options-content">
-      {selected==='emoji'&&<fieldset><legend>عدد الأزواج</legend><div className="mini-chips">{([5,7] as const).map(v=><button type="button" aria-pressed={pairs===v} key={v} onClick={()=>setPairs(v)}>{num(v)} أزواج</button>)}</div></fieldset>}
+      
       {(selected==='form-word'||selected==='scramble')&&<fieldset><legend>مدة التحدي</legend><label className="mini-range">{num(seconds)} ثانية <input aria-label="مدة التحدي" type="range" min="10" max="180" step="5" value={seconds} onChange={e=>setSeconds(Number(e.target.value))}/></label></fieldset>}
      </div>
     </details>}
    </div>:winnerForm&&!state.active?<form className="mini-winner-form" onSubmit={e=>{e.preventDefault();saveWinner();}}><label htmlFor="mini-prize-winner-name">اسم الفائز</label><input id="mini-prize-winner-name" autoFocus value={name} maxLength={80} required onChange={e=>setName(e.target.value)} placeholder="أدخل اسم الفائز"/>{duplicate&&<p className="mini-notice">الاسم مسجل سابقًا، ويمكن تسجيله مجددًا كفائز مستقل.</p>}<div className="mini-action-row"><button className="mini-cta mini-secondary" type="button" onClick={()=>setWinnerForm(false)}>إلغاء</button><button type="submit" className="mini-cta mini-primary" disabled={!name.trim()||full}>حفظ الفائز</button></div></form>:state.active?<div className="mini-playing">
     {winnerForm?<form className="mini-winner-form" onSubmit={e=>{e.preventDefault();saveWinner();}}><label htmlFor="mini-winner-name">اسم الفائز</label><input id="mini-winner-name" autoFocus value={name} maxLength={80} required onChange={e=>setName(e.target.value)} placeholder="أدخل اسم الفائز"/>{duplicate&&<p className="mini-notice">الاسم مسجل سابقًا، ويمكن تسجيله مجددًا كفائز مستقل.</p>}<div className="mini-action-row"><button className="mini-cta mini-secondary" type="button" onClick={()=>setWinnerForm(false)}>إلغاء</button><button type="submit" className="mini-cta mini-primary" disabled={!name.trim()}>حفظ الفائز</button></div></form>:<>
      <MiniGameStage game={state.active} now={clock} send={send}/>
+     {state.active.kind==='scramble'&&state.active.revealed&&<div className="mini-word-result-actions" role="region" aria-label="نتيجة الكلمة المبعثرة">
+      {winnerMessage?<p className="mini-result-note">{winnerMessage}</p>:<button className="mini-cta mini-primary" disabled={!canRecord} onClick={()=>setWinnerForm(true)}><Trophy size={17}/> تسجيل فائز</button>}
+      <button className="mini-cta mini-secondary" onClick={closeGame}>إنهاء اللعبة دون فائز</button>
+     </div>}
      {state.active.kind==='wheel'&&wheelActionsReady&&<div className="mini-wheel-actions" role="region" aria-label="خيارات نتيجة عجلة الحروف">
       <p>يمكنك تسجيل الفائز بعد قراءة التصنيف والحرف، أو إنهاء اللعبة دون فائز.</p>
       {winnerMessage?<p className="mini-result-note">{winnerMessage}</p>:<button className="mini-cta mini-primary" disabled={!canRecord} onClick={()=>setWinnerForm(true)}><Trophy size={17}/> تسجيل فائز</button>}
@@ -218,7 +229,7 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
      </div>}
     </>}
    </div>:null}
-   {state.active&&state.active.kind!=='wheel'&&gameFinished(state.active,clock)&&!winnerForm&&<div className="mini-result-layer" role="region" aria-label="نتيجة اللعبة"><div className="mini-result-card"><p className="mini-result-text" role="status">{resultText}</p>{winnerMessage?<p className="mini-result-note">{winnerMessage}</p>:state.active.kind==='pattern'&&state.active.draw?null:<button className="mini-cta mini-primary" disabled={!canRecord} onClick={()=>setWinnerForm(true)}><Trophy size={17}/> تسجيل فائز</button>}<button className="mini-cta mini-secondary" onClick={closeGame}>إنهاء اللعبة دون فائز</button></div></div>}
+   {state.active&&state.active.kind!=='wheel'&&state.active.kind!=='scramble'&&gameFinished(state.active,clock)&&flipReady&&!winnerForm&&<div className="mini-result-layer" role="region" aria-label="نتيجة اللعبة"><div className="mini-result-card"><p className="mini-result-text" role="status">{resultText}</p>{winnerMessage?<p className="mini-result-note">{winnerMessage}</p>:state.active.kind==='pattern'&&state.active.draw?null:<button className="mini-cta mini-primary" disabled={!canRecord} onClick={()=>setWinnerForm(true)}><Trophy size={17}/> تسجيل فائز</button>}<button className="mini-cta mini-secondary" onClick={closeGame}>إنهاء اللعبة دون فائز</button></div></div>}
   </dialog>
   <dialog ref={prizeRevealDialog} className="mini-dialog mg-award-result" aria-label="نتيجة الجائزة" onCancel={event=>{event.preventDefault();setReveal(null);}}>{reveal&&<PrizeReveal key={reveal.name+reveal.winnerId} name={reveal.name} winner={state.winners.find(w=>w.id===reveal.winnerId)||null} locale="ar" celebration={true} onClose={()=>setReveal(null)}/>}</dialog>
   <dialog ref={helpDialog} className="mini-dialog mini-help-dialog" aria-label={help?'شرح '+GAME_LABELS[help]:'شرح اللعبة'} onCancel={e=>{e.preventDefault();closeHelp();}}>
