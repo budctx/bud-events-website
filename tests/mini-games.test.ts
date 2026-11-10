@@ -81,7 +81,7 @@ test('scramble uses a genuine rearranged five-letter word, reveals on demand, re
  assert.equal(s.active?.kind==='scramble'&&s.active.revealed,false);
  assert.equal(s.active?.kind==='scramble'&&s.active.deadline,9300+45000);
 });
-test('matching emoji pairs stay open, score the current player and ties are impossible',()=>{
+test('matching emoji pairs stay open and score the current player',()=>{
  let s=createMiniSession('الجائزة 1\nالجائزة 2',first);
  s=miniReducer(s,{type:'open',game:'emoji',pairs:5},1,first);
  assert.equal(s.active?.kind,'emoji');
@@ -220,4 +220,23 @@ test('pattern turn intro blocks player input for 3 seconds before displaying the
  assert.strictEqual(miniReducer(state,{type:'color',color:firstColor},100+3000+5*700+799,first),state);
  const next=miniReducer(state,{type:'color',color:firstColor},100+3000+5*700+800,first);
  assert.notStrictEqual(next,state);
+});
+
+
+test('eight emoji pairs can end 4–4 without awarding a fabricated winner',()=>{
+ let s=createMiniSession('جائزة',first);
+ s=miniReducer(s,{type:'open',game:'emoji'},1000,first);
+ const g=s.active;
+ assert.equal(g?.kind,'emoji');if(g?.kind!=='emoji')return;
+ const pair=[0,g.tiles.findIndex((x,i)=>i>0&&x===g.tiles[0])];
+ assert.ok(pair[1]>0);
+ const matched=Array.from({length:16},(_,i)=>i).filter(i=>!pair.includes(i));
+ s={...s,active:{...g,matched,scores:[4,3],turn:2,opened:[],finished:false,winner:null}};
+ s=miniReducer(s,{type:'tap',index:pair[0]},2000,first);
+ s=miniReducer(s,{type:'tap',index:pair[1]},2010,first);
+ assert.equal(s.active?.kind,'emoji');if(s.active?.kind!=='emoji')return;
+ assert.equal(s.active.finished,true);
+ assert.deepEqual(s.active.scores,[4,4]);
+ assert.equal(s.active.winner,null);
+ assert.equal(s.active.completedAt,2010);
 });
