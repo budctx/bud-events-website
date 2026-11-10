@@ -390,6 +390,8 @@ test('bomb explosion card flips before completion layer appears',async({page})=>
  await expect(modal.locator('.mini-bomb-cell.is-bomb')).toHaveCount(1);
  await expect(modal.locator('.mini-result-layer')).toHaveCount(0);
  await expect(modal.locator('.mini-bomb-cell.is-bomb')).toHaveCSS('animation-delay','0.56s');
+ await expect(modal.locator('.mini-bomb-cell.is-bomb .mini-flip-front')).toHaveCSS('background-color','rgb(255, 156, 120)');
+ await expect(modal.locator('.mini-bomb-cell.is-bomb .mini-flip-front')).toHaveCSS('border-top-left-radius',/px/);
  await page.clock.runFor(1500);
  await expect(modal.locator('.mini-result-layer')).toHaveCount(0);
  await page.clock.runFor(300);
