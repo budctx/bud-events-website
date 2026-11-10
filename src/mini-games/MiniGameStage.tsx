@@ -64,7 +64,7 @@ export function MiniGameStage({game,now,send}:Props){
        label={'بطاقة '+num(index+1)+(visible?' '+value:' مخفية')} back={num(index+1)} front={value} onPress={()=>send({type:'tap',index})}/>;
     })}
    </div>
-   {game.finished&&<p className="mini-outcome" role="status">🏆 فاز {playerLabel(winner!)} بنتيجة {num(game.scores[winner!-1])}</p>}
+   {game.finished&&<p className="mini-outcome" role="status">{winner?`🏆 فاز ${playerLabel(winner)} بنتيجة ${num(game.scores[winner-1])}`:`تعادل اللاعبان بنتيجة ${num(game.scores[0])} مقابل ${num(game.scores[1])}`}</p>}
   </>}
   {game.kind==='wheel'&&(()=>{
    const idle=game.startedAt===null,elapsed=idle?0:now-game.startedAt!;
