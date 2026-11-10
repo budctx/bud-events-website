@@ -1,5 +1,5 @@
 import {RotateCcw,Timer} from 'lucide-react';
-import {gameFinished,remainingSeconds,gameWinner} from './engine.ts';
+import {gameFinished,remainingSeconds,gameWinner,WHEEL_CATEGORY_STOP_MS,WHEEL_LETTER_STOP_MS} from './engine.ts';
 import type {ActiveMiniGame,MiniAction} from './engine.ts';
 import {CATEGORIES,LETTERS,PATTERN_COLORS} from './catalog.ts';
 
@@ -59,16 +59,17 @@ export function MiniGameStage({game,now,send}:Props){
    const spinning=!idle&&!finished;
    return <>
     <div className="mini-wheel-track" aria-hidden="true">
-     <div className="mini-wheel-reel" aria-label="تصنيف">{idle?<span className="mini-wheel-idle">الفئة</span>:elapsed<2600?<div key={'cat'+game.draws} className="mini-wheel-spinning">{[...CATEGORIES,...CATEGORIES,...CATEGORIES].map((c,i)=><span key={i}>{c}</span>)}</div>:<strong>{game.category}</strong>}</div>
+     <div className="mini-wheel-reel" aria-label="تصنيف">{idle?<span className="mini-wheel-idle">الفئة</span>:elapsed<WHEEL_CATEGORY_STOP_MS?<div key={'cat'+game.draws} className="mini-wheel-spinning">{[...CATEGORIES,...CATEGORIES,...CATEGORIES].map((c,i)=><span key={i}>{c}</span>)}</div>:<strong>{game.category}</strong>}</div>
      <span className="mini-wheel-divider" aria-hidden="true"/>
-     <div className="mini-wheel-reel" aria-label="حرف">{idle?<span className="mini-wheel-idle">الحرف</span>:elapsed<3800?<div key={'letter'+game.draws} className="mini-wheel-spinning mini-wheel-long">{[...LETTERS,...LETTERS,...LETTERS].map((c,i)=><span key={i}>{c}</span>)}</div>:<strong>{game.letter}</strong>}</div>
+     <div className="mini-wheel-reel" aria-label="حرف">{idle?<span className="mini-wheel-idle">الحرف</span>:elapsed<WHEEL_LETTER_STOP_MS?<div key={'letter'+game.draws} className="mini-wheel-spinning mini-wheel-long">{[...LETTERS,...LETTERS,...LETTERS].map((c,i)=><span key={i}>{c}</span>)}</div>:<strong>{game.letter}</strong>}</div>
     </div>
-    <span className="bud-sr-only" role="status">{spinning?'جارٍ الدوران…':finished?`نتيجة السحب: ${game.category}، الحرف ${game.letter}`:''}</span>
+    <span className="bud-sr-only" role="status">{spinning?'جارٍ الدوران…':''}</span>
     <button type="button" className={'mini-wheel-lever'+(spinning?' is-spinning':'')} disabled={spinning} aria-label={idle?'سحب المقبض':'إعادة السحب'} onClick={()=>send({type:'spin'})}>
-     <span className="mini-wheel-lever-art" aria-hidden="true"><span className="mini-wheel-lever-knob"/><span className="mini-wheel-lever-shaft"/><span className="mini-wheel-lever-base"/></span>
+     <span className="mini-wheel-lever-art" aria-hidden="true"><span className="mini-wheel-lever-base"/><span className="mini-wheel-lever-handle"/></span>
      <span>{spinning?'جارٍ الدوران…':idle?'اسحب المقبض':'إعادة السحب'}</span>
     </button>
-    {spinning&&<p className="mini-hint">تتوقف الفئة أولًا، ثم الحرف.</p>}
+    {spinning&&<p className="mini-hint">يتوقف التصنيف أولًا، ثم الحرف.</p>}
+     {finished&&<p className="mini-wheel-readout" role="status"><span>التصنيف: <strong>{game.category}</strong></span><span>الحرف: <strong>{game.letter}</strong></span></p>}
    </>;
   })()}
  </section>;
