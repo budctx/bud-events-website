@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createMiniSession,createMiniGame,miniReducer,gameFinished,recordableWinner,remainingSeconds} from '../src/mini-games/engine.ts';
-import {availableWheelPairs,CATEGORIES,LETTERS,WORDS} from '../src/mini-games/catalog.ts';
+import {availableWheelPairs,CATEGORIES,LETTERS,WORDS,ARABIC_ALPHABET} from '../src/mini-games/catalog.ts';
 const first=()=>0;
 test('the full Arabic letter wheel only contains possible, approved combinations',()=>{
  const options=availableWheelPairs();
@@ -45,18 +45,41 @@ test('one bomb, turn alternation and no double opening; losing player is correct
  assert.equal(s.winners[0].name,'سارة');
  assert.equal(s.active,null);
 });
-test('word and scramble are always solvable; timers only expire at the deadline',()=>{
- assert.ok(WORDS.length>=25);
- for(const kind of ['form-word','scramble'] as const){
-  const g=createMiniGame(kind,{type:'open',game:kind,seconds:30},3000,first);
-  assert.ok(g.kind===kind);
-  if(g.kind!=='form-word'&&g.kind!=='scramble')continue;
-  assert.equal(g.letters.length,5);
-  assert.equal(g.letters.slice().sort().join(''),g.answer.split('').sort().join(''));
-  assert.equal(remainingSeconds(g,3000),30);
-  assert.equal(gameFinished(g,32999),false);
-  assert.equal(gameFinished(g,33000),true);
- }
+test('form-word gives five independent random Arabic letters rather than a rearranged dictionary word',()=>{
+ assert.equal(ARABIC_ALPHABET.length,28);
+ const a=createMiniGame('form-word',{type:'open',game:'form-word',seconds:30},3000,first);
+ assert.equal(a.kind,'form-word');if(a.kind!=='form-word')return;
+ assert.deepEqual(a.letters,['ا','ا','ا','ا','ا']); // Repeats are valid random draws.
+ assert.equal(WORDS.includes(a.answer as typeof WORDS[number]),false);
+ assert.equal(remainingSeconds(a,3000),30);
+ assert.equal(gameFinished(a,33000),true);
+ let index=0;
+ const varied=createMiniGame('form-word',{type:'open',game:'form-word'},3000,n=>(index++)%n);
+ assert.equal(varied.kind,'form-word');
+ if(varied.kind==='form-word')assert.deepEqual(varied.letters,ARABIC_ALPHABET.slice(0,5));
+});
+test('scramble uses a genuine rearranged five-letter word, reveals on demand, rerolls and resets its timer',()=>{
+ let s=createMiniSession('جائزة',first);
+ s=miniReducer(s,{type:'open',game:'scramble',seconds:45},3000,first);
+ const a=s.active;
+ assert.equal(a?.kind,'scramble');if(a?.kind!=='scramble')return;
+ assert.ok(WORDS.includes(a.answer as typeof WORDS[number]));
+ assert.deepEqual([...a.letters].sort(),[...a.answer].sort());
+ assert.equal(remainingSeconds(a,3000),45);
+ s=miniReducer(s,{type:'change-word'},9000,first);
+ const b=s.active;
+ assert.equal(b?.kind,'scramble');if(b?.kind!=='scramble')return;
+ assert.notEqual(b.answer,a.answer);
+ assert.equal(b.deadline,9000+45000);
+ assert.equal(b.finished,false);
+ assert.equal(b.revealed,false);
+ s=miniReducer(s,{type:'reveal'},9100,first);
+ assert.equal(s.active?.kind==='scramble'&&s.active.revealed,true);
+ assert.equal(s.active?.kind==='scramble'&&s.active.finished,true);
+ assert.strictEqual(miniReducer(s,{type:'reveal'},9200,first),s);
+ s=miniReducer(s,{type:'change-word'},9300,first);
+ assert.equal(s.active?.kind==='scramble'&&s.active.revealed,false);
+ assert.equal(s.active?.kind==='scramble'&&s.active.deadline,9300+45000);
 });
 test('matching emoji pairs stay open, score the current player and ties are impossible',()=>{
  let s=createMiniSession('الجائزة 1\nالجائزة 2',first);
@@ -68,7 +91,7 @@ test('matching emoji pairs stay open, score the current player and ties are impo
   for(let i=0;i<tiles.length;i++)if(tiles[i]===symbol){s=miniReducer(s,{type:'tap',index:i},2+i,first);}
  }
  assert.equal(s.active?.kind==='emoji'&&s.active.finished,true);
- assert.equal(s.active?.kind==='emoji'&&s.active.scores[0],5);
+ assert.equal(s.active?.kind==='emoji'&&s.active.scores[0],8);
  assert.equal(s.active?.kind==='emoji'&&s.active.winner,1);
 });
 test('two wrong emoji picks lock input for a full second and rotate the turn',()=>{
@@ -92,11 +115,11 @@ test('pattern mistakes are assessed after both players; both pass raises difficu
  s=miniReducer(s,{type:'open',game:'pattern',level:5},100,first);
  if(s.active?.kind!=='pattern')return;
  const firstSeq=[...s.active.sequences[0]],secondSeq=[...s.active.sequences[1]];
- for(let i=0;i<firstSeq.length;i++)s=miniReducer(s,{type:'color',color:firstSeq[i]},100+5*700+800+i+1,first);
+ for(let i=0;i<firstSeq.length;i++)s=miniReducer(s,{type:'color',color:firstSeq[i]},100+3000+5*700+800+i+1,first);
  assert.equal(s.active?.kind==='pattern'&&s.active.turn,2);
  if(s.active?.kind!=='pattern')return;
  const secondStart=s.active.startedAt;
- for(let i=0;i<secondSeq.length;i++)s=miniReducer(s,{type:'color',color:secondSeq[i]},secondStart+5*700+800+i+1,first);
+ for(let i=0;i<secondSeq.length;i++)s=miniReducer(s,{type:'color',color:secondSeq[i]},secondStart+3000+5*700+800+i+1,first);
  assert.equal(s.active?.kind==='pattern'&&s.active.level,6);
  assert.equal(s.active?.kind==='pattern'&&s.active.turn,1);
  assert.equal(s.active?.kind==='pattern'&&s.active.finished,false);
@@ -130,13 +153,13 @@ test('shared prize stage can add a bounded winner without reopening an activity'
  assert.strictEqual(miniReducer(second,{type:'add-winner',name:'زائد'}),second);
 });
 
-test('new sessions start fixed 4x4 bomb, five emoji pairs and a five-step pattern',()=>{
+test('new sessions start fixed 4x4 bomb and emoji grids and a five-step pattern',()=>{
  const b=createMiniGame('bomb',{type:'open',game:'bomb',size:6},0,first);
  assert.equal(b.kind,'bomb');if(b.kind==='bomb')assert.equal(b.size,4);
  const easy=createMiniGame('emoji',{type:'open',game:'emoji',pairs:3},0,first);
- assert.equal(easy.kind,'emoji');if(easy.kind==='emoji'){assert.equal(easy.pairs,5);assert.equal(easy.tiles.length,10);}
+ assert.equal(easy.kind,'emoji');if(easy.kind==='emoji'){assert.equal(easy.pairs,8);assert.equal(easy.tiles.length,16);}
  const hard=createMiniGame('emoji',{type:'open',game:'emoji',pairs:7},0,first);
- assert.equal(hard.kind,'emoji');if(hard.kind==='emoji'){assert.equal(hard.pairs,7);assert.equal(hard.tiles.length,14);}
+ assert.equal(hard.kind,'emoji');if(hard.kind==='emoji'){assert.equal(hard.pairs,8);assert.equal(hard.tiles.length,16);}
  const pattern=createMiniGame('pattern',{type:'open',game:'pattern',level:4},0,first);
  assert.equal(pattern.kind,'pattern');if(pattern.kind==='pattern'){assert.equal(pattern.level,5);assert.deepEqual(pattern.sequences.map(s=>s.length),[5,5]);}
 });
@@ -185,4 +208,16 @@ test('winner management works across live and prizes without interrupting active
  assert.strictEqual(miniReducer(s,{type:'add-winner',name:'غير مسموح'}),s);
  const empty=createMiniSession('',first);
  assert.strictEqual(miniReducer(empty,{type:'add-winner',name:'لا جوائز'}),empty);
+});
+
+test('pattern turn intro blocks player input for 3 seconds before displaying the sequence',()=>{
+ let state=createMiniSession('جائزة',first);
+ state=miniReducer(state,{type:'open',game:'pattern'},100,first);
+ const game=state.active;
+ assert.equal(game?.kind,'pattern');if(game?.kind!=='pattern')return;
+ const firstColor=game.sequences[0][0];
+ assert.strictEqual(miniReducer(state,{type:'color',color:firstColor},3099,first),state);
+ assert.strictEqual(miniReducer(state,{type:'color',color:firstColor},100+3000+5*700+799,first),state);
+ const next=miniReducer(state,{type:'color',color:firstColor},100+3000+5*700+800,first);
+ assert.notStrictEqual(next,state);
 });
