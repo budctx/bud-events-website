@@ -218,7 +218,7 @@ test('saving a winner restores game focus and the shared prize stage assigns and
  await prize.click();
  await confirmation.getByRole('button',{name:'فتح الجائزة',exact:true}).click();
  await expect(page.getByRole('dialog',{name:'نتيجة الجائزة'})).toBeVisible();
- await expect(prize).toHaveAttribute('data-revealed','true');
+ await expect(page.locator('.mg-prize-card').first()).toHaveAttribute('data-revealed','true');
  await page.keyboard.press('Escape');
  await expect(button('عودة')).toBeDisabled();
 });
