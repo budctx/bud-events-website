@@ -1,6 +1,8 @@
+import {useEffect,useRef,useState} from 'react';
 import {RotateCcw,Timer} from 'lucide-react';
 import {gameFinished,remainingSeconds,gameWinner,WHEEL_CATEGORY_STOP_MS,WHEEL_LETTER_STOP_MS,PATTERN_TURN_NOTICE_MS,PATTERN_FLASH_STEP_MS,PATTERN_DISPLAY_TAIL_MS} from './engine.ts';
 import type {ActiveMiniGame,MiniAction} from './engine.ts';
+import type {PatternColor} from './catalog.ts';
 import {CATEGORIES,LETTERS,PATTERN_COLORS} from './catalog.ts';
 import {MiniFlipCard} from './MiniFlipCard';
 
@@ -10,6 +12,33 @@ function playerLabel(player:1|2){return 'اللاعب '+num(player);}
 const colorClass=(value:string)=>'mini-color-'+({أحمر:'red',أزرق:'blue',أخضر:'green',أصفر:'yellow'} as Record<string,string>)[value];
 
 export function MiniGameStage({game,now,send}:Props){
+ // Briefly light the whole pad on a host answer, before evaluating it or changing turns.
+ // This also keeps the final (possibly incorrect) color visible before the result screen.
+ const [hostLit,setHostLit]=useState<PatternColor|null>(null);
+ const hostLitTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
+ const pressing=useRef(false);
+ const sendRef=useRef(send);
+ sendRef.current=send;
+ const patternRoundKey=game.kind==='pattern'?game.startedAt:null;
+ useEffect(()=>{
+  setHostLit(null);
+  pressing.current=false;
+  return()=>{if(hostLitTimer.current!==null)clearTimeout(hostLitTimer.current);hostLitTimer.current=null;pressing.current=false;};
+ },[patternRoundKey]);
+ const pressPatternColor=(color:PatternColor)=>{
+  if(pressing.current||game.kind!=='pattern'||game.finished)return;
+  const elapsed=Date.now()-game.startedAt;
+  const readyAt=game.level*PATTERN_FLASH_STEP_MS+PATTERN_DISPLAY_TAIL_MS+(game.replays===0?PATTERN_TURN_NOTICE_MS:0);
+  if(elapsed<readyAt)return;
+  pressing.current=true;
+  setHostLit(color);
+  hostLitTimer.current=setTimeout(()=>{
+   hostLitTimer.current=null;
+   setHostLit(null);
+   pressing.current=false;
+   sendRef.current({type:'color',color});
+  },480);
+ };
  const finished=gameFinished(game,now);
  const winner=gameWinner(game);
  return <section className="mini-stage" aria-label="شاشة اللعبة">
@@ -48,10 +77,10 @@ export function MiniGameStage({game,now,send}:Props){
       <small>{displaying?'شاهد الأضواء':num(game.progress)+' / '+num(game.level)}</small>
      </div>
      <div className="mini-pattern-board">
-      <div className="mini-pattern-pads" aria-label="لوحة ألوان احفظ النمط">{PATTERN_COLORS.map(value=><button type="button" key={value} aria-label={'اللون '+value} className={'mini-pattern-pad '+colorClass(value)+(active===value?' is-lit':'')} disabled={displaying} aria-disabled={displaying} onClick={()=>send({type:'color',color:value})}/>)}</div>
+      <div className="mini-pattern-pads" aria-label="لوحة ألوان احفظ النمط">{PATTERN_COLORS.map(value=><button type="button" key={value} aria-label={'اللون '+value} className={'mini-pattern-pad '+colorClass(value)+(active===value||hostLit===value?' is-lit':'')} disabled={displaying||hostLit!==null} aria-disabled={displaying||hostLit!==null} onClick={()=>pressPatternColor(value)}/>)}</div>
       {announcing&&<div className="mini-pattern-announcement" role="status"><strong>{game.turn===1?'دور اللاعب الأول':'دور اللاعب الثاني'}</strong><span>استعد لحفظ التسلسل</span></div>}
      </div>
-     <button type="button" className="mini-icon-text" onClick={()=>send({type:'replay'})}><RotateCcw size={18}/> إعادة عرض النمط</button>
+     <button type="button" className="mini-icon-text" disabled={hostLit!==null} onClick={()=>send({type:'replay'})}><RotateCcw size={18}/> إعادة عرض النمط</button>
     </>;
    })()}
   {game.kind==='emoji'&&<>

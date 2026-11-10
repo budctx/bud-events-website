@@ -168,6 +168,9 @@ test('pattern announces first player above vivid pads for 3 seconds before revea
  await expect(pads.first()).toBeDisabled();
  await expect(pads.first()).toHaveCSS('opacity','1');
  await expect(modal.locator('.mini-pattern-announcement')).toContainText('دور اللاعب الأول');
+ await expect(modal.locator('.mini-pattern-announcement')).toHaveCSS('isolation','isolate');
+ const overlay=await modal.locator('.mini-pattern-announcement').evaluate(el=>getComputedStyle(el,'::before').backgroundColor);
+ expect(overlay).toBe('rgba(25, 24, 23, 0.23)');
  await expect(modal.locator('.mini-pattern-pad.is-lit')).toHaveCount(0);
  await page.clock.runFor(2900);
  await expect(modal.locator('.mini-pattern-announcement')).toBeVisible();
@@ -204,7 +207,18 @@ test('saving a winner restores game focus and the shared prize stage assigns and
  await button('1 مختبر بانتظار الجائزة').click();
  await expect(prize).toBeEnabled();
  await prize.click();
+ const confirmation=page.getByRole('dialog',{name:'تأكيد فتح الجائزة'});
+ await expect(confirmation).toBeVisible();
+ await expect(prize).toHaveAttribute('data-revealed','false');
+ await expect(page.getByRole('dialog',{name:'نتيجة الجائزة'})).not.toBeVisible();
+ await page.keyboard.press('Escape');
+ await expect(confirmation).not.toBeVisible();
+ await expect(prize).toHaveAttribute('data-revealed','false');
+ await expect(button('عودة')).toBeEnabled();
+ await prize.click();
+ await confirmation.getByRole('button',{name:'فتح الجائزة',exact:true}).click();
  await expect(page.getByRole('dialog',{name:'نتيجة الجائزة'})).toBeVisible();
+ await expect(page.locator('.mg-prize-card').first()).toHaveAttribute('data-revealed','true');
  await page.keyboard.press('Escape');
  await expect(button('عودة')).toBeDisabled();
 });
@@ -238,6 +252,13 @@ test('Mini Games winner management matches the shared event journey, including d
  await page.getByRole('button',{name:'الجوائز',exact:true}).click();
  await page.locator('.mg-winner-option').first().click();
  await page.getByRole('button',{name:'فتح الجائزة 1'}).click();
+ const confirmation=page.getByRole('dialog',{name:'تأكيد فتح الجائزة'});
+ await expect(confirmation).toBeVisible();
+ await expect(page.locator('.mg-prize-card').first()).toHaveAttribute('data-revealed','false');
+ await confirmation.getByRole('button',{name:'إلغاء'}).click();
+ await expect(page.locator('.mg-prize-card').first()).toHaveAttribute('data-revealed','false');
+ await page.getByRole('button',{name:'فتح الجائزة 1'}).click();
+ await confirmation.getByRole('button',{name:'فتح الجائزة',exact:true}).click();
  await expect(page.getByRole('dialog',{name:'نتيجة الجائزة'})).toBeVisible();
  await page.keyboard.press('Escape');
  await expect(page.locator('.mg-prize-card').first()).toHaveAttribute('data-revealed','true');
@@ -462,3 +483,49 @@ for(const width of [390,1440]){
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
  });
 }
+
+
+test('host answer lights pressed color before evaluating the pattern and allowing another press',async({page})=>{
+ await page.clock.install();
+ await page.goto('/?screen=mini-preview');
+ await page.getByRole('button',{name:/بدء المعاينة/}).click();
+ await page.getByRole('button',{name:'احفظ النمط',exact:true}).click();
+ const modal=page.getByRole('dialog',{name:'احفظ النمط'});
+ await modal.getByRole('button',{name:'بدء اللعبة'}).click();
+ await page.clock.runFor(3570); // First step: 3s notice + 500ms lead-in
+ const first=modal.locator('.mini-pattern-pad.is-lit');
+ await expect(first).toHaveCount(1);
+ const firstColor=await first.getAttribute('aria-label');
+ await page.clock.runFor(4200); // Finish the whole five-step demonstration.
+ await expect(modal.locator('.mini-pattern-pad.is-lit')).toHaveCount(0);
+ const pressed=modal.getByRole('button',{name:firstColor!});
+ await pressed.click();
+ await expect(pressed).toHaveClass(/is-lit/);
+ await expect(pressed).toBeDisabled(); // Other input cannot bypass the feedback.
+ await expect(modal.locator('.mini-pattern-turn small')).toContainText('0 / 5');
+ await page.clock.runFor(320);
+ await expect(pressed).toHaveClass(/is-lit/);
+ await page.clock.runFor(190);
+ await expect(modal.locator('.mini-pattern-pad.is-lit')).toHaveCount(0);
+ await expect(modal.locator('.mini-pattern-turn small')).toContainText('1 / 5');
+ await expect(pressed).toBeEnabled();
+});
+
+test('Mini Games empty-winner prize selection is reversible before confirmation',async({page})=>{
+ await page.goto('/?screen=mini-preview');
+ await page.getByRole('button',{name:/بدء المعاينة/}).click();
+ await page.getByRole('button',{name:'الجوائز',exact:true}).click();
+ const prize=page.locator('.mg-prize-card').first();
+ await expect(prize).toBeEnabled();
+ await prize.click();
+ const confirmation=page.getByRole('dialog',{name:'تأكيد فتح الجائزة'});
+ await expect(confirmation).toContainText('دون تخصيصها لفائز');
+ await expect(prize).toHaveAttribute('data-revealed','false');
+ await confirmation.getByRole('button',{name:'إلغاء'}).click();
+ await expect(confirmation).not.toBeVisible();
+ await expect(prize).toHaveAttribute('data-revealed','false');
+ await prize.click();
+ await confirmation.getByRole('button',{name:'فتح الجائزة',exact:true}).click();
+ await expect(prize).toHaveAttribute('data-revealed','true');
+ await expect(page.getByRole('dialog',{name:'نتيجة الجائزة'})).toBeVisible();
+});
