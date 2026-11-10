@@ -84,8 +84,8 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
  const capacity=state.prizes.length,filled=state.winners.length,full=filled>=capacity;
  const canRecord=recordableWinner(state,clock);
  // Allow the final 3D flip to complete before opening the generic result layer.
- const flipReady=state.active?.kind!=='bomb'&&state.active?.kind!=='emoji'
-  ||clock-(state.active.completedAt??0)>=900;
+ const flipReady=state.active?.kind==='bomb'||state.active?.kind==='emoji'
+  ?clock-(state.active.completedAt??0)>=900:true;
  // Keep the category and letter visible long enough to read before showing host choices.
  const wheelActionsReady=state.active?.kind==='wheel'&&state.active.startedAt!==null
   &&clock-state.active.startedAt>=WHEEL_LETTER_STOP_MS+WHEEL_RESULT_HOLD_MS;
