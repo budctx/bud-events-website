@@ -43,9 +43,9 @@
 .mini-status strong{color:#a26705}
 .mini-bomb-grid{display:grid;gap:8px;max-width:520px;margin:18px auto}
 .mini-cell{--mini-flip-back:#fff0d0;--mini-flip-front:#dcebd4;--mini-flip-front-ink:#527a32;display:grid;place-items:center;aspect-ratio:1;border:1.5px solid #333;border-radius:12px;font-size:clamp(17px,3vw,29px);font-weight:700;background:var(--mini-flip-back);box-shadow:2px 3px 0 #b9afa0;transition:transform .14s ease,background .16s ease}
-.mini-cell:not(:disabled):hover{--mini-flip-back:var(--mini-gold);background:var(--mini-flip-back);transform:translateY(-2px)}
+.mini-cell:not(.mini-flip-card):not(:disabled):hover{--mini-flip-back:var(--mini-gold);background:var(--mini-flip-back);transform:translateY(-2px)}
 .mini-bomb-cell.is-open{--mini-flip-front:#dcebd4;background:var(--mini-flip-front);box-shadow:none;color:#527a32}
-.mini-bomb-cell.is-bomb{--mini-flip-front:#ff9c78;--mini-flip-front-ink:#333;background:var(--mini-flip-front);color:#333;animation:mini-explosion .42s ease-out var(--mini-flip-duration,560ms) 1 forwards}
+.mini-bomb-cell.is-bomb{--mini-flip-front:#ff9c78;--mini-flip-front-ink:#333;background:var(--mini-flip-front);color:#333}
 .mini-outcome{background:#fff1cf;border:2px solid #e7a52f;text-align:center;font-size:17px;font-weight:750;padding:14px;border-radius:14px;margin:18px 0}
 .mini-result-layer{position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:clamp(16px,4vw,34px);background:rgba(25,22,18,.78);backdrop-filter:blur(3px)}
 .mini-result-card{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;width:min(530px,100%);padding:clamp(20px,4vw,34px);background:#fffdf8;border:2px solid #333;border-radius:22px;box-shadow:7px 9px 0 rgba(0,0,0,.3)}
@@ -176,17 +176,19 @@
 @media(max-width:360px){.mini-hub-main{min-height:108px;flex-direction:row;gap:12px}.mini-bomb-grid{gap:4px}}
 @media(prefers-reduced-motion:reduce){.mini-standby-options[open] .mini-options-content,.mini-pattern-turn.is-turn-shifting:after{animation:none}.mini-pattern-pad{transition:none}.mini-pattern-turn.is-turn-shifting:after{display:none}}
 
-/* Integrate the Motion flip inside the original square button's border, radius,
-   shadow and hover. One set of --mini-flip-* tokens owns both card faces. */
-.mini-root .mini-flip-card{position:relative;display:block;padding:0;perspective:850px;background:transparent}
-.mini-root .mini-flip-card:not(:disabled):hover{background:transparent}
+/* The perspective wrapper is transparent and has NO border, background or shadow.
+   The complete original button shell, including its border and shadow, rotates in 3D. */
+.mini-flip-stage{position:relative;display:block;width:100%;min-width:0;aspect-ratio:1 / 1;perspective:900px;isolation:isolate}
+.mini-root .mini-flip-stage .mini-flip-card{position:relative;display:block;width:100%;height:100%;aspect-ratio:auto;padding:0;background:transparent;transform-style:preserve-3d;will-change:transform}
+.mini-root .mini-flip-stage .mini-flip-card:not(:disabled):hover{--mini-flip-back:var(--mini-gold);background:transparent}
 .mini-root .mini-flip-card:disabled{opacity:1;cursor:default}
-.mini-flip-inner{position:absolute;inset:0;display:block;border-radius:inherit;transform-style:preserve-3d;will-change:transform}
 .mini-flip-face{position:absolute;inset:0;display:grid;place-items:center;border-radius:inherit;font-size:inherit;font-weight:inherit;backface-visibility:hidden;-webkit-backface-visibility:hidden;transition:background-color .16s ease}
-.mini-flip-back{background:var(--mini-flip-back);color:var(--mini-ink,#333)}
-.mini-flip-front{transform:rotateY(180deg);background:var(--mini-flip-front);color:var(--mini-flip-front-ink,#333)}
-/* Neither face invents alternative card dimensions or overrides matched/bomb colors. */
-@media(prefers-reduced-motion:reduce){.mini-dialog .mini-bomb-cell.is-bomb{animation-delay:0ms}}
+.mini-flip-back{background:var(--mini-flip-back);color:var(--mini-ink,#333);transform:translateZ(1px)}
+.mini-flip-front{background:var(--mini-flip-front);color:var(--mini-flip-front-ink,#333);transform:rotateY(180deg) translateZ(1px)}
+/* The explosion moves the whole card only after its flip has completed; its
+   animation is on the perspective wrapper, never in competition with Motion. */
+.mini-flip-stage.is-exploding{animation:mini-explosion .42s ease-out var(--mini-flip-duration,560ms) 1 forwards}
+@media(prefers-reduced-motion:reduce){.mini-flip-stage.is-exploding{animation:none}}
 .mini-word-actions{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin:18px auto 8px}
 .mini-word-actions .mini-cta{flex:1 1 155px;max-width:250px}
 .mini-word-actions .mini-cta:disabled{opacity:.55}
