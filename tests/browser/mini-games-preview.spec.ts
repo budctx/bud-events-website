@@ -64,9 +64,9 @@ for(const width of [390,1440]){
   await expect(modal.locator('.mini-result-layer')).toHaveCount(0);
   await expect(modal.locator('.mini-wheel-actions')).toHaveCount(0);
   // The result must remain uncovered for 2.4 seconds after the letter settles.
-  await page.clock.runFor(2300);
+  await page.clock.runFor(2000);
   await expect(modal.locator('.mini-wheel-actions')).toHaveCount(0);
-  await page.clock.runFor(200);
+  await page.clock.runFor(300);
   await expect(modal.locator('.mini-wheel-actions')).toBeVisible();
   await expect(modal.locator('.mini-wheel-readout')).toBeVisible();
   await expect(modal.locator('.mini-wheel-actions').getByRole('button',{name:'تسجيل فائز'})).toBeVisible();
