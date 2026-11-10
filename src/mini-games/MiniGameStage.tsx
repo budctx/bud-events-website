@@ -1,7 +1,8 @@
 import {RotateCcw,Timer} from 'lucide-react';
-import {gameFinished,remainingSeconds,gameWinner,WHEEL_CATEGORY_STOP_MS,WHEEL_LETTER_STOP_MS} from './engine.ts';
+import {gameFinished,remainingSeconds,gameWinner,WHEEL_CATEGORY_STOP_MS,WHEEL_LETTER_STOP_MS,PATTERN_TURN_NOTICE_MS,PATTERN_FLASH_STEP_MS,PATTERN_DISPLAY_TAIL_MS} from './engine.ts';
 import type {ActiveMiniGame,MiniAction} from './engine.ts';
 import {CATEGORIES,LETTERS,PATTERN_COLORS} from './catalog.ts';
+import {MiniFlipCard} from './MiniFlipCard';
 
 type Props={game:ActiveMiniGame;now:number;send:(action:MiniAction)=>void};
 const num=(v:number)=>new Intl.NumberFormat('ar-u-nu-latn').format(v);
@@ -18,15 +19,20 @@ export function MiniGameStage({game,now,send}:Props){
    <div className="mini-bomb-grid" style={{gridTemplateColumns:'repeat('+game.size+',minmax(0,1fr))'}}>
     {Array.from({length:game.size*game.size},(_,index)=>{
      const opened=game.opened.includes(index),isBomb=opened&&index===game.bomb;
-     return <button key={index} type="button" className={'mini-cell mini-bomb-cell'+(opened?' is-open':'')+(isBomb?' is-bomb':'')} aria-label={'المربع '+num(index+1)+(opened?' مكشوف':'')} disabled={opened||game.finished} onClick={()=>send({type:'tap',index})}>{opened?(isBomb?'💣':'✓'):num(index+1)}</button>;
+     return <MiniFlipCard key={index} className={'mini-cell mini-bomb-cell'+(opened?' is-open':'')+(isBomb?' is-bomb':'')}
+      label={'المربع '+num(index+1)+(opened?' مكشوف':'')} disabled={opened||game.finished}
+      revealed={opened} back={num(index+1)} front={isBomb?'💣':'✓'} onPress={()=>send({type:'tap',index})}/>;
     })}
    </div>
   </>}
   {(game.kind==='form-word'||game.kind==='scramble')&&<>
    <div className="mini-timer" role="timer" aria-label="الوقت المتبقي"><Timer size={19}/><strong>{num(remainingSeconds(game,now))}</strong><span>ثانية</span></div>
    <div className="mini-letters" dir="rtl">{game.kind==='scramble'&&game.revealed?<strong className="mini-scramble-answer" dir="rtl">{game.answer}</strong>:game.letters.map((letter,index)=><span className="mini-letter" key={index}>{letter}</span>)}</div>
-   <p className="mini-hint">{game.kind==='form-word'?'من يكوّن أطول كلمة صحيحة من هذه الأحرف؟':'ما الكلمة الصحيحة بعد ترتيب هذه الأحرف؟'}</p>
-   {!finished?<button type="button" className="mini-cta mini-secondary" onClick={()=>send({type:'finish'})}>إنهاء التحدي</button>:game.kind==='scramble'&&!game.revealed?<button type="button" className="mini-cta mini-secondary" onClick={()=>send({type:'reveal'})}>إظهار الكلمة</button>:null}
+   <p className="mini-hint">{game.kind==='form-word'?'خمسة أحرف عشوائية — كوّن منها كلمة صحيحة.':'ما الكلمة الصحيحة بعد ترتيب هذه الأحرف؟'}</p>
+   {game.kind==='scramble'?<div className="mini-word-actions">
+    <button type="button" className="mini-cta mini-primary" disabled={game.revealed} onClick={()=>send({type:'reveal'})}>كشف الكلمة الصحيحة</button>
+    <button type="button" className="mini-cta mini-secondary" onClick={()=>send({type:'change-word'})}>تغيير الكلمة</button>
+   </div>:!finished?<button type="button" className="mini-cta mini-secondary" onClick={()=>send({type:'finish'})}>إنهاء التحدي</button>:null}
   </>}
   {game.kind==='pattern'&&!game.finished&&(()=>{
     const elapsed=now-game.startedAt;
@@ -46,10 +52,12 @@ export function MiniGameStage({game,now,send}:Props){
    })()}
   {game.kind==='emoji'&&<>
    <div className="mini-scorebar"><span>اللاعب 1 <strong>{num(game.scores[0])}</strong></span><span>الدور: <strong>{playerLabel(game.turn)}</strong></span><span>اللاعب 2 <strong>{num(game.scores[1])}</strong></span></div>
-   <div className="mini-emoji-grid" style={{gridTemplateColumns:'repeat('+game.pairs+',minmax(0,1fr))'}} aria-label="بطاقات ذاكرة الإيموجي">
+   <div className="mini-emoji-grid" style={{gridTemplateColumns:'repeat('+(Number.isInteger(Math.sqrt(game.tiles.length))?Math.sqrt(game.tiles.length):game.pairs)+',minmax(0,1fr))'}} aria-label="بطاقات ذاكرة الإيموجي">
     {game.tiles.map((value,index)=>{
      const visible=game.matched.includes(index)||game.opened.includes(index);
-     return <button type="button" key={index} className={'mini-cell mini-emoji-cell'+(visible?' is-open':'')+(game.matched.includes(index)?' is-matched':'')} disabled={game.finished||game.mismatchUntil!==null||visible} aria-label={'بطاقة '+num(index+1)+(visible?' '+value:' مخفية')} onClick={()=>send({type:'tap',index})}>{visible?value:num(index+1)}</button>;
+     return <MiniFlipCard key={index} className={'mini-cell mini-emoji-cell'+(visible?' is-open':'')+(game.matched.includes(index)?' is-matched':'')}
+       revealed={visible} disabled={game.finished||game.mismatchUntil!==null||visible}
+       label={'بطاقة '+num(index+1)+(visible?' '+value:' مخفية')} back={num(index+1)} front={value} onPress={()=>send({type:'tap',index})}/>;
     })}
    </div>
    {game.finished&&<p className="mini-outcome" role="status">🏆 فاز {playerLabel(winner!)} بنتيجة {num(game.scores[winner!-1])}</p>}
