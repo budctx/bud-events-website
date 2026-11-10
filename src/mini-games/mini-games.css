@@ -150,14 +150,22 @@
 .mini-pattern-pad.is-lit{filter:brightness(1.55) saturate(1.6);transform:scale(1.055);box-shadow:0 0 0 5px #fdfdff,0 0 22px 12px #fbb03b99,4px 6px 0 #333}
 .mini-pattern-pad:disabled{cursor:not-allowed}
 .mini-wheel-idle{font-size:clamp(19px,3vw,25px);color:#83735d}
-.mini-wheel-lever{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;width:min(270px,100%);margin:14px auto 6px;padding:16px 22px;border:2px solid #333;background:#fbb03b;border-radius:22px;box-shadow:4px 5px 0 #333;font-weight:800;font-size:16px;cursor:pointer}
-.mini-wheel-lever:disabled{opacity:.65;cursor:wait}
-.mini-wheel-lever-art{position:relative;display:block;width:82px;height:102px;isolation:isolate}
-.mini-wheel-lever-base{position:absolute;bottom:0;left:8px;width:66px;height:25px;border:3px solid #333;border-radius:50%;background:#fff7e8;z-index:1}
-.mini-wheel-lever-shaft{position:absolute;bottom:13px;left:38px;width:8px;height:69px;background:#333;border-radius:8px;transform:rotate(-22deg);transform-origin:bottom center}
-.mini-wheel-lever-knob{position:absolute;top:8px;left:20px;width:27px;height:27px;border:3px solid #333;border-radius:50%;background:#fff;z-index:2}
-.mini-wheel-lever:active:not(:disabled) .mini-wheel-lever-shaft,.mini-wheel-lever.is-spinning .mini-wheel-lever-shaft{transform:rotate(25deg)}
-.mini-wheel-lever:active:not(:disabled) .mini-wheel-lever-knob,.mini-wheel-lever.is-spinning .mini-wheel-lever-knob{transform:translate(42px,0)}
+/* Lever silhouette and pull motion adapted from Mavox-ID/Slot (MIT).
+   Source and full copyright notice: docs/third-party/slot-lever-mavox.md */
+.mini-wheel-lever{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;width:min(244px,100%);margin:14px auto 6px;padding:14px 20px;border:2px solid #333;background:#fbb03b;color:#333;border-radius:22px;box-shadow:4px 5px 0 #333;font-weight:800;font-size:16px;cursor:pointer}
+.mini-root .mini-wheel-lever:disabled{opacity:1;cursor:wait}
+.mini-wheel-lever-art{position:relative;display:block;width:84px;height:115px;isolation:isolate;flex-shrink:0}
+.mini-wheel-lever-base{position:absolute;width:62px;height:30px;left:11px;bottom:4px;background:linear-gradient(135deg,#fff9ef,#c1a77b);border:3px solid #333;border-radius:10px;box-shadow:0 4px 0 #3333;z-index:1}
+.mini-wheel-lever-handle{position:absolute;top:12px;left:29px;width:26px;height:87px;background:linear-gradient(135deg,#fdfdff,#929292);border:3px solid #333;border-radius:15px;box-shadow:2px 3px 0 #3333;z-index:2;transform:translateY(0)}
+.mini-wheel-lever-handle::before{content:'';position:absolute;top:-22px;left:50%;transform:translateX(-50%);width:42px;height:42px;background:radial-gradient(circle at 32% 28%,#fff8e8 0%,#fbb03b 48%,#b97a12 100%);border:3px solid #333;border-radius:50%;box-shadow:1px 3px 0 #3335}
+.mini-wheel-lever.is-spinning .mini-wheel-lever-handle{animation:mini-wheel-pull .74s cubic-bezier(.2,.8,.3,1) 1 both}
+@keyframes mini-wheel-pull{0%,100%{transform:translateY(0)}38%,58%{transform:translateY(23px)}}
+.mini-wheel-readout{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;width:min(560px,100%);margin:0 auto;padding:0;text-align:center}
+.mini-wheel-readout span{display:inline-flex;align-items:center;gap:8px;padding:9px 15px;background:#fff2d4;border:1.5px solid #333;border-radius:13px;white-space:normal;font-size:14px}
+.mini-wheel-readout strong{font-size:clamp(19px,4.5vw,26px);overflow-wrap:anywhere}
+.mini-wheel-actions{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:12px;width:min(560px,100%);margin:22px auto 0;padding:17px;border:1.5px solid #d6bb86;border-radius:17px;background:#fffbf2}
+.mini-wheel-actions>p{width:100%;margin:0;text-align:center;font-size:13px;line-height:1.8;color:#6d5126}
+.mini-wheel-actions>.mini-cta{min-width:min(200px,100%);flex:1 1 180px}
 @media(max-width:600px){.mini-hub-main{min-height:146px;padding:15px}.mini-hub-info{width:32px;height:32px;inset-block-start:7px;inset-inline-end:7px}.mini-emoji-grid{gap:4px}.mini-pattern-pads{width:min(330px,100%)}.mini-pattern-pad{aspect-ratio:1 / 1}.mini-standby .mini-start{min-height:60px}}
 @media(max-width:360px){.mini-hub-main{min-height:108px;flex-direction:row;gap:12px}.mini-bomb-grid{gap:4px}}
 @media(prefers-reduced-motion:reduce){.mini-standby-options[open] .mini-options-content,.mini-pattern-turn.is-turn-shifting:after{animation:none}.mini-pattern-pad{transition:none}.mini-pattern-turn.is-turn-shifting:after{display:none}}

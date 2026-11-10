@@ -5,7 +5,7 @@ import type {LucideIcon} from 'lucide-react';
 import {Plus} from 'lucide-react';
 import {ButtonUtility} from '../ButtonUtility';
 import {WinnerList,WinnerNumber,WinnerIcon} from '../WinnerList';
-import {createMiniSession,gameFinished,gameWinner,miniReducer,recordableWinner} from './engine.ts';
+import {createMiniSession,gameFinished,gameWinner,miniReducer,recordableWinner,WHEEL_LETTER_STOP_MS,WHEEL_RESULT_HOLD_MS} from './engine.ts';
 import type {MiniSession,MiniAction} from './engine.ts';
 import {GAME_IDS,GAME_LABELS} from './catalog.ts';
 import type {MiniGameKind} from './catalog.ts';
@@ -83,6 +83,9 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
  const start=()=>{if(!selected)return;send({type:'open',game:selected,pairs,seconds});setSelected(null);setClock(Date.now());};
  const capacity=state.prizes.length,filled=state.winners.length,full=filled>=capacity;
  const canRecord=recordableWinner(state,clock);
+ // Keep the category and letter visible long enough to read before showing host choices.
+ const wheelActionsReady=state.active?.kind==='wheel'&&state.active.startedAt!==null
+  &&clock-state.active.startedAt>=WHEEL_LETTER_STOP_MS+WHEEL_RESULT_HOLD_MS;
  const winnerMessage=capacity===0?'لا توجد جوائز مجهّزة':full?'تم تسجيل جميع الفائزين':'';
  const closeGame=()=>{send({type:'close'});setWinnerForm(false);setConfirmExit(false);};
  const saveWinner=()=>{
@@ -208,9 +211,14 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
    </div>:winnerForm&&!state.active?<form className="mini-winner-form" onSubmit={e=>{e.preventDefault();saveWinner();}}><label htmlFor="mini-prize-winner-name">اسم الفائز</label><input id="mini-prize-winner-name" autoFocus value={name} maxLength={80} required onChange={e=>setName(e.target.value)} placeholder="أدخل اسم الفائز"/>{duplicate&&<p className="mini-notice">الاسم مسجل سابقًا، ويمكن تسجيله مجددًا كفائز مستقل.</p>}<div className="mini-action-row"><button className="mini-cta mini-secondary" type="button" onClick={()=>setWinnerForm(false)}>إلغاء</button><button type="submit" className="mini-cta mini-primary" disabled={!name.trim()||full}>حفظ الفائز</button></div></form>:state.active?<div className="mini-playing">
     {winnerForm?<form className="mini-winner-form" onSubmit={e=>{e.preventDefault();saveWinner();}}><label htmlFor="mini-winner-name">اسم الفائز</label><input id="mini-winner-name" autoFocus value={name} maxLength={80} required onChange={e=>setName(e.target.value)} placeholder="أدخل اسم الفائز"/>{duplicate&&<p className="mini-notice">الاسم مسجل سابقًا، ويمكن تسجيله مجددًا كفائز مستقل.</p>}<div className="mini-action-row"><button className="mini-cta mini-secondary" type="button" onClick={()=>setWinnerForm(false)}>إلغاء</button><button type="submit" className="mini-cta mini-primary" disabled={!name.trim()}>حفظ الفائز</button></div></form>:<>
      <MiniGameStage game={state.active} now={clock} send={send}/>
+     {state.active.kind==='wheel'&&wheelActionsReady&&<div className="mini-wheel-actions" role="region" aria-label="خيارات نتيجة عجلة الحروف">
+      <p>يمكنك تسجيل الفائز بعد قراءة التصنيف والحرف، أو إنهاء اللعبة دون فائز.</p>
+      {winnerMessage?<p className="mini-result-note">{winnerMessage}</p>:<button className="mini-cta mini-primary" disabled={!canRecord} onClick={()=>setWinnerForm(true)}><Trophy size={17}/> تسجيل فائز</button>}
+      <button className="mini-cta mini-secondary" onClick={closeGame}>إنهاء اللعبة دون فائز</button>
+     </div>}
     </>}
    </div>:null}
-   {state.active&&gameFinished(state.active,clock)&&!winnerForm&&<div className="mini-result-layer" role="region" aria-label="نتيجة اللعبة"><div className="mini-result-card"><p className="mini-result-text" role="status">{resultText}</p>{winnerMessage?<p className="mini-result-note">{winnerMessage}</p>:state.active.kind==='pattern'&&state.active.draw?null:<button className="mini-cta mini-primary" disabled={!canRecord} onClick={()=>setWinnerForm(true)}><Trophy size={17}/> تسجيل فائز</button>}<button className="mini-cta mini-secondary" onClick={closeGame}>إنهاء اللعبة دون فائز</button></div></div>}
+   {state.active&&state.active.kind!=='wheel'&&gameFinished(state.active,clock)&&!winnerForm&&<div className="mini-result-layer" role="region" aria-label="نتيجة اللعبة"><div className="mini-result-card"><p className="mini-result-text" role="status">{resultText}</p>{winnerMessage?<p className="mini-result-note">{winnerMessage}</p>:state.active.kind==='pattern'&&state.active.draw?null:<button className="mini-cta mini-primary" disabled={!canRecord} onClick={()=>setWinnerForm(true)}><Trophy size={17}/> تسجيل فائز</button>}<button className="mini-cta mini-secondary" onClick={closeGame}>إنهاء اللعبة دون فائز</button></div></div>}
   </dialog>
   <dialog ref={prizeRevealDialog} className="mini-dialog mg-award-result" aria-label="نتيجة الجائزة" onCancel={event=>{event.preventDefault();setReveal(null);}}>{reveal&&<PrizeReveal key={reveal.name+reveal.winnerId} name={reveal.name} winner={state.winners.find(w=>w.id===reveal.winnerId)||null} locale="ar" celebration={true} onClose={()=>setReveal(null)}/>}</dialog>
   <dialog ref={helpDialog} className="mini-dialog mini-help-dialog" aria-label={help?'شرح '+GAME_LABELS[help]:'شرح اللعبة'} onCancel={e=>{e.preventDefault();closeHelp();}}>

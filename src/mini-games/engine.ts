@@ -10,6 +10,10 @@ export type BombGame={kind:'bomb';size:4|5|6;bomb:number;opened:number[];turn:Pl
 export type WordGame={kind:'form-word'|'scramble';answer:string;letters:string[];deadline:number;finished:boolean;revealed:boolean};
 export type PatternGame={kind:'pattern';level:number;sequences:[PatternColor[],PatternColor[]];turn:Player;progress:number;outcomes:[boolean|null,boolean|null];startedAt:number;replays:number;finished:boolean;winner:Player|null;draw:boolean};
 export type EmojiGame={kind:'emoji';pairs:3|5|7;tiles:string[];opened:number[];matched:number[];turn:Player;scores:[number,number];mismatchUntil:number|null;finished:boolean;winner:Player|null};
+/** The reel reveals are staggered; keep the result readable before host actions appear. */
+export const WHEEL_CATEGORY_STOP_MS=2600;
+export const WHEEL_LETTER_STOP_MS=3800;
+export const WHEEL_RESULT_HOLD_MS=2400;
 export type WheelGame={kind:'wheel';category:WheelCategory;letter:string;example:string;startedAt:number|null;draws:number};
 export type ActiveMiniGame=BombGame|WordGame|PatternGame|EmojiGame|WheelGame;
 export type MiniPhase='live'|'prizes'|'closing';
@@ -97,7 +101,7 @@ export function createMiniGame(kind:MiniGameKind,opts:Extract<MiniAction,{type:'
  return {kind:'wheel',...value,startedAt:null,draws:0}; // Idle until the host pulls the lever.
 }
 export function gameFinished(game:ActiveMiniGame,now=Date.now()):boolean{
- if(game.kind==='wheel')return game.startedAt!==null&&now-game.startedAt>=3800;
+ if(game.kind==='wheel')return game.startedAt!==null&&now-game.startedAt>=WHEEL_LETTER_STOP_MS;
  if(game.kind==='form-word'||game.kind==='scramble')return game.finished||now>=game.deadline;
  return game.finished;
 }

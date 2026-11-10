@@ -32,28 +32,56 @@ test('six-game preview runs with zero prizes and never requests a paid start',as
  await expect(page.getByRole('heading',{name:'شكرًا لكم على المشاركة'})).toBeVisible();
  expect(requests).toEqual([]);
 });
-test('wheel stops category before letter, stays balanced and never shows excluded letters',async({page})=>{
- await page.clock.install();
- await page.goto('/?screen=mini-preview');
- await page.getByRole('button',{name:/بدء المعاينة/}).click();
- await page.getByRole('button',{name:'عجلة الحروف',exact:true}).click();
- await page.getByRole('button',{name:'بدء اللعبة'}).click();
- const modal=page.getByRole('dialog',{name:'عجلة الحروف'});
- await expect(modal.locator('.mini-wheel-reel strong')).toHaveCount(0);
- await page.clock.runFor(4000);
- await expect(modal.locator('.mini-wheel-reel strong')).toHaveCount(0);
- await modal.getByRole('button',{name:'سحب المقبض'}).click();
- await page.clock.runFor(2700);
- await expect(modal.locator('.mini-wheel-reel strong')).toHaveCount(1);
- await page.clock.runFor(1300);
- await expect(modal.locator('.mini-wheel-reel strong')).toHaveCount(2);
- const reels=await modal.locator('.mini-wheel-reel').evaluateAll(nodes=>nodes.map(node=>node.getBoundingClientRect().width));
- expect(Math.abs(reels[0]-reels[1])).toBeLessThan(1);
- const letter=await modal.locator('.mini-wheel-reel strong').last().textContent();
- expect(letter).not.toMatch(/[ثذضظ]/);
- await expect(page.locator('.mini-result-layer')).toBeVisible();
- await expect(page.getByText('اكتملت اللعبة',{exact:true})).toBeVisible();
-});
+for(const width of [390,1440]){
+ test(`wheel reveals both results before inline host choices, never covering the reels ${width}`,async({page},info)=>{
+  await page.setViewportSize({width,height:width===390?844:900});
+  await page.clock.install();
+  await page.goto('/?screen=mini-preview');
+  await page.getByRole('button',{name:/بدء المعاينة/}).click();
+  await page.getByRole('button',{name:'عجلة الحروف',exact:true}).click();
+  await page.getByRole('button',{name:'بدء اللعبة'}).click();
+  const modal=page.getByRole('dialog',{name:'عجلة الحروف'});
+  await expect(modal.locator('.mini-wheel-reel strong')).toHaveCount(0);
+  await page.clock.runFor(4000); // Idle until the host actually pulls.
+  await expect(modal.locator('.mini-wheel-reel strong')).toHaveCount(0);
+  const lever=modal.getByRole('button',{name:'سحب المقبض'});
+  await expect(lever.locator('.mini-wheel-lever-handle')).toHaveCount(1);
+  await expect(lever.locator('.mini-wheel-lever-handle')).toHaveCSS('background-image',/gradient/);
+  await lever.click();
+  await expect(modal.locator('.mini-wheel-lever')).toHaveClass(/is-spinning/);
+  await page.clock.runFor(2700);
+  await expect(modal.locator('.mini-wheel-reel strong')).toHaveCount(1);
+  await expect(modal.locator('.mini-wheel-readout')).toHaveCount(0);
+  await expect(modal.locator('.mini-wheel-actions')).toHaveCount(0);
+  await page.clock.runFor(1000);
+  await expect(modal.locator('.mini-wheel-reel strong')).toHaveCount(1);
+  await expect(modal.locator('.mini-result-layer')).toHaveCount(0);
+  await page.clock.runFor(300);
+  await expect(modal.locator('.mini-wheel-reel strong')).toHaveCount(2);
+  await expect(modal.locator('.mini-wheel-readout')).toBeVisible();
+  const letter=await modal.locator('.mini-wheel-reel strong').last().textContent();
+  expect(letter).not.toMatch(/[ثذضظ]/);
+  await expect(modal.locator('.mini-result-layer')).toHaveCount(0);
+  await expect(modal.locator('.mini-wheel-actions')).toHaveCount(0);
+  // The result must remain uncovered for 2.4 seconds after the letter settles.
+  await page.clock.runFor(2000);
+  await expect(modal.locator('.mini-wheel-actions')).toHaveCount(0);
+  await page.clock.runFor(300);
+  await expect(modal.locator('.mini-wheel-actions')).toBeVisible();
+  await expect(modal.locator('.mini-wheel-readout')).toBeVisible();
+  await expect(modal.locator('.mini-wheel-actions').getByRole('button',{name:'تسجيل فائز'})).toBeVisible();
+  await expect(modal.locator('.mini-wheel-actions').getByRole('button',{name:'إنهاء اللعبة دون فائز'})).toBeVisible();
+  await expect(modal.getByText('اكتملت اللعبة',{exact:true})).toHaveCount(0);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+  await page.screenshot({path:info.outputPath('wheel-result-uncovered-'+width+'.png'),animations:'disabled'});
+  await modal.getByRole('button',{name:'إعادة السحب'}).click();
+  await expect(modal.locator('.mini-wheel-actions')).toHaveCount(0);
+  await expect(modal.locator('.mini-wheel-readout')).toHaveCount(0);
+  await page.clock.runFor(4000);
+  await expect(modal.locator('.mini-wheel-readout')).toBeVisible();
+  await expect(modal.locator('.mini-result-layer')).toHaveCount(0);
+ });
+}
 test('responsive mini-game hub has usable modals and no horizontal page overflow',async({page})=>{
  await page.setViewportSize({width:390,height:844});
  await page.emulateMedia({reducedMotion:'reduce'});
