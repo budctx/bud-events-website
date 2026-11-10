@@ -134,7 +134,7 @@ test('new bomb and emoji boards are 4×4 squares with Motion flip faces',async({
  await expect(bomb.locator('.mini-bomb-cell')).toHaveCount(16);
  await expect(bomb.locator('.mini-bomb-cell').first().locator('.mini-flip-back')).toHaveText('1');
  await expect(bomb.locator('.mini-bomb-cell').last().locator('.mini-flip-back')).toHaveText('16');
- await expect(bomb.locator('.mini-flip-inner').first()).toHaveCSS('transform-style','preserve-3d');
+ await expect(bomb.locator('.mini-flip-card').first()).toHaveCSS('transform-style','preserve-3d');
  await expect(bomb.locator('.mini-flip-front').first()).toHaveCSS('backface-visibility','hidden');
  await bomb.locator('.mini-bomb-cell').first().click();
  await expect(bomb.locator('.mini-bomb-cell').first()).toHaveAttribute('data-revealed','true');
@@ -389,7 +389,7 @@ test('bomb explosion card flips before completion layer appears',async({page})=>
  }
  await expect(modal.locator('.mini-bomb-cell.is-bomb')).toHaveCount(1);
  await expect(modal.locator('.mini-result-layer')).toHaveCount(0);
- await expect(modal.locator('.mini-bomb-cell.is-bomb')).toHaveCSS('animation-delay','0.56s');
+ await expect(modal.locator('.mini-flip-stage.is-exploding')).toHaveCSS('animation-delay','0.56s');
  await expect(modal.locator('.mini-bomb-cell.is-bomb .mini-flip-front')).toHaveCSS('background-color','rgb(255, 156, 120)');
  await expect(modal.locator('.mini-bomb-cell.is-bomb .mini-flip-front')).toHaveCSS('border-top-left-radius',/px/);
  await page.clock.runFor(1500);
@@ -417,13 +417,15 @@ for(const width of [390,1440]){
   expect(layout.bottom).toBeLessThanOrEqual(layout.visibleBottom-12); // Last row stays visible, not clipped.
   const card=cells.first(),back=card.locator('.mini-flip-back'),front=card.locator('.mini-flip-front');
   const geometry=await card.evaluate(el=>{
-   const inside=el.querySelector('.mini-flip-inner')!;
-   const face=el.querySelector('.mini-flip-back')!;
-   const outer=el.getBoundingClientRect(),inner=inside.getBoundingClientRect(),cover=face.getBoundingClientRect();
+   const holder=el.closest('.mini-flip-stage')!;
+   const face=el.querySelector('.mini-flip-back')!,front=el.querySelector('.mini-flip-front')!;
+   const outer=el.getBoundingClientRect(),stage=holder.getBoundingClientRect(),cover=face.getBoundingClientRect();
    const radius=(node:Element)=>getComputedStyle(node).borderTopLeftRadius;
-   return {outerW:outer.width,outerH:outer.height,innerW:inner.width,innerH:inner.height,faceW:cover.width,faceH:cover.height,
-    radii:[radius(el),radius(inside),radius(face)],back:getComputedStyle(face).backgroundColor,
-    border:getComputedStyle(el).borderTopWidth,shadow:getComputedStyle(el).boxShadow};
+   return {outerW:outer.width,outerH:outer.height,innerW:stage.width,innerH:stage.height,faceW:cover.width,faceH:cover.height,
+    radii:[radius(el),radius(face),radius(front)],back:getComputedStyle(face).backgroundColor,
+    border:getComputedStyle(el).borderTopWidth,shadow:getComputedStyle(el).boxShadow,
+    stageBorder:getComputedStyle(holder).borderTopWidth,stageShadow:getComputedStyle(holder).boxShadow,
+    stagePerspective:getComputedStyle(holder).perspective,stageBackground:getComputedStyle(holder).backgroundColor};
   });
   expect(Math.abs(geometry.outerW-geometry.outerH)).toBeLessThan(1.1);
   expect(geometry.innerW).toBeGreaterThan(geometry.outerW-5);
@@ -435,12 +437,18 @@ for(const width of [390,1440]){
   expect(geometry.back).toBe('rgb(255, 239, 207)');
   expect(parseFloat(geometry.border)).toBeGreaterThan(0);
   expect(geometry.shadow).not.toBe('none');
+  expect(geometry.stageBorder).toBe('0px');
+  expect(geometry.stageShadow).toBe('none');
+  expect(geometry.stageBackground).toBe('rgba(0, 0, 0, 0)');
+  expect(geometry.stagePerspective).not.toBe('none');
+  await expect(card).toHaveCSS('transform-style','preserve-3d');
+  await expect(card.locator('.mini-flip-inner')).toHaveCount(0); // No beige-only spinning insert.
   await card.hover();
   await expect(back).toHaveCSS('background-color','rgb(251, 176, 59)');
   await card.click();
   await expect(card).toHaveAttribute('data-revealed','true');
   await expect(front).toHaveCSS('background-color','rgb(255, 255, 255)');
-  await expect.poll(async()=>card.locator('.mini-flip-inner').evaluate(el=>new DOMMatrixReadOnly(getComputedStyle(el).transform).m11))
+  await expect.poll(async()=>card.evaluate(el=>new DOMMatrixReadOnly(getComputedStyle(el).transform).m11))
    .toBeLessThan(-0.98);
   await expect(back).toHaveCSS('border-top-left-radius',geometry.radii[0]);
   await page.screenshot({path:info.outputPath('integrated-emoji-flip-'+width+'.png'),animations:'allow'});
