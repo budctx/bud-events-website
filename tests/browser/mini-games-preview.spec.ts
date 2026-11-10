@@ -409,6 +409,12 @@ for(const width of [390,1440]){
   await dialog.getByRole('button',{name:'بدء اللعبة'}).click();
   const cells=dialog.locator('.mini-emoji-cell');
   await expect(cells).toHaveCount(16);
+  const layout=await dialog.locator('.mini-emoji-grid').evaluate(node=>{
+   const modal=node.closest('dialog')!,board=node.getBoundingClientRect(),frame=modal.getBoundingClientRect();
+   return {bottom:board.bottom,visibleBottom:Math.min(frame.bottom,innerHeight),width:board.width,height:board.height};
+  });
+  expect(Math.abs(layout.width-layout.height)).toBeLessThan(1.5);
+  expect(layout.bottom).toBeLessThanOrEqual(layout.visibleBottom-12); // Last row stays visible, not clipped.
   const card=cells.first(),back=card.locator('.mini-flip-back'),front=card.locator('.mini-flip-front');
   const geometry=await card.evaluate(el=>{
    const inside=el.querySelector('.mini-flip-inner')!;
