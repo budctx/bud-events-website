@@ -315,3 +315,81 @@ test('Mini Games activity, prizes and closing hide decorative stage tabs and pre
   await page.screenshot({path:info.outputPath('mini-no-stage-tabs-'+width+'.png'),animations:'disabled'});
  }
 });
+
+
+for(const width of [390,1440]){
+ test(`scramble reveals the answer without an overlay and replacement restarts its timer ${width}`,async({page},info)=>{
+  await page.setViewportSize({width,height:width===390?844:900});
+  await page.clock.install();
+  await page.goto('/?screen=mini-preview');
+  await page.getByRole('button',{name:/بدء المعاينة/}).click();
+  await page.getByRole('button',{name:'الكلمة المبعثرة',exact:true}).click();
+  const modal=page.getByRole('dialog',{name:'الكلمة المبعثرة'});
+  await modal.getByRole('button',{name:'بدء اللعبة'}).click();
+  await expect(modal.locator('.mini-letter')).toHaveCount(5);
+  await expect(modal.getByRole('button',{name:'كشف الكلمة الصحيحة'})).toBeVisible();
+  await expect(modal.getByRole('button',{name:'تغيير الكلمة'})).toBeVisible();
+  await page.clock.runFor(4200);
+  await expect(modal.getByRole('timer')).not.toContainText('30');
+  await modal.getByRole('button',{name:'تغيير الكلمة'}).click();
+  await expect(modal.getByRole('timer')).toContainText('30');
+  await expect(modal.locator('.mini-scramble-answer')).toHaveCount(0);
+  await modal.getByRole('button',{name:'كشف الكلمة الصحيحة'}).click();
+  await expect(modal.locator('.mini-scramble-answer')).toBeVisible();
+  const first=await modal.locator('.mini-scramble-answer').textContent();
+  await expect(modal.locator('.mini-result-layer')).toHaveCount(0);
+  await expect(modal.locator('.mini-word-result-actions')).toBeVisible();
+  await modal.getByRole('button',{name:'تغيير الكلمة'}).click();
+  await expect(modal.getByRole('timer')).toContainText('30');
+  await expect(modal.locator('.mini-scramble-answer')).toHaveCount(0);
+  await modal.getByRole('button',{name:'كشف الكلمة الصحيحة'}).click();
+  const second=await modal.locator('.mini-scramble-answer').textContent();
+  expect(second).not.toBe(first);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+  await page.screenshot({path:info.outputPath('scramble-control-'+width+'.png'),animations:'disabled'});
+ });
+}
+test('form-word shows five independent letters with no reveal-answer or change-word actions',async({page})=>{
+ await page.goto('/?screen=mini-preview');await page.getByRole('button',{name:/بدء المعاينة/}).click();
+ await page.getByRole('button',{name:'تكوين كلمة',exact:true}).click();
+ const modal=page.getByRole('dialog',{name:'تكوين كلمة'});
+ await modal.getByRole('button',{name:'بدء اللعبة'}).click();
+ await expect(modal.locator('.mini-letter')).toHaveCount(5);
+ await expect(modal).toContainText('خمسة أحرف عشوائية');
+ await expect(modal.getByRole('button',{name:'كشف الكلمة الصحيحة'})).toHaveCount(0);
+ await expect(modal.getByRole('button',{name:'تغيير الكلمة'})).toHaveCount(0);
+});
+test('emoji mismatch flips both cards back while preserving fair turn rotation',async({page})=>{
+ await page.clock.install();
+ await page.goto('/?screen=mini-preview');await page.getByRole('button',{name:/بدء المعاينة/}).click();
+ await page.getByRole('button',{name:'ذاكرة الإيموجي',exact:true}).click();
+ const modal=page.getByRole('dialog',{name:'ذاكرة الإيموجي'});
+ await modal.getByRole('button',{name:'بدء اللعبة'}).click();
+ const cards=modal.locator('.mini-emoji-cell');
+ const values=await cards.locator('.mini-flip-front').allTextContents();
+ const other=values.findIndex(value=>value!==values[0]);
+ expect(other).toBeGreaterThan(0);
+ await cards.nth(0).click();
+ await cards.nth(other).click();
+ await expect(cards.nth(0)).toHaveAttribute('data-revealed','true');
+ await expect(cards.nth(other)).toHaveAttribute('data-revealed','true');
+ await page.clock.runFor(1100);
+ await expect(cards.nth(0)).toHaveAttribute('data-revealed','false');
+ await expect(cards.nth(other)).toHaveAttribute('data-revealed','false');
+ await expect(modal.locator('.mini-scorebar')).toContainText('اللاعب 2');
+});
+test('bomb explosion card flips before completion layer appears',async({page})=>{
+ await page.clock.install();
+ await page.goto('/?screen=mini-preview');await page.getByRole('button',{name:/بدء المعاينة/}).click();
+ await page.getByRole('button',{name:'القنبلة',exact:true}).click();
+ const modal=page.getByRole('dialog',{name:'القنبلة'});
+ await modal.getByRole('button',{name:'بدء اللعبة'}).click();
+ for(let i=0;i<16;i++){
+  await modal.locator('.mini-bomb-cell:not(.is-open)').first().click();
+  if(await modal.locator('.mini-bomb-cell.is-bomb').count())break;
+ }
+ await expect(modal.locator('.mini-bomb-cell.is-bomb')).toHaveCount(1);
+ await expect(modal.locator('.mini-result-layer')).toHaveCount(0);
+ await page.clock.runFor(1000);
+ await expect(modal.locator('.mini-result-layer')).toBeVisible();
+});
