@@ -35,8 +35,12 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
  const gameTrigger=useRef<HTMLButtonElement|null>(null);
  const dialog=useRef<HTMLDialogElement>(null),helpDialog=useRef<HTMLDialogElement>(null),prizeRevealDialog=useRef<HTMLDialogElement>(null),helpTrigger=useRef<HTMLButtonElement|null>(null);
  const send=(action:MiniAction)=>{
-  const next=miniReducer(latest.current,action,Date.now());
-  if(next!==latest.current){latest.current=next;setState(next);onChange?.(next);}
+  const at=Date.now();
+  const next=miniReducer(latest.current,action,at);
+  if(next!==latest.current){
+   latest.current=next;setState(next);onChange?.(next);
+   if(action.type==='change-word')setClock(at); // Restart the displayed timer immediately.
+  }
  };
  useEffect(()=>{
   const tick=()=>{const now=Date.now();setClock(now);const active=latest.current.active;if(active?.kind==='emoji'&&active.mismatchUntil!==null&&now>=active.mismatchUntil)send({type:'resolve'});};
