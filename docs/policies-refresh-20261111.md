@@ -4,7 +4,7 @@
 
 The owner requested implementation of the researched policy structure in the existing policy centre. This change updates public copy and navigation only. It does not change payments, credit expiration, session duration, storage, refunds, authentication or account restrictions.
 
-The centre has five sections: support, terms, purchase/keys, cancellation/refunds/technical faults, and privacy. Existing support/terms/refund/privacy hashes remain valid; purchase receives its own hash. Both current events use the same policies.
+The review-version label is retained while supplier details and privacy schedules remain outstanding. The centre has five sections: support, terms, purchase/keys, cancellation/refunds/technical faults, and privacy. Existing support/terms/refund/privacy hashes remain valid; purchase receives its own hash. Both current events use the same policies.
 
 ## Verified implementation evidence
 

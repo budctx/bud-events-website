@@ -84,7 +84,7 @@ export function PolicyBody({body}:{body:string}) {
 
 export function FooterContent({page}:{page:keyof typeof policyContent}) {
   return <div className="bud-footer-content">
-    <p className="bud-policy-version">آخر تحديث: {policyUpdatedAt}</p>
+    <p className="bud-policy-version">نسخة للمراجعة · آخر تحديث: {policyUpdatedAt}</p>
     {policyContent[page].map(([heading,body])=><section key={heading}><h3>{heading}</h3><PolicyBody body={body}/></section>)}
     <a className="platform-action" href={supportUrl} target="_blank" rel="noopener noreferrer">الدعم عبر Discord</a>
   </div>;
