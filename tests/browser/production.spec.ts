@@ -506,22 +506,24 @@ for(const width of [390,1440])test(`events catalogue contains the released Mini 
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });
 
-for(const width of [390,1440])test(`selected catalogues: four-column bots and RTL carousel at ${width}`,async({page})=>{
- await page.setViewportSize({width,height:900});await page.goto('/?screen=bots');
- await expect(page.locator('.bud-bot-card')).toHaveCount(8);
- const rows=await page.locator('.bud-bot-card').evaluateAll(cards=>cards.map(card=>Math.round(card.getBoundingClientRect().top)));
- expect(rows.filter(y=>y===rows[0])).toHaveLength(width===1440?4:1);
- await navigate(page,'events');
- const previous=page.getByRole('button',{name:'الفعالية السابقة',exact:true}),next=page.getByRole('button',{name:'الفعالية التالية',exact:true});
- await expect(previous).toBeDisabled();await expect(next).toBeEnabled();
- await next.click();await expect(page.getByTestId('product-card-mini')).toBeInViewport();
- await expect(page.getByRole('status').filter({hasText:'ميني قيمز'})).toBeVisible();
- await expect(page.getByTestId('product-card-qc').locator('xpath=ancestor::*[@inert]')).toHaveCount(1);
- await next.click();await expect(page.getByTestId('event-coming-lucky-cards')).toBeInViewport();await expect(next).toBeDisabled();
- await previous.click();await expect(page.getByTestId('product-card-mini')).toBeInViewport();
- const first=page.getByRole('button',{name:'عرض فعالية سؤال وشرط',exact:true});await first.focus();await page.keyboard.press('Enter');
- await expect(page.getByTestId('product-card-qc')).toBeInViewport();await expect(previous).toBeDisabled();
- expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+for(const width of [390,1440])test(`selected catalogues: four-column bots and visible event cards at ${width}`,async({page})=>{
+  await page.setViewportSize({width,height:900});await page.goto('/?screen=bots');
+  await expect(page.locator('.bud-bot-card')).toHaveCount(8);
+  const rows=await page.locator('.bud-bot-card').evaluateAll(cards=>cards.map(card=>Math.round(card.getBoundingClientRect().top)));
+  expect(rows.filter(y=>y===rows[0])).toHaveLength(width===1440?4:1);
+  await navigate(page,'events');
+  await expect(page.getByTestId('event-catalog')).toBeVisible();
+  const cards=page.locator('.bud-product-grid > article');
+  await expect(cards).toHaveCount(3);
+  const cardRows=await cards.evaluateAll(items=>items.map(item=>Math.round(item.getBoundingClientRect().top)));
+  expect(cardRows.filter(y=>y===cardRows[0])).toHaveLength(width===1440?3:1);
+  for(const name of ['سؤال وشرط','ميني قيمز','كروت الحظ']){
+   const card=cards.filter({has:page.getByRole('heading',{name,exact:true})});
+   await expect(card).toBeVisible();await expect(card).toHaveAttribute('class',/bud-catalog-card/);
+   await card.scrollIntoViewIfNeeded();
+  }
+  await expect(page.getByTestId('product-card-qc').locator('xpath=ancestor::*[@inert]')).toHaveCount(0);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });
 
 for(const width of [320,390,430])test(`mobile event cards keep comic titles and actions inside their content at ${width}`,async({page},info)=>{
@@ -577,8 +579,8 @@ for(const width of [390,1440]) test(`Arabic policies, refunds and official certi
 test('clean public links normalize old URLs and survive direct reload and history',async({page})=>{
  await page.goto('/?screen=events&lang=en');
  await expect(page).toHaveURL(/\/events$/);
- await expect(page.getByTestId('event-carousel')).toBeVisible();
- await page.reload();await expect(page.getByTestId('event-carousel')).toBeVisible();
+ await expect(page.getByTestId('event-catalog')).toBeVisible();
+ await page.reload();await expect(page.getByTestId('event-catalog')).toBeVisible();
  await page.getByRole('button',{name:'الشروط',exact:true}).click();
  await expect(page).toHaveURL(/\/policies#terms$/);
  await page.reload();await expect(page.getByRole('tab',{name:'شروط الاستخدام'})).toHaveAttribute('aria-selected','true');
@@ -589,7 +591,7 @@ test('clean public links normalize old URLs and survive direct reload and histor
 
 test('cached clean public paths remain navigable offline',async({page,context})=>{
  await page.goto('http://127.0.0.1:4175/events');
- await expect(page.getByTestId('event-carousel')).toBeVisible();
+ await expect(page.getByTestId('event-catalog')).toBeVisible();
  await page.evaluate(async()=>{await navigator.serviceWorker.ready;if(!navigator.serviceWorker.controller)await new Promise<void>(resolve=>navigator.serviceWorker.addEventListener('controllerchange',()=>resolve(),{once:true}));});
  await page.getByRole('button',{name:'الشروط',exact:true}).click();
  await expect(page.getByRole('heading',{name:'مركز المساعدة والسياسات',exact:true})).toBeVisible();
