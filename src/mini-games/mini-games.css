@@ -203,3 +203,16 @@
 .mini-pad-symbol{font-size:clamp(26px,5vw,48px);color:#292929;line-height:1}
 .mini-restart{margin:16px auto 0;display:flex}
 .host-setup-summary{background:#fff3d5;border-radius:12px;padding:12px;color:#53422a;font-size:14px;line-height:1.8}
+/* Readable shared instructions for the six host/participant standby dialogs. */
+.mini-standby{padding:clamp(16px,3vh,28px) 0 clamp(10px,2vh,24px);gap:18px}
+.mini-standby>.mini-standby-guide{
+ width:min(570px,100%);margin:0 auto;padding:clamp(16px,2.7vw,22px) clamp(16px,3vw,26px);
+ border:1px solid #e7d6b2;border-inline-start:4px solid var(--mini-gold);
+ border-radius:16px;background:#fff9ec;color:#403b33;
+ font-size:clamp(14px,1.6vw,16px);font-weight:450;line-height:2.05;text-align:start;text-wrap:pretty;
+}
+.mini-standby-guide strong{font-weight:800}
+.mini-standby-guide .mini-rule-em{color:#825006;background:linear-gradient(transparent 68%,rgba(251,176,59,.27) 0)}
+.mini-standby-guide .mini-rule-win{color:#22613e}
+.mini-standby-guide .mini-rule-loss{color:#9d3d35}
+@media(max-width:600px){.mini-standby>.mini-standby-guide{padding:15px 17px;font-size:14px;line-height:1.95}}
