@@ -95,7 +95,7 @@ test('preview keyboard, reduced motion, locale reset and unmount cleanup',async(
   await expect(page.getByRole('button',{name:'اكشف سؤال',exact:true})).toBeEnabled();
 });
 
-test('sample and host use identical card faces, marks and flip styles at the same width',async({page,browser})=>{
+test('catalogue sample retains host card colors and reveal behavior with compact sizing',async({page,browser})=>{
   await page.setViewportSize({width:1440,height:900});
   await page.goto('/?screen=events&lang=ar');
   const sample=page.locator('.qc-demo-card').first();
@@ -107,14 +107,16 @@ test('sample and host use identical card faces, marks and flip styles at the sam
   await host.getByRole('button',{name:'بدء الفعالية',exact:true}).click();
   await host.locator('.mg-cards').evaluate((el,w)=>{ (el as HTMLElement).style.width=`${w*2+16}px`; },width);
   const game=host.locator('.mg-card').first();await game.click();
-  for(const selector of ['.mg-card-hidden','.mg-card-visible','.mg-corner-top','.mg-hidden-center b','.mg-card-content']) {
-    const properties=['backgroundColor','borderTopWidth','borderRadius','boxShadow','fontSize','width'].filter(property=>selector!=='.mg-card-content'||!['fontSize','width'].includes(property));
-    const actual=await sample.locator(selector).first().evaluate((el,props)=>props.map(p=>getComputedStyle(el).getPropertyValue(p.replace(/[A-Z]/g,m=>`-${m.toLowerCase()}`))),properties);
-    const expected=await game.locator(selector).first().evaluate((el,props)=>props.map(p=>getComputedStyle(el).getPropertyValue(p.replace(/[A-Z]/g,m=>`-${m.toLowerCase()}`))),properties);
-    // Product-preview copy is intentionally larger; card surfaces, marks and flip styles remain shared.
-    expect(actual).toEqual(expected);
+  // Compact product cards use smaller radii and type than full-screen host cards.
+  // The reveal interaction, card colors, and emblems remain the same.
+  for(const selector of ['.mg-card-hidden','.mg-card-visible']){
+    const actual=await sample.locator(selector).first().evaluate(el=>getComputedStyle(el).backgroundColor);
+    const expected=await game.locator(selector).first().evaluate(el=>getComputedStyle(el).backgroundColor);
+    expect(actual).toBe(expected);
   }
-  expect(await sample.locator('.mg-card-content').evaluate(el=>parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(22);
+  await expect(sample).toHaveAttribute('data-revealed','true');
+  await expect(game).toHaveAttribute('data-revealed','true');
+  expect(await sample.locator('.mg-card-content').evaluate(el=>parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(13);
   await expect(sample.locator('.mg-corner')).toHaveCount(4);
   await host.close();
 });

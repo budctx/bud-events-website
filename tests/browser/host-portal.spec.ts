@@ -398,7 +398,6 @@ test('mobile Mini Games reuses the Question & Condition setup shell and prize ed
   return route.fulfill({status:503,json:{code:'PRODUCT_UNAVAILABLE'}});
  });
  await page.goto('http://127.0.0.1:4173/?screen=events&lang=ar');
- await page.getByRole('button',{name:'عرض فعالية ميني قيمز',exact:true}).click();
  await page.getByTestId('event-mini-setup').tap();
  const modal=page.getByRole('dialog',{name:'إعداد ميني قيمز'});
  await expect(modal).toBeVisible();
@@ -414,7 +413,6 @@ test('mobile Mini Games reuses the Question & Condition setup shell and prize ed
  await page.screenshot({path:info.outputPath('mini-setup-mobile-reuse.png'),animations:'disabled'});
  await modal.getByRole('button',{name:'إغلاق إعداد الفعالية'}).tap();
  await expect(modal).not.toBeVisible();
- await page.getByRole('button',{name:'عرض فعالية سؤال وشرط',exact:true}).click();
  await page.getByTestId('event-setup').tap();
  const qc=page.getByRole('dialog',{name:'إعداد الفعالية',exact:true});
   await expect(qc.getByLabel('اسم الفعالية')).toHaveValue('سؤال وشرط');

@@ -485,12 +485,10 @@ test.describe('touch button presentation',()=>{
 for(const width of [390,1440])test(`events catalogue contains the released Mini Games product, one upcoming event and eight named bots at ${width}`,async({page})=>{
  await page.setViewportSize({width,height:850});await page.goto('/?screen=events');
  await expect(page.locator('.platform-event-catalog .platform-product-card')).toHaveCount(3);
- await page.getByRole('button',{name:'عرض فعالية ميني قيمز',exact:true}).click();
  const mini=page.getByTestId('product-card-mini');
  await expect(mini.getByRole('heading',{name:'ميني قيمز',exact:true})).toBeVisible();
  await expect(mini.getByRole('button',{name:'قريبًا',exact:true})).toHaveCount(0);
  await expect(page.getByTestId('product-card-mini-buy')).toHaveCount(1);
- await page.getByRole('button',{name:'عرض فعالية كروت الحظ',exact:true}).click();
  const card=page.getByTestId('event-coming-lucky-cards');
  await expect(card.getByRole('heading',{name:'كروت الحظ',exact:true})).toBeVisible();
  await expect(card.getByRole('button',{name:'قريبًا',exact:true})).toBeDisabled();
@@ -530,7 +528,6 @@ for(const width of [320,390,430])test(`mobile event cards keep comic titles and 
  await page.setViewportSize({width,height:844});await page.emulateMedia({reducedMotion:'reduce'});
  await page.goto('/?screen=events');
  for(const name of ['سؤال وشرط','ميني قيمز','كروت الحظ']){
-  await page.getByRole('button',{name:'عرض فعالية '+name,exact:true}).click();
   const heading=page.getByRole('heading',{name,exact:true});await expect(heading).toBeVisible();
   const article=heading.locator('xpath=ancestor::article');const title=heading.locator('.bud-comic-layers');
   const card=await article.boundingBox(),text=await title.boundingBox();

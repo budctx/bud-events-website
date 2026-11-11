@@ -193,7 +193,6 @@ test('Mini Games product can be discovered before Discord login',async({page})=>
  await page.route('**/api/auth?action=session',route=>route.fulfill({status:401,json:{code:'AUTH_REQUIRED'}}));
  await page.goto('/events');
  await expect(page.getByTestId('product-card-mini')).toHaveCount(1);
- await page.getByRole('button',{name:'عرض فعالية ميني قيمز'}).click();
  await expect(page.getByTestId('product-card-mini').getByRole('heading',{name:'ميني قيمز'})).toBeVisible();
  await expect(page.getByTestId('event-mini-setup')).toHaveCount(0);
  await expect(page.getByTestId('product-card-mini-buy')).toHaveCount(1);
