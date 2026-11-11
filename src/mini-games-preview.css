@@ -1,0 +1,15 @@
+.mini-demo{position:relative;isolation:isolate;box-sizing:border-box;display:grid;grid-template-rows:24px minmax(0,1fr) 34px;gap:4px;width:100%;height:184px;padding:10px 8px;border-radius:12px;background:#f6f0e2;overflow:hidden;color:#333}
+.mini-demo-heading,.mini-demo-footer{display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0}
+.mini-demo-heading>span{font-size:11px;font-weight:600}.mini-demo-heading small{font-size:9px;color:#615c52}
+.mini-demo-cards{display:flex;align-items:center;justify-content:center;gap:8px;perspective:600px;min-height:0}
+.mini-demo-card{position:relative;width:52px;height:76px;padding:0;border:2px solid #333;border-radius:8px;background:#333;box-shadow:3px 3px 0 #d2c6af;cursor:pointer;transform-style:preserve-3d;transition:transform .4s cubic-bezier(.22,.8,.25,1),background .2s;flex:none;touch-action:manipulation}
+.mini-demo-card[data-revealed=true]{transform:rotateY(180deg);background:#fdfdff}.mini-demo-card[data-matched=true]{background:#fff0cf;border-color:#93600e}
+.mini-demo-card[aria-disabled=true]{cursor:default}.mini-demo-card:focus-visible,.mini-demo-reset:focus-visible{outline:3px solid #93600e;outline-offset:4px}
+.mini-demo-back,.mini-demo-front{position:absolute;inset:0;display:grid;place-items:center;backface-visibility:hidden;border-radius:6px}
+.mini-demo-back img{width:25px;height:25px;object-fit:contain}.mini-demo-front{transform:rotateY(180deg);font-size:28px}
+.mini-demo-footer p{margin:0;font-size:10px;line-height:1.4}.mini-demo-reset{border:0;border-radius:4px;background:transparent;color:#4e493f;text-decoration:underline;text-underline-offset:4px;font:inherit;font-size:10px;min-height:32px;padding:2px 4px;cursor:pointer}.mini-demo-reset:disabled{opacity:.5;cursor:default}
+.mini-demo-celebration{position:absolute;inset:0;pointer-events:none;overflow:hidden}.mini-demo-celebration i{position:absolute;top:25%;color:#93600e;font-style:normal;animation:mini-demo-pop .9s ease-out both}
+@keyframes mini-demo-pop{from{opacity:0;transform:translateY(20px) scale(.5)}30%{opacity:1}to{opacity:0;transform:translateY(-45px) rotate(120deg)}}
+@media(max-width:700px){.mini-demo{height:190px}}
+@media(max-height:650px) and (min-width:701px){.mini-demo{height:146px;grid-template-rows:20px minmax(0,1fr) 30px}.mini-demo-card{height:56px;width:44px}.mini-demo-front{font-size:24px}}
+@media(prefers-reduced-motion:reduce){.mini-demo-card{transition:none}.mini-demo-celebration{display:none}}

@@ -13,7 +13,8 @@ import {readOwnerReturn,clearOwnerReturn} from './owner-return';
 import type {OwnerReturn} from './owner-return';
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import './platform.css';
-import {LifeBuoy, Menu, Palette, X,Gamepad2} from 'lucide-react';
+import {LifeBuoy, Menu, Palette, X} from 'lucide-react';
+import {MiniGamesPreview} from './MiniGamesPreview';
 import { HeroArtwork } from './HeroArtwork';
 import { InterfaceIcon } from './InterfaceControls';
 import { Seo } from './Seo';
@@ -308,7 +309,7 @@ export default function Platform({ onPlay }: PlatformProps) {
       </> : <>
         <div className="platform-gallery-intro"><h1>{page === 'events' ? t.galleryTitle : t[page]}</h1><p>{page === 'events' ? t.galleryDescription : t.soonDescription}</p>{page === 'events' && <button className="platform-action platform-action-secondary platform-event-how" data-testid="event-how" onClick={() => setModal('how')}>{t.how}</button>}</div>
         {page === 'events' ? <Suspense fallback={<BudSkeleton label="جارٍ تحميل الفعاليات…"/>}><EventCarousel mini={<Card component="article" className="platform-product-card bud-catalog-card platform-upcoming-event platform-mini-event" data-testid="product-card-mini" aria-label="فعالية ميني قيمز">
- <div className="platform-product-preview platform-upcoming-preview" aria-hidden="true"><div className="platform-upcoming-face"><Gamepad2 size={64}/><span>بُعد</span></div></div>
+ <MiniGamesPreview/>
  <div className="platform-product-information"><p className="platform-product-eyebrow">فعالية صوتية على Discord</p><h2><ComicEventTitle>ميني قيمز</ComicEventTitle></h2>
   <p className="platform-product-description">ست ألعاب تفاعلية يديرها المضيف، مع الفائزين والجوائز والختام في تجربة واحدة.</p>
   <div className="platform-features"><BudBadge variant="outline">6 ألعاب</BudBadge><BudBadge variant="outline">جوائز</BudBadge><BudBadge variant="outline">بدون مؤقت موحّد</BudBadge></div>
