@@ -1,335 +1,174 @@
-/* Fit the catalogue through layout, never by clipping or scaling the page. */
-.platform.platform-events-fit{height:100dvh;min-height:100dvh;display:grid;grid-template-rows:auto minmax(0,1fr) auto;padding-block:0}
-.platform.platform-events-fit .platform-gallery-main{min-height:0;max-width:1100px;padding:8px 0;display:grid;grid-template-rows:auto minmax(0,1fr);gap:10px}
-.platform.platform-events-fit .platform-gallery-intro{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;margin:0;align-items:center}
-.platform.platform-events-fit .platform-gallery-intro h1{font-size:clamp(24px,3.8dvh,36px);line-height:1.3;grid-column:1;grid-row:1}
-.platform.platform-events-fit .platform-gallery-intro p{font-size:13px;line-height:1.6;min-height:0;margin:2px 0 0;grid-column:1;grid-row:2}
-.platform.platform-events-fit .platform-event-how{grid-column:2;grid-row:1/3;margin:0;min-height:44px;padding:6px 12px;font-size:12px}
-.platform.platform-events-fit .platform-event-catalog{min-height:0;display:grid;grid-template-rows:minmax(0,1fr) 44px 18px;gap:4px}
-.platform.platform-events-fit :is(.bud-events-carousel,.bud-events-viewport,.bud-events-track,.bud-events-slide){min-height:0;height:100%}
-.platform.platform-events-fit .bud-events-viewport{padding:3px 6px 8px}
-.platform.platform-events-fit .bud-carousel-navigation,.platform.platform-events-fit .bud-carousel-status{margin:0}
-.platform.platform-events-fit .bud-carousel-status{font-size:10px;line-height:18px}
-.platform.platform-events-fit .bud-events-slide>.platform-product-card{min-height:0;height:100%;padding:clamp(12px,2dvh,24px);gap:20px}
-.platform.platform-events-fit .platform-product-information{min-height:0;gap:8px}
-.platform.platform-events-fit .platform-product-information h2{font-size:clamp(24px,4dvh,38px);line-height:1.4;margin:0}
-.platform.platform-events-fit .platform-product-eyebrow{font-size:12px;line-height:18px}
-.platform.platform-events-fit .platform-product-description{min-height:0;font-size:14px;line-height:1.6}
-.platform.platform-events-fit .platform-features{font-size:12px;line-height:18px}
-.platform.platform-events-fit .qc-demo{width:44%;gap:8px}
-.platform.platform-events-fit .qc-demo .qc-demo-card{width:min(clamp(90px,20dvh,176px),calc(50% - 10px))}
-.platform.platform-events-fit .qc-demo-timer{--countdown-size:clamp(36px,7dvh,64px)}
-.platform.platform-events-fit .platform-event-ownership{margin:0;width:100%}
-.platform.platform-events-fit .platform-event-keys{font-size:11px;line-height:18px;padding:2px 6px;margin:0 0 4px}
-.platform.platform-events-fit .platform-event-actions{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px;width:100%;align-items:stretch}
-.platform.platform-events-fit .platform-event-actions .platform-action{width:100%;height:auto;min-height:44px;padding:4px 6px;font-size:12px;line-height:18px;min-width:0}
-.platform.platform-events-fit .bud-ripple-content{gap:6px}.platform.platform-events-fit .bud-purchase-price{gap:3px}
-.platform.platform-events-fit .platform-upcoming-preview{min-height:0;height:100%;max-height:300px}
-
+/* BU'D events catalogue: Mantine Card shells, existing product content and actions. */
+.platform.platform-events-fit{
+ min-height:100dvh;height:auto;display:grid;grid-template-rows:auto minmax(0,1fr) auto;
+ padding-block:0;
+ padding-inline:max(0px,calc(var(--platform-gutter) - var(--platform-scrollbar-edge,0px)),env(safe-area-inset-left),env(safe-area-inset-right));
+}
+.platform.platform-events-fit .platform-gallery-main{
+ width:100%;max-width:1180px;min-height:0;padding-block:clamp(10px,1.6dvh,20px);
+ display:flex;flex-direction:column;justify-content:center;gap:clamp(12px,1.8dvh,20px);
+}
+.platform.platform-events-fit .platform-gallery-intro{
+ display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:16px;
+ margin:0;text-align:start;
+}
+.platform.platform-events-fit .platform-gallery-intro h1{
+ font-size:clamp(25px,3.5dvh,36px);line-height:1.3;grid-column:1;grid-row:1;
+}
+.platform.platform-events-fit .platform-gallery-intro p{
+ font-size:13px;line-height:1.6;margin:3px 0 0;min-height:0;grid-column:1;grid-row:2;
+}
+.platform.platform-events-fit .platform-event-how{
+ grid-column:2;grid-row:1/3;min-height:44px;margin:0;padding:6px 14px;font-size:12px;
+}
+.platform.platform-events-fit .platform-event-catalog{display:block;min-width:0;width:100%}
+.platform.platform-events-fit .bud-product-grid{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch;
+ gap:clamp(12px,1.8vw,20px);min-width:0;
+}
+/* Mantine provides the accessible card primitive; the existing brand owns its presentation. */
+.platform.platform-events-fit .bud-product-grid>.bud-catalog-card{
+ box-sizing:border-box;width:100%;min-width:0;min-height:0;
+ display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;
+ direction:rtl;gap:12px;padding:16px;
+ color:#333;background:#fdfdff;border:2px solid #333;border-radius:16px;
+ box-shadow:4px 5px 0 #333;overflow:visible;
+}
+.platform.platform-events-fit .bud-catalog-card .qc-demo,
+.platform.platform-events-fit .bud-catalog-card .platform-upcoming-preview{
+ width:100%;height:184px;min-height:0;max-height:none;min-width:0;flex:none;
+ box-sizing:border-box;border-radius:12px;background:#f6f0e2;
+}
+.platform.platform-events-fit .bud-catalog-card .qc-demo{
+ display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:minmax(0,1fr) 34px;
+ align-items:center;justify-items:center;gap:4px 8px;padding:10px 8px;text-align:center;
+}
+.platform.platform-events-fit .bud-catalog-card .qc-demo-cards{
+ grid-column:1/-1;grid-row:1;width:100%;display:flex;justify-content:center;gap:10px;
+}
+.platform.platform-events-fit .bud-catalog-card .qc-demo .qc-demo-card{
+ width:min(104px,calc((100% - 10px)/2));height:auto;flex:none;
+}
+.platform.platform-events-fit .bud-catalog-card .qc-demo-timer{
+ grid-column:1;grid-row:2;--countdown-size:32px;justify-self:center;
+}
+.platform.platform-events-fit .bud-catalog-card .qc-demo-timer[data-active=false]{display:none}
+.platform.platform-events-fit .bud-catalog-card .qc-demo-timer .event-countdown-value{font-size:13px}
+.platform.platform-events-fit .bud-catalog-card .qc-demo-hint{
+ grid-column:1;grid-row:2;min-height:0;max-width:none;margin:0;font-size:10px;line-height:1.35;
+}
+.platform.platform-events-fit .bud-catalog-card .qc-demo:has(.qc-demo-timer[data-active=true]) .qc-demo-hint{visibility:hidden}
+.platform.platform-events-fit .bud-catalog-card .qc-demo-reset{
+ grid-column:2;grid-row:2;min-height:32px;font-size:10px;padding:2px 6px;
+}
+.platform.platform-events-fit .bud-catalog-card .qc-demo .mg-card-face{padding:14px 6px;border-width:2px;box-shadow:3px 3px 0 #333;border-radius:8px}
+.platform.platform-events-fit .bud-catalog-card .qc-demo .mg-hidden-center{font-size:11px;gap:2px}
+.platform.platform-events-fit .bud-catalog-card .qc-demo .mg-hidden-center b{width:34px;height:34px;font-size:17px}
+.platform.platform-events-fit .bud-catalog-card .qc-demo .mg-corner{width:11px}
+.platform.platform-events-fit .bud-catalog-card .qc-demo .mg-corner-top{top:6px;inset-inline-start:6px}
+.platform.platform-events-fit .bud-catalog-card .qc-demo .mg-corner-bottom{bottom:6px;inset-inline-end:6px}
+.platform.platform-events-fit .bud-catalog-card .qc-demo .mg-face-title{top:5px;inset-inline:16px;font-size:9px;line-height:11px}
+.platform.platform-events-fit .bud-catalog-card .qc-demo .mg-face-footer{bottom:5px;inset-inline:8px;font-size:10px;line-height:12px;padding-top:2px}
+.platform.platform-events-fit .bud-catalog-card .qc-demo .mg-card-content{font-size:clamp(13px,1.25vw,17px);line-height:1.5}
+.platform.platform-events-fit .bud-catalog-card .platform-upcoming-preview{
+ display:flex;align-items:center;justify-content:center;padding:12px;
+ background:linear-gradient(135deg,#f2ead8,#fff6df);
+}
+.platform.platform-events-fit .bud-catalog-card .platform-upcoming-face{
+ width:118px;min-height:132px;gap:10px;box-shadow:4px 4px 0 #d2c6af;
+}
+.platform.platform-events-fit .bud-catalog-card .platform-upcoming-face svg{width:48px;height:48px}
+.platform.platform-events-fit .bud-catalog-card .platform-upcoming-face span{font-size:16px}
+.platform.platform-events-fit .bud-catalog-card .platform-product-information{
+ width:100%;min-height:0;min-width:0;flex:1;
+ display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;
+ direction:rtl;text-align:right;gap:8px;
+}
+.platform.platform-events-fit .bud-catalog-card .platform-product-eyebrow{
+ margin:0;font-size:11px;line-height:16px;color:#625d55;
+}
+.platform.platform-events-fit .bud-catalog-card .platform-product-information h2{
+ margin:0;font-size:clamp(25px,2.5vw,33px);line-height:1.3;overflow-wrap:anywhere;
+}
+.platform.platform-events-fit .bud-catalog-card .platform-product-information .bud-comic-title{
+ line-height:1.25;padding-block:0;
+}
+.platform.platform-events-fit .bud-catalog-card .platform-product-description{
+ margin:0;min-height:0;font-size:13px;line-height:1.55;overflow-wrap:anywhere;
+}
+.platform.platform-events-fit .bud-catalog-card .platform-features{
+ display:flex;flex-wrap:wrap;justify-content:flex-start;align-items:center;gap:6px;
+ margin:0;opacity:1;font-size:11px;line-height:18px;
+}
+.platform.platform-events-fit .bud-catalog-card .platform-features .bud-badge{
+ max-width:100%;padding:2px 8px;font-size:10px;line-height:17px;white-space:normal;text-align:center;
+}
+.platform.platform-events-fit .bud-catalog-card .platform-event-ownership{
+ width:100%;margin-top:auto;min-width:0;text-align:right;
+}
+.platform.platform-events-fit .bud-catalog-card .platform-event-keys{
+ display:inline-flex;gap:5px;font-size:11px;line-height:18px;padding:4px 8px;margin:0 0 8px;
+}
+.platform.platform-events-fit .bud-catalog-card .platform-event-actions{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;align-items:stretch;
+ width:100%;min-width:0;
+}
+.platform.platform-events-fit .bud-catalog-card .platform-event-actions:has(> :only-child){grid-template-columns:minmax(0,1fr)}
+.platform.platform-events-fit .bud-catalog-card .platform-event-actions .platform-action{
+ width:100%;height:auto;min-width:0;min-height:44px;
+ padding:6px 8px;font-size:12px;line-height:1.35;overflow-wrap:anywhere;
+}
+.platform.platform-events-fit .bud-catalog-card .bud-ripple-content{gap:4px;flex-wrap:wrap;justify-content:center}
+.platform.platform-events-fit .bud-catalog-card .bud-purchase-price{gap:3px}
+.platform.platform-events-fit .bud-catalog-card .bud-promo-confirmation{
+ display:flex;align-items:center;justify-content:flex-start;gap:5px;flex-wrap:wrap;
+ width:fit-content;max-width:100%;margin:8px 0 0;
+ padding:4px 8px;border:1px solid #b7d8c1;border-radius:8px;
+ background:#edf7ef;color:#285a38;font-size:11px;line-height:18px;
+}
+.platform.platform-events-fit .bud-catalog-card .bud-promo-confirmation bdi{
+ padding:0 5px;border-radius:4px;background:#fff;font-size:10px;
+}
+.platform.platform-events-fit .bud-catalog-card .platform-upcoming-event button:disabled{opacity:.65}
+@media(max-width:960px){
+ .platform.platform-events-fit .bud-product-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
 @media(max-width:700px){
  .platform.platform-events-fit{padding-block:max(10px,env(safe-area-inset-top)) max(6px,env(safe-area-inset-bottom))}
- .platform.platform-events-fit .platform-gallery-main{padding:4px 0;gap:6px}
+ .platform.platform-events-fit .platform-gallery-main{padding-block:10px;gap:14px;justify-content:flex-start}
  .platform.platform-events-fit .platform-gallery-intro h1{font-size:24px}
- .platform.platform-events-fit .platform-gallery-intro p{font-size:11px;line-height:16px}
- .platform.platform-events-fit .platform-event-how{font-size:11px;padding:4px 8px}
- .platform.platform-events-fit .bud-events-slide>.platform-product-card{padding:8px;gap:6px;justify-content:center}
- .platform.platform-events-fit .qc-demo{width:100%;display:grid;grid-template-columns:minmax(0,1fr) 80px;grid-template-rows:auto auto auto;gap:3px 6px;align-items:center}
- .platform.platform-events-fit .qc-demo-cards{grid-column:1;grid-row:1/4;gap:8px;align-items:center}
- .platform.platform-events-fit .qc-demo .qc-demo-card{width:clamp(76px,23vw,104px)}
- .platform.platform-events-fit .qc-demo-timer{grid-column:2;grid-row:1;--countdown-size:32px;justify-self:center}
- .platform.platform-events-fit .qc-demo-timer .event-countdown-value{font-size:13px}
- .platform.platform-events-fit .qc-demo-hint{grid-column:2;grid-row:2;min-height:0;font-size:9px;line-height:12px}
- .platform.platform-events-fit .qc-demo-reset{grid-column:2;grid-row:3;min-height:32px;font-size:10px;padding:2px}
- .platform.platform-events-fit .qc-demo .mg-card-face{padding:18px 6px;border-radius:7px}
- .platform.platform-events-fit .qc-demo .mg-hidden-center{font-size:10px;gap:1px}
- .platform.platform-events-fit .qc-demo .mg-hidden-center b{width:28px;height:28px;font-size:16px}
- .platform.platform-events-fit .qc-demo .mg-corner{width:10px}
- .platform.platform-events-fit .qc-demo .mg-corner-top{top:5px;inset-inline-start:5px}
- .platform.platform-events-fit .qc-demo .mg-corner-bottom{bottom:5px;inset-inline-end:5px}
- .platform.platform-events-fit .qc-demo .mg-face-title{top:4px;inset-inline:12px;font-size:7px;line-height:10px}
- .platform.platform-events-fit .qc-demo .mg-face-footer{bottom:4px;inset-inline:8px;font-size:8px;line-height:10px;padding-top:1px}
- .platform.platform-events-fit .qc-demo .mg-card-content{font-size:12px;line-height:1.5}
- .platform.platform-events-fit .platform-product-information{gap:4px;width:100%}
- .platform.platform-events-fit .platform-product-information h2{font-size:22px;line-height:1.4}
- .platform.platform-events-fit .platform-product-eyebrow{font-size:10px;line-height:14px}
- .platform.platform-events-fit .platform-product-description{font-size:11px;line-height:16px}
- .platform.platform-events-fit .platform-features{font-size:10px;line-height:14px}
- .platform.platform-events-fit .platform-product-card .platform-product-information{display:grid;grid-template-columns:minmax(0,1fr) 85px;align-items:center}
- .platform.platform-events-fit .platform-product-card:not(.platform-upcoming-event) .platform-product-eyebrow{grid-row:1;grid-column:2}
- .platform.platform-events-fit .platform-product-card:not(.platform-upcoming-event) h2{grid-row:1;grid-column:1}
- .platform.platform-events-fit .platform-product-description,.platform.platform-events-fit .platform-features,.platform.platform-events-fit .platform-event-ownership{grid-column:1/-1}
- .platform.platform-events-fit .platform-event-actions .platform-action{font-size:11px}
- .platform.platform-events-fit .platform-upcoming-preview{width:100%;height:clamp(60px,15dvh,140px);min-height:0}
- .platform.platform-events-fit .platform-upcoming-face{width:70px;min-height:60px;height:70px;gap:3px}
- .platform.platform-events-fit .platform-upcoming-face svg{width:28px;height:28px}
- .platform.platform-events-fit .platform-upcoming-face span{font-size:11px}
- .platform.platform-events-fit .platform-upcoming-event .platform-action{height:44px;min-height:44px;margin:0}
+ .platform.platform-events-fit .platform-gallery-intro p{font-size:12px;line-height:1.5}
+ .platform.platform-events-fit .platform-event-how{min-height:40px;padding:4px 8px;font-size:11px}
+ .platform.platform-events-fit .bud-product-grid{
+  grid-template-columns:minmax(0,1fr);gap:16px;max-width:520px;margin-inline:auto;
+ }
+ .platform.platform-events-fit .bud-product-grid>.bud-catalog-card{padding:16px;gap:12px}
+ .platform.platform-events-fit .bud-catalog-card .platform-product-information h2{font-size:28px}
+ .platform.platform-events-fit .bud-catalog-card .platform-product-description{font-size:13px}
+ .platform.platform-events-fit .bud-catalog-card .qc-demo,
+ .platform.platform-events-fit .bud-catalog-card .platform-upcoming-preview{height:190px}
+ .platform.platform-events-fit .bud-catalog-card .qc-demo .mg-card-content{font-size:15px}
 }
-@media(min-width:701px) and (max-height:650px){
- .platform.platform-events-fit .platform-product-information{gap:4px}.platform.platform-events-fit .platform-product-information h2{font-size:24px}.platform.platform-events-fit .platform-product-description{font-size:12px;line-height:18px}.platform.platform-events-fit .platform-product-eyebrow,.platform.platform-events-fit .platform-features{font-size:10px;line-height:14px}
- .platform.platform-events-fit .platform-gallery-intro p{font-size:11px;line-height:16px}
- .platform.platform-events-fit .qc-demo{display:grid;grid-template-columns:minmax(0,1fr) 76px;gap:3px 6px}
- .platform.platform-events-fit .qc-demo-cards{grid-column:1;grid-row:1/4;gap:8px}.platform.platform-events-fit .qc-demo .qc-demo-card{width:clamp(80px,19dvh,110px)}
- .platform.platform-events-fit .qc-demo-timer{grid-column:2;grid-row:1;--countdown-size:32px}.platform.platform-events-fit .qc-demo-hint{grid-column:2;grid-row:2;font-size:9px;line-height:12px;min-height:0}.platform.platform-events-fit .qc-demo-reset{grid-column:2;grid-row:3;font-size:10px;min-height:32px;padding:2px}
+@media(max-width:380px){
+ .platform.platform-events-fit .bud-product-grid>.bud-catalog-card{padding:12px}
+ .platform.platform-events-fit .bud-catalog-card .platform-event-actions{gap:6px}
+ .platform.platform-events-fit .bud-catalog-card .platform-event-actions .platform-action{font-size:11px;padding-inline:5px}
+ .platform.platform-events-fit .bud-catalog-card .platform-product-information h2{font-size:26px}
 }
-/* Short phones keep the product description, with the gallery tagline omitted. */
-@media(max-width:700px) and (max-height:640px){
- .platform.platform-events-fit .platform-gallery-intro p{display:none}
- .platform.platform-events-fit .bud-events-slide>.platform-product-card{padding:6px;gap:4px}
- .platform.platform-events-fit .platform-product-information{gap:2px}
- .platform.platform-events-fit .platform-product-information h2{font-size:20px}
- .platform.platform-events-fit .platform-product-description{font-size:10.5px;line-height:15px}
- .platform.platform-events-fit .platform-features{font-size:9px;line-height:12px}
+@media(max-height:650px) and (min-width:701px){
+ .platform.platform-events-fit .platform-gallery-main{justify-content:flex-start}
+ .platform.platform-events-fit .bud-product-grid>.bud-catalog-card{padding:12px;gap:8px}
+ .platform.platform-events-fit .bud-catalog-card .qc-demo,
+ .platform.platform-events-fit .bud-catalog-card .platform-upcoming-preview{height:146px}
+ .platform.platform-events-fit .bud-catalog-card .qc-demo .qc-demo-card{width:min(82px,calc((100% - 8px)/2))}
+ .platform.platform-events-fit .bud-catalog-card .platform-product-information{gap:5px}
+ .platform.platform-events-fit .bud-catalog-card .platform-product-information h2{font-size:24px}
+ .platform.platform-events-fit .bud-catalog-card .platform-product-description{font-size:12px}
 }
-@media(min-width:701px) and (max-height:500px){
+/* Match the shared header's 6px vertical inset on very short landscape views. */
+@media(max-height:500px) and (min-width:500px){
  .platform.platform-events-fit{padding-block:6px}
- .platform.platform-events-fit .platform-gallery-main{padding-block:4px;gap:4px}
- .platform.platform-events-fit .platform-gallery-intro p,.platform.platform-events-fit .platform-product-eyebrow,.platform.platform-events-fit .platform-features{display:none}
- .platform.platform-events-fit .platform-event-catalog{grid-template-rows:minmax(0,1fr) 44px 16px;gap:2px}
- .platform.platform-events-fit .bud-events-slide>.platform-product-card{padding:8px;gap:16px}
- .platform.platform-events-fit .platform-product-information h2{font-size:20px}
- .platform.platform-events-fit .platform-product-description{font-size:11px;line-height:16px}
- .platform.platform-events-fit .qc-demo .mg-card-face{padding:18px 6px}
- .platform.platform-events-fit .qc-demo .mg-card-content{font-size:12px;line-height:1.5}
- .platform.platform-events-fit .qc-demo .mg-hidden-center{font-size:10px;gap:1px}
- .platform.platform-events-fit .qc-demo .mg-hidden-center b{width:28px;height:28px;font-size:16px}
- .platform.platform-events-fit .qc-demo .mg-face-title{top:4px;inset-inline:12px;font-size:7px;line-height:10px}
- .platform.platform-events-fit .qc-demo .mg-face-footer{bottom:4px;inset-inline:8px;font-size:8px;line-height:10px;padding-top:1px}
- .platform.platform-events-fit .qc-demo .mg-corner{width:10px}
- .platform.platform-events-fit .qc-demo .mg-corner-top{top:5px;inset-inline-start:5px}
- .platform.platform-events-fit .qc-demo .mg-corner-bottom{bottom:5px;inset-inline-end:5px}
 }
-
-.platform.platform-events-fit{padding-inline:max(0px,calc(var(--platform-gutter) - var(--platform-scrollbar-edge,0px)),env(safe-area-inset-left),env(safe-area-inset-right))}
-.platform.platform-events-fit .platform-event-ownership .bud-skeleton{min-height:22px;padding:2px 6px;gap:0}
-
-.platform.platform-events-fit .event-preview{width:44%;flex:none}
-@media(max-width:700px){.platform.platform-events-fit .event-preview{width:100%;min-height:108px}}
-@media(min-width:500px) and (max-width:700px) and (max-height:500px){.platform.platform-events-fit{padding-block:6px}}
-@media(max-width:700px){
- .platform.platform-events-fit .qc-demo .qc-demo-card{width:min(120px,calc((100% - 8px)/2))}
- .platform.platform-events-fit .platform-product-information{align-content:center}
-}
-@media(min-width:500px) and (max-height:500px){
- .platform.platform-events-fit .bud-events-slide>.platform-product-card{flex-direction:row;padding:8px;gap:12px}
- .platform.platform-events-fit .qc-demo{width:44%;display:grid;grid-template-columns:minmax(0,1fr) 76px;gap:3px 6px}
- .platform.platform-events-fit .qc-demo-cards{grid-column:1;grid-row:1/4}
- .platform.platform-events-fit .qc-demo .qc-demo-card{width:min(100px,calc((100% - 8px)/2))}
- .platform.platform-events-fit .platform-gallery-intro p,.platform.platform-events-fit .platform-product-eyebrow,.platform.platform-events-fit .platform-features{display:none}
- .platform.platform-events-fit .platform-product-information{position:relative;gap:4px}
- .platform.platform-events-fit .platform-product-information h2{font-size:20px}
- .platform.platform-events-fit .platform-product-description{font-size:11px;line-height:16px}
- .platform.platform-events-fit .platform-event-keys{position:absolute;top:0;inset-inline-end:0}
-}
-@media(min-width:500px) and (max-height:500px){
- .platform.platform-events-fit .platform-upcoming-preview{width:44%;height:100%;min-height:0}
- .platform.platform-events-fit .platform-product-information{gap:3px}
-}
-@media(max-width:700px){
- .platform.platform-events-fit .platform-product-card .platform-product-information{grid-template-rows:repeat(4,max-content)}
-}
-@media(max-height:640px){
- .platform.platform-events-fit .platform-event-catalog{grid-template-rows:minmax(0,1fr) 44px}
- .platform.platform-events-fit .bud-carousel-status{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
-}
-/* Keep the shared brand intact in the existing short landscape header. */
-@media(min-width:500px) and (max-height:500px){
- .platform .platform-brand .platform-mark{width:32px;height:20px;flex:none}
- .platform .platform-brand .platform-mark img{width:28px;height:auto;transform:none}
- .platform .platform-brand>span:last-child{font-size:20px;line-height:24px}
-}
-
-/* Centered catalogue details and independent, compact promotion confirmation. */
-.platform.platform-events-fit .platform-product-information{text-align:center;align-items:center}
-.platform.platform-events-fit .platform-features{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin:0}
-.platform.platform-events-fit .platform-features .bud-badge{font-size:11px;line-height:18px;padding:2px 8px}
-.platform.platform-events-fit .platform-event-ownership{text-align:center}
-.platform.platform-events-fit .platform-event-actions{grid-auto-flow:row;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));grid-auto-columns:auto}
-.platform.platform-events-fit .platform-event-actions .bud-ripple-content{white-space:nowrap;flex-wrap:nowrap}
-.platform.platform-events-fit .bud-promo-confirmation{display:flex;align-items:center;justify-content:center;gap:6px;width:fit-content;max-width:100%;margin:8px auto 0;padding:4px 10px;border:1px solid #b7d8c1;border-radius:8px;background:#edf7ef;color:#285a38;font-size:11px;line-height:18px}
-.platform.platform-events-fit .bud-promo-confirmation bdi{font-size:10px;background:#fff;border-radius:4px;padding:0 5px}
-@media(max-width:700px) and (min-height:501px){
- .platform.platform .platform-header{height:auto;min-height:96px;margin-top:0;gap:8px;padding-block:4px}
- .platform.platform .platform-brand{height:54px;width:48px;gap:0}
- .platform.platform .platform-brand .platform-mark{width:36px;height:27px}
- .platform.platform .platform-brand .platform-mark img{width:36px;height:auto;transform:none}
- .platform.platform .platform-brand>span:last-child{font-size:22px;line-height:26px}
- .platform.platform .platform-navigation{gap:4px;justify-content:center}
- .platform.platform .platform-navigation button{font-size:12px;min-height:44px;padding:4px 8px}
- .platform.platform-events-fit .platform-gallery-intro{text-align:center;grid-template-columns:1fr auto;gap:2px 8px}
- .platform.platform-events-fit .platform-gallery-intro h1{font-size:22px;text-align:center}
- .platform.platform-events-fit .platform-gallery-intro p{grid-column:1/-1;grid-row:2;text-align:center}
- .platform.platform-events-fit .platform-event-how{grid-row:1;font-size:10px;min-height:36px;padding:4px 8px;box-shadow:2px 3px 0 #333}
- .platform.platform-events-fit .bud-events-slide>.platform-product-card{flex-direction:column;justify-content:center;padding:12px;gap:12px}
- .platform.platform-events-fit .qc-demo{display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto;gap:4px 8px;align-items:center;width:100%}
- .platform.platform-events-fit .qc-demo-cards{grid-column:1/-1;grid-row:1;justify-content:center;gap:12px}
- .platform.platform-events-fit .qc-demo .qc-demo-card{width:clamp(82px,16dvh,128px)}
- .platform.platform-events-fit .qc-demo-hint{grid-column:1;grid-row:2;text-align:center;justify-self:center;font-size:10px;line-height:16px}
- .platform.platform-events-fit .qc-demo-reset{grid-column:2;grid-row:2;min-height:36px;font-size:10px}
- .platform.platform-events-fit .qc-demo-timer{grid-column:1/-1;grid-row:3;--countdown-size:36px;justify-self:center}
- .platform.platform-events-fit .qc-demo-timer[data-active=false]{display:none}
- .platform.platform-events-fit .platform-product-card .platform-product-information{display:flex;flex-direction:column;gap:7px;min-height:0;align-items:center;justify-content:center}
- .platform.platform-events-fit .platform-product-information h2{font-size:25px;line-height:1.4}
- .platform.platform-events-fit .platform-product-description{font-size:12px;line-height:19px;margin:0;text-align:center}
- .platform.platform-events-fit .platform-event-keys{position:static;font-size:11px;margin:0 auto 6px;width:fit-content}
- .platform.platform-events-fit .platform-event-actions{display:flex;flex-direction:column;gap:7px;max-width:300px;margin-inline:auto}
- .platform.platform-events-fit .platform-event-actions .platform-action{min-height:44px;height:44px;font-size:13px;padding:6px 12px}
- .platform.platform .platform-footer{padding-block:4px;gap:8px}
- .platform.platform-events-fit .bud-carousel-navigation{gap:12px}
-}
-@media(max-width:700px) and (max-height:740px) and (min-height:501px){
- .platform.platform-events-fit .bud-events-slide>.platform-product-card{padding:8px;gap:5px}
- .platform.platform-events-fit .qc-demo .qc-demo-card{width:clamp(76px,13dvh,100px)}
- .platform.platform-events-fit .platform-product-card .platform-product-information{gap:4px}
- .platform.platform-events-fit .platform-product-description{font-size:11px;line-height:16px}
- .platform.platform-events-fit .platform-product-information h2{font-size:22px}
- .platform.platform-events-fit .platform-event-actions{flex-direction:row;max-width:none}
- .platform.platform-events-fit .platform-features .bud-badge{font-size:10px;padding:0 6px}
- .platform.platform-events-fit .bud-promo-confirmation{margin-top:5px;padding:2px 8px}
-}
-@media(max-width:700px) and (min-height:501px){
- .platform.platform-events-fit .platform-product-card .platform-product-information{flex:none}
- .platform.platform .platform-account-trigger{min-height:44px;padding:4px 8px;gap:6px;font-size:12px}
- .platform.platform .platform-avatar{width:28px;height:28px}
-}
-@media(min-width:500px) and (max-height:500px){
- .platform.platform-events-fit .platform-features{display:none}
-}
-.platform.platform-events-fit .platform-event-actions{grid-auto-flow:column;grid-template-columns:none;grid-auto-columns:minmax(0,1fr)}
-@media(max-width:700px) and (max-height:740px) and (min-height:501px){
- .platform.platform-events-fit .platform-event-actions{flex-wrap:nowrap}
- .platform.platform-events-fit .platform-event-actions .platform-action{flex:1;width:0;font-size:11px;padding:4px}
- .platform.platform-events-fit .bud-purchase-price img{width:13px;height:15px}
- .platform.platform-events-fit .bud-ripple-content{gap:3px}
- .platform.platform-events-fit .bud-purchase-divider{display:none}
-}
-@media(max-width:700px) and (max-height:640px) and (min-height:501px){
- .platform.platform .platform-header{min-height:88px;gap:4px;padding-block:0}
- .platform.platform .platform-brand{height:40px}
- .platform.platform .platform-brand .platform-mark{height:20px}
- .platform.platform .platform-brand .platform-mark img{width:28px}
- .platform.platform .platform-brand>span:last-child{font-size:18px;line-height:20px}
- .platform.platform-events-fit .qc-demo .qc-demo-card{width:58px}
- .platform.platform-events-fit .qc-demo-reset{min-height:28px}
- .platform.platform-events-fit .qc-demo-hint{font-size:9px;line-height:12px}
- .platform.platform-events-fit .bud-events-slide>.platform-product-card{padding:6px;gap:3px}
- .platform.platform-events-fit .platform-product-card .platform-product-information{gap:2px}
- .platform.platform-events-fit .platform-product-information h2{font-size:20px;line-height:28px}
- .platform.platform-events-fit .platform-event-keys{margin-bottom:3px}
-}
-@media(max-width:700px) and (min-height:501px){
- .platform.platform-events-fit .qc-demo .qc-demo-card{width:clamp(76px,13dvh,108px)}
- .platform.platform-events-fit .platform-product-information .bud-comic-title{line-height:1.4;padding-block:.08em .12em}
- .platform.platform-events-fit .bud-events-slide>.platform-product-card{gap:8px}
-}
-@media(max-width:700px) and (max-height:640px) and (min-height:501px){
- .platform.platform-events-fit .qc-demo .qc-demo-card{width:58px}
- .platform.platform-events-fit .bud-events-slide>.platform-product-card{gap:3px}
-}
-@media(max-width:700px) and (max-height:740px) and (min-height:641px){
- .platform.platform-events-fit .qc-demo .qc-demo-card{width:76px}
- .platform.platform-events-fit .bud-events-slide>.platform-product-card{gap:4px}
- .platform.platform-events-fit .platform-product-card .platform-product-information{gap:3px}
-}
-@media(min-width:500px) and (max-height:500px){
- .platform.platform-events-fit .platform-product-information .bud-comic-title{line-height:1.3;padding-block:0}
- .platform.platform-events-fit .bud-promo-confirmation{margin-top:3px;padding:1px 6px;font-size:10px}
-}
-@media(max-width:700px) and (max-height:640px) and (min-height:501px){
- .platform.platform-events-fit .qc-demo .qc-demo-card{width:76px}
- .platform.platform-events-fit .platform-product-information .bud-comic-title{line-height:1.2;padding-block:0}
- .platform.platform-events-fit .qc-demo-reset{min-height:24px}
- .platform.platform-events-fit .platform-event-keys{padding-block:0;line-height:16px;margin-bottom:2px}
-}
-/* The sample timer shares the instruction row, so reveals never add height. */
-@media(max-width:700px) and (min-height:501px){
- .platform.platform-events-fit .qc-demo-timer{grid-column:1;grid-row:2;--countdown-size:32px;align-self:center;justify-self:center}
- .platform.platform-events-fit .qc-demo:has(.qc-demo-timer[data-active=true]) .qc-demo-hint{visibility:hidden}
- .platform.platform-events-fit .qc-demo{flex-shrink:0}
-}
-@media(max-width:700px) and (max-height:640px) and (min-height:501px){
- .platform.platform-events-fit .qc-demo-timer{--countdown-size:24px}
- .platform.platform-events-fit .qc-demo-timer .event-countdown-value{font-size:11px}
-}
-/* Product-detail composition: preview left, RTL information right. */
-@media(min-width:701px){
- .platform.platform-events-fit .bud-events-slide>.platform-product-card{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));direction:ltr;gap:clamp(20px,3vw,44px);align-items:center}
- .platform.platform-events-fit .qc-demo,.platform.platform-events-fit .event-preview{grid-column:1;width:100%;min-width:0}
- .platform.platform-events-fit .platform-product-information{grid-column:2;width:100%;direction:rtl;text-align:right;align-items:stretch;gap:12px}
- .platform.platform-events-fit .platform-features{justify-content:flex-start}
- .platform.platform-events-fit .platform-event-ownership{text-align:right}
- .platform.platform-events-fit .platform-event-keys{width:fit-content;margin-inline:0 auto}
- .platform.platform-events-fit .bud-promo-confirmation{margin-inline:0 auto}
- .platform.platform-events-fit .platform-product-information h2{line-height:1.4}
-}
-@media(min-width:701px) and (max-height:650px){
- .platform.platform-events-fit .platform-product-information{gap:4px}
-}
-/* Product proportions on desktop: generous media, readable copy, compact shell. */
-@media(min-width:1001px) and (min-height:651px){
- .platform.platform-events-fit .bud-events-slide{display:grid;align-items:center}
- .platform.platform-events-fit .bud-events-slide>.platform-product-card{height:min(100%,clamp(420px,62dvh,560px));padding:clamp(24px,3vw,40px)}
- .platform.platform-events-fit .qc-demo .qc-demo-card{width:min(clamp(180px,27dvh,244px),calc((100% - 16px)/2))}
- .platform.platform-events-fit .qc-demo-cards{gap:16px}
- .platform.platform-events-fit .platform-product-information{gap:14px}
- .platform.platform-events-fit .platform-product-information h2{font-size:clamp(32px,4.6dvh,42px)}
- .platform.platform-events-fit .platform-product-information .bud-comic-title{line-height:1.4;padding-block:.08em .12em}
- .platform.platform-events-fit .platform-product-description{font-size:16px;line-height:1.8}
- .platform.platform-events-fit .platform-product-eyebrow{font-size:13px;line-height:20px}
- .platform.platform-events-fit .platform-features .bud-badge{font-size:12px;padding:3px 9px}
- .platform.platform-events-fit .platform-event-actions{max-width:440px;margin-inline:0 auto}
- .platform.platform-events-fit .platform-event-actions .platform-action{font-size:15px;min-height:48px;padding:8px}
- .platform.platform-events-fit .bud-promo-confirmation{font-size:12px;padding:5px 10px}
- .platform.platform-events-fit .platform-event-keys{font-size:12px}
- .platform.platform-events-fit .qc-demo{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
- .platform.platform-events-fit .qc-demo-cards{grid-row:1;grid-column:1/-1}
- .platform.platform-events-fit .qc-demo-hint{grid-row:2;grid-column:1;min-height:0;font-size:12px;line-height:20px;max-width:none}
- .platform.platform-events-fit .qc-demo-reset{grid-row:2;grid-column:2;min-height:40px;font-size:12px;padding:4px 8px}
- .platform.platform-events-fit .qc-demo-timer{grid-row:2;grid-column:1;--countdown-size:40px;justify-self:center}
- .platform.platform-events-fit .qc-demo-timer[data-active=false]{display:none}
- .platform.platform-events-fit .qc-demo:has(.qc-demo-timer[data-active=true]) .qc-demo-hint{visibility:hidden}
-}
-/* Let desktop content establish the product panel height and align both tops. */
-@media(min-width:1001px) and (min-height:651px){
- .platform.platform-events-fit .bud-events-slide>.platform-product-card{height:auto;min-height:0;max-height:100%;padding:32px;align-items:start}
- .platform.platform-events-fit .qc-demo .mg-card-content{font-size:clamp(22px,2vw,28px);line-height:1.55}
- .platform.platform-events-fit .qc-demo .mg-face-title{font-size:11px;line-height:16px}
- .platform.platform-events-fit .qc-demo .mg-face-footer{font-size:13px;line-height:18px}
- .platform.platform-events-fit .platform-product-information h2{font-size:clamp(36px,4.8dvh,44px)}
- .platform.platform-events-fit .platform-product-description{font-size:17px;line-height:1.75}
- .platform.platform-events-fit .platform-event-actions .platform-action{font-size:16px}
- .platform.platform-events-fit .bud-purchase-price{font-size:18px}
- .platform.platform-events-fit .qc-demo{grid-template-columns:minmax(0,1fr) 40px minmax(0,1fr);gap:10px}
- .platform.platform-events-fit .qc-demo-cards{grid-column:1/-1}
- .platform.platform-events-fit .qc-demo-hint{grid-column:1/3;text-align:center;font-size:11px;line-height:18px}
- .platform.platform-events-fit .qc-demo-reset{grid-column:3;justify-self:end}
- .platform.platform-events-fit .qc-demo-timer{grid-column:2;grid-row:2}
-}
-
-/* All event products share the first product's measured, responsive shell. */
-.platform.platform-events-fit .platform-upcoming-preview{width:var(--bud-event-preview-width,100%);height:var(--bud-event-preview-height);max-height:none;min-height:0;grid-column:1}
-.platform.platform-events-fit .platform-upcoming-face{width:var(--bud-event-face-width,176px);height:auto;min-height:0;aspect-ratio:440/468;flex:none;gap:12px}
-.platform.platform-events-fit .platform-upcoming-face svg{width:38%;height:auto}
-.platform.platform-events-fit .platform-upcoming-face span{font-size:clamp(11px,1.4vw,20px)}
-@media(min-width:1001px) and (min-height:651px){
- .platform.platform-events-fit .bud-events-slide>.platform-upcoming-event{height:var(--bud-event-panel-height,auto)}
-}
-
-
-/* Phase 1: keep the agreed fit-viewport layout while improving legibility.
-   Short-phone geometry stays fixed; only internal type scales are adjusted. */
-@media(max-width:700px){
- .platform.platform-events-fit .qc-demo .mg-face-title{font-size:9px;line-height:11px}
- .platform.platform-events-fit .qc-demo .mg-face-footer{font-size:10px;line-height:12px}
- .platform.platform-events-fit .qc-demo .mg-hidden-center{font-size:11px}
- .platform.platform-events-fit .bud-carousel-status{font-size:11px}
-}
-@media(max-width:700px) and (min-height:741px){
- .platform.platform-events-fit .platform-product-eyebrow{font-size:12px;line-height:18px}
- .platform.platform-events-fit .platform-product-description{font-size:13px;line-height:20px}
- .platform.platform-events-fit .platform-features .bud-badge{font-size:11px;line-height:18px}
- .platform.platform-events-fit .qc-demo-hint{font-size:12px;line-height:18px}
- .platform.platform-events-fit .qc-demo-reset{min-height:40px;font-size:12px}
- .platform.platform-events-fit .platform-event-actions .platform-action{font-size:14px}
- .platform.platform-events-fit .platform-event-keys{font-size:12px}
+@media(prefers-reduced-motion:reduce){
+ .platform.platform-events-fit .bud-product-grid>.bud-catalog-card{transition:none}
 }

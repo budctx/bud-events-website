@@ -144,35 +144,57 @@ for(const viewport of [
  });
 }
 
-for(const viewport of [{width:320,height:568},{width:375,height:667},{width:390,height:844},{width:430,height:932},{width:768,height:1024},{width:844,height:390},{width:700,height:440},{width:667,height:375},{width:1024,height:768},{width:1366,height:768},{width:1440,height:900}])test(`events catalogue fits the viewport ${viewport.width}x${viewport.height}`,async({page},info)=>{
- await page.setViewportSize(viewport);await page.emulateMedia({reducedMotion:'reduce'});
+// Product cards are all discoverable without a carousel. Short viewports scroll
+// naturally instead of clipping badges, purchase, resume or setup controls.
+for(const viewport of [
+ {width:320,height:568},{width:375,height:667},{width:390,height:844},
+ {width:430,height:932},{width:768,height:1024},{width:844,height:390},
+ {width:700,height:440},{width:667,height:375},{width:1024,height:768},
+ {width:1366,height:768},{width:1440,height:900}
+])test(`events product cards preserve content at ${viewport.width}x${viewport.height}`,async({page},info)=>{
+ await page.setViewportSize(viewport);
+ await page.emulateMedia({reducedMotion:'reduce'});
  await page.route('**/api/checkout?price=1',r=>r.fulfill({json:{code:'OK',data:{baseAmountMinor:2000,amountMinor:1800,currency:'sar',promotion:{code:'bud10',percent:10}}}}));
  await page.route('**/api/auth**',r=>r.fulfill({json:{code:'OK',data:{id:'11111111-1111-4111-8111-111111111111',displayName:'مقدم بُعد'}}}));
  await page.route('**/api/host',r=>r.fulfill({json:{code:'OK',data:{credits:2,events:[{eventId:'fit-fixture',title:'فعالية',phase:'live',version:1,state:{phase:'live',winners:[],prizes:[]}}],products:[],contentVersions:[]}}}));
- await page.goto('/?screen=events');await expect(page.getByTestId('event-carousel')).toBeVisible();await expect(page.getByTestId('event-setup')).toBeVisible();await expect(page.getByTestId('event-preview')).toBeVisible();
- const fits=async()=>{const dimensions=await page.evaluate(()=>({height:document.documentElement.scrollHeight,width:document.documentElement.scrollWidth,h:innerHeight,w:innerWidth}));expect(dimensions.height).toBeLessThanOrEqual(dimensions.h+1);expect(dimensions.width).toBeLessThanOrEqual(dimensions.w+1);
- for(const selector of ['.platform-header','.platform-brand .platform-mark img','.platform-footer','.platform-gallery-intro','.bud-carousel-navigation','.bud-events-slide:not([inert])>.platform-product-card']){const b=await page.locator(selector).boundingBox();expect(b,selector).not.toBeNull();expect(b!.y,selector).toBeGreaterThanOrEqual(0);expect(b!.y+b!.height,selector).toBeLessThanOrEqual(viewport.height+1);}};
- await fits();expect(await page.locator('.bud-events-slide:not([inert]) .platform-product-description').evaluate(el=>el.scrollHeight-el.clientHeight)).toBeLessThanOrEqual(1);const cardBounds=await page.locator('.bud-events-slide:not([inert])>article').boundingBox();for(const sample of await page.locator('.qc-demo-card').all()){const b=await sample.boundingBox();expect(b!.x).toBeGreaterThanOrEqual(cardBounds!.x+5);expect(b!.x+b!.width).toBeLessThanOrEqual(cardBounds!.x+cardBounds!.width-5);}
- for(const id of ['event-resume','event-setup','product-card-qc']){const b=await page.getByTestId(id).boundingBox();expect(b!.height).toBeGreaterThanOrEqual(44);expect(b!.y+b!.height).toBeLessThanOrEqual(viewport.height);const card=await page.locator('.bud-events-slide:not([inert])>article').boundingBox();expect(b!.y+b!.height).toBeLessThanOrEqual(card!.y+card!.height-5);}
- for(const element of await page.locator('.qc-demo-card, .bud-promo-confirmation').all()){const b=await element.boundingBox();expect(b!.y).toBeGreaterThanOrEqual(cardBounds!.y+4);expect(b!.y+b!.height).toBeLessThanOrEqual(cardBounds!.y+cardBounds!.height-4);}
- if(viewport.width>700){const preview=await page.getByTestId('event-preview').boundingBox(),details=await page.locator('.bud-events-slide:not([inert]) .platform-product-information').boundingBox();expect(preview!.x+preview!.width).toBeLessThanOrEqual(details!.x);expect(details!.width).toBeCloseTo(preview!.width,0);}
- await page.screenshot({path:info.outputPath('events-fit.png')});
- await page.getByRole('button',{name:'اكشف سؤال',exact:true}).click();await page.getByRole('button',{name:'اكشف شرط',exact:true}).click();
- await expect(page.getByRole('timer')).toBeVisible();await fits();
- await expect(page.getByRole('timer')).toHaveText('0ث',{timeout:8000});await fits();
- for(const element of await page.locator('.qc-demo-card, .bud-promo-confirmation').all()){const b=await element.boundingBox();expect(b!.y).toBeGreaterThanOrEqual(cardBounds!.y+4);expect(b!.y+b!.height).toBeLessThanOrEqual(cardBounds!.y+cardBounds!.height-4);}
-
- const reference=await page.locator('.bud-events-slide:not([inert])>article').evaluate(el=>{
-  const box=el.getBoundingClientRect(),preview=el.querySelector('.qc-demo')!.getBoundingClientRect();
-  return {width:box.width,height:box.height,previewWidth:preview.width,previewHeight:preview.height,titleSize:getComputedStyle(el.querySelector('h2')!).fontSize};
- });
- for(const title of ['ميني قيمز','كروت الحظ']){
-  await page.getByRole('button',{name:'عرض فعالية '+title,exact:true}).click();await expect(page.getByRole('heading',{name:title,exact:true})).toBeVisible();await fits();
-  const card=page.locator('.bud-events-slide:not([inert])>article');
-  await expect.poll(()=>card.evaluate(el=>el.getBoundingClientRect().height)).toBeCloseTo(reference.height,0);
-  const dimensions=await card.evaluate(el=>{const box=el.getBoundingClientRect(),preview=el.querySelector('.platform-upcoming-preview')!.getBoundingClientRect();return {width:box.width,previewWidth:preview.width,previewHeight:preview.height,titleSize:getComputedStyle(el.querySelector('h2')!).fontSize};});
-  expect(dimensions.width).toBeCloseTo(reference.width,0);expect(dimensions.previewWidth).toBeCloseTo(reference.previewWidth,0);expect(dimensions.previewHeight).toBeCloseTo(reference.previewHeight,0);expect(dimensions.titleSize).toBe(reference.titleSize);
-  await page.screenshot({path:info.outputPath('events-'+title+'.png'),animations:'disabled'});
+ await page.goto('/?screen=events');
+ const catalogue=page.getByTestId('event-catalog');
+ await expect(catalogue).toBeVisible();
+ const cards=page.locator('.bud-product-grid > article');
+ await expect(cards).toHaveCount(3);
+ await expect(page.getByTestId('event-preview')).toBeVisible();
+ const names=['سؤال وشرط','ميني قيمز','كروت الحظ'];
+ for(let index=0;index<3;index++){
+  const card=cards.nth(index);
+  await expect(card.getByRole('heading',{name:names[index],exact:true})).toBeVisible();
+  await card.scrollIntoViewIfNeeded();
+  const data=await card.evaluate(el=>{
+   const bounds=el.getBoundingClientRect();
+   const content=el.querySelector('.platform-product-description')!;
+   return {left:bounds.left,right:bounds.right,descriptionOverflow:content.scrollHeight-content.clientHeight};
+  });
+  expect(data.left).toBeGreaterThanOrEqual(0);
+  expect(data.right).toBeLessThanOrEqual(viewport.width+1);
+  expect(data.descriptionOverflow).toBeLessThanOrEqual(1);
  }
- await page.getByRole('button',{name:'عرض فعالية سؤال وشرط',exact:true}).click();await page.getByTestId('event-how').click();await expect(page.getByRole('dialog',{name:'كيف ابدأ؟'})).toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)).toBeLessThanOrEqual(1);
+ const columns=await cards.evaluateAll(nodes=>nodes.filter(node=>Math.abs(node.getBoundingClientRect().top-nodes[0].getBoundingClientRect().top)<1).length);
+ expect(columns).toBe(viewport.width>960?3:viewport.width>700?2:1);
+ for(const id of ['event-resume','event-setup','product-card-qc','event-mini-setup','product-card-mini-buy']){
+  const control=page.getByTestId(id);
+  if(await control.count()){
+   await control.scrollIntoViewIfNeeded();
+   const height=await control.evaluate(el=>el.getBoundingClientRect().height);
+   expect(height).toBeGreaterThanOrEqual(44);
+  }
+ }
+ await expect(page.getByTestId('event-coming-lucky-cards').getByRole('button',{name:'قريبًا'})).toBeDisabled();
+ await page.getByTestId('event-preview').scrollIntoViewIfNeeded();
+ await page.getByRole('button',{name:'اكشف سؤال',exact:true}).click();
+ await page.getByRole('button',{name:'اكشف شرط',exact:true}).click();
+ await expect(page.getByRole('timer')).toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)).toBeLessThanOrEqual(1);
+ await page.screenshot({path:info.outputPath(`event-cards-${viewport.width}.png`),fullPage:true,animations:'disabled'});
+ await page.getByTestId('event-how').click();
+ await expect(page.getByRole('dialog',{name:'كيف ابدأ؟'})).toBeVisible();
 });

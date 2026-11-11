@@ -32,7 +32,7 @@ for(const size of sizes){
   await page.keyboard.press('Escape');await expect(page.getByTestId('nav-events')).not.toBeVisible();
   await expect(menu).toBeFocused();
   await menu.click();await page.getByTestId('nav-events').click();
-  await expect(page.getByTestId('event-carousel')).toBeVisible();
+  await expect(page.getByTestId('event-catalog')).toBeVisible();
   await expect(page.getByTestId('nav-events')).not.toBeVisible();
  });
 }
