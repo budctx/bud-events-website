@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState} from 'react';
-import type {FormEvent} from 'react';
+import type {FormEvent,ReactNode} from 'react';
 import {ArrowLeft,Bomb,BookOpen,ChevronDown,Dices,Grid3X3,RotateCcw,Settings2,Sparkles,Trophy,X} from 'lucide-react';
 import type {LucideIcon} from 'lucide-react';
 import {Plus} from 'lucide-react';
@@ -24,6 +24,16 @@ type Props={initial:MiniSession;onChange?:(session:MiniSession)=>void;onExit?:()
 const num=(v:number)=>new Intl.NumberFormat('ar-u-nu-latn').format(v);
 type ManagementMode='list'|'add'|'edit'|'delete';
 const resultPlayer=(player:1|2)=>player===1?'اللاعب الأول':'اللاعب الثاني';
+
+// Short shared-audience explanations, shown only before starting each game.
+const gameInstructions:Record<MiniGameKind,ReactNode>={
+ bomb:<>يتناوب لاعبان على اختيار المربعات، وفي أحدها <strong className="mini-rule-em">قنبلة مخفية</strong>. كل لاعب يحاول يتجنب القنبلة، واللي يختارها <strong className="mini-rule-loss">يخسر</strong> و<strong className="mini-rule-win">يفوز اللاعب الثاني</strong>.</>,
+ 'form-word':<>تظهر <strong className="mini-rule-em">5 حروف عشوائية</strong>، ويتسابق المشاركون على تكوين أطول كلمة عربية صحيحة باستخدامها قبل انتهاء الوقت. <strong className="mini-rule-win">صاحب أطول كلمة صحيحة يفوز.</strong></>,
+ scramble:<>تظهر حروف كلمة <strong className="mini-rule-em">بترتيب عشوائي</strong>، ويتسابق المشاركون على معرفة الكلمة الصحيحة قبل انتهاء الوقت. <strong className="mini-rule-win">أول من يجاوب إجابة صحيحة يفوز.</strong></>,
+ pattern:<>يتنافس لاعبان على حفظ <strong className="mini-rule-em">تسلسل من الألوان</strong> وإعادته بالترتيب الصحيح. إذا نجح الاثنان ينتقلان لمستوى أصعب، <strong className="mini-rule-win">واللي ينجح لحاله يفوز.</strong></>,
+ emoji:<>يتناوب لاعبان على كشف بطاقتين ومحاولة العثور على <strong className="mini-rule-em">إيموجي متطابق</strong>. كل تطابق يمنح نقطة ودورًا إضافيًا، <strong className="mini-rule-win">واللي يجمع نقاطًا أكثر يفوز.</strong></>,
+ wheel:<>تحدد العجلة <strong className="mini-rule-em">حرفًا وفئة عشوائيين</strong>، ويتسابق المشاركون على ذكر كلمة تبدأ بالحرف وتناسب الفئة. <strong className="mini-rule-win">أول إجابة صحيحة تفوز.</strong></>,
+};
 
 export function MiniGames({initial,onChange,onExit,sessionName='ميني قيمز'}:Props){
  const [state,setState]=useState(initial),latest=useRef(initial);
@@ -267,6 +277,7 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
   <dialog ref={dialog} className="mini-dialog" aria-label={winnerForm&&!state.active?'تسجيل فائز':selected?GAME_LABELS[selected]:state.active?GAME_LABELS[state.active.kind]:'إعداد اللعبة'}>
    <div className="mini-dialog-head"><h2>{selected?GAME_LABELS[selected]:state.active?GAME_LABELS[state.active.kind]:'اللعبة'}</h2><button type="button" className="mini-icon-button" aria-label="إغلاق اللعبة" onClick={requestClose}><X size={21}/></button></div>
    {confirmRestart?<div className="mini-confirm"><h3>إعادة الجولة؟</h3><p>سيُلغى تقدم هذه الجولة وتبدأ جولة جديدة. الفائزون المسجلون والجوائز محفوظون.</p><div className="mini-action-row"><button className="mini-cta mini-secondary" autoFocus onClick={()=>setConfirmRestart(false)}>إلغاء</button><button className="mini-cta mini-primary" onClick={restart}>إعادة الجولة</button></div></div>:confirmExit?<div className="mini-confirm"><h3>لم يتم تحديد فائز، هل أنت متأكد؟</h3><p>يمكنك العودة للعبة أو إنهاؤها دون تسجيل فائز.</p><div className="mini-action-row"><button className="mini-cta mini-secondary" onClick={()=>setConfirmExit(false)}>العودة</button><button className="mini-cta mini-primary" onClick={confirmClose}>إنهاء بدون فائز</button></div></div>:selected?<div className="mini-standby">
+    <p className="mini-standby-guide">{gameInstructions[selected]}</p>
     <button type="button" className="mini-cta mini-primary mini-start" onClick={start}>بدء اللعبة <ArrowLeft size={20}/></button>
     {selected==='pattern'&&<label className="mini-symbol-option"><input type="checkbox" checked={patternSymbols} onChange={event=>setPatternSymbols(event.target.checked)}/> تمييز الألوان بالرموز</label>}
     {(selected==='form-word'||selected==='scramble')&&<details className="mini-standby-options">
