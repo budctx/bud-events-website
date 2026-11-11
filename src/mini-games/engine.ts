@@ -123,7 +123,8 @@ export function gameWinner(game:ActiveMiniGame):Player|null{
 }
 export function recordableWinner(state:MiniSession,now=Date.now()):boolean{
  return state.phase==='live'&&!!state.active&&gameFinished(state.active,now)&&state.prizes.length>state.winners.length
-  &&!(state.active.kind==='pattern'&&state.active.draw);
+  &&!(state.active.kind==='pattern'&&state.active.draw)
+  &&!(state.active.kind==='emoji'&&state.active.winner===null);
 }
 export function miniReducer(state:MiniSession,action:MiniAction,now=Date.now(),pick:PickIndex=pickIndex):MiniSession{
  if(state.phase==='closing')return state;

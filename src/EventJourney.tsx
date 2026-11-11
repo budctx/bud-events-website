@@ -36,12 +36,13 @@ export function EventJourneyHeader({title,phase,winnerCount,prizeCount,onExit,on
  </header>;
 }
 
-export function EventFinishDialog({open,onCancel,onConfirm,confirmDisabled=false}:{open:boolean;onCancel:()=>void;onConfirm:()=>void;confirmDisabled?:boolean}){
+export function EventFinishDialog({open,onCancel,onConfirm,confirmDisabled=false,children}:{open:boolean;onCancel:()=>void;onConfirm:()=>void;confirmDisabled?:boolean;children?:ReactNode}){
  const dialog=useRef<HTMLDialogElement>(null);
  useEffect(()=>{const node=dialog.current;if(!node)return;if(open&&!node.open)node.showModal();else if(!open&&node.open)node.close();return()=>{if(node.open)node.close();};},[open]);
  return <dialog ref={dialog} className="event-finish-dialog" aria-labelledby="event-finish-title" onCancel={event=>{event.preventDefault();onCancel();}}>
   <h2 id="event-finish-title">إنهاء الفعالية؟</h2>
   <p>ستظهر النتائج الحالية. لا يمكن الرجوع أو تعديل الجوائز بعد الإنهاء.</p>
+  {children}
   <div className="event-finish-actions"><button type="button" onClick={onCancel}>إلغاء</button><button type="button" className="event-finish-primary" autoFocus disabled={confirmDisabled} onClick={onConfirm}>إنهاء وعرض النتائج</button></div>
  </dialog>;
 }

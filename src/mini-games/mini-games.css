@@ -113,9 +113,7 @@
 /* Mini Games visual refinement — shared standby, numbered balanced boards and quiet delight. */
 .mini-hub-card{position:relative;isolation:isolate;padding:0;overflow:hidden}
 .mini-hub-main{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;width:100%;min-height:190px;padding:20px 24px;border:0;border-radius:inherit;background:transparent;color:inherit;font:inherit;cursor:pointer}
-.mini-hub-info{position:absolute;inset-block-start:12px;inset-inline-end:12px;display:grid;place-items:center;width:38px;height:38px;padding:0;border:1.5px solid #333;border-radius:50%;background:#fdfdff;color:#333;box-shadow:2px 3px 0 #3332;cursor:pointer;z-index:2}
-.mini-hub-info:hover{background:#ffe3a6}
-.mini-hub-main:focus-visible,.mini-hub-info:focus-visible{outline:3px solid #be740d;outline-offset:-3px}
+.mini-hub-main:focus-visible{outline:3px solid #be740d;outline-offset:-3px}
 .mini-standby{padding:clamp(22px,6vh,65px) 0 clamp(10px,2vh,24px);gap:22px;min-height:200px}
 .mini-standby .mini-start{min-height:66px;width:min(400px,100%);justify-self:center;align-self:center;margin:0 auto;font-size:clamp(17px,3vw,21px);font-weight:800;box-shadow:5px 6px 0 #333}
 .mini-standby-options{width:100%;margin-top:8px;border-top:1px solid #e4ded2}
@@ -175,7 +173,7 @@
 .mini-wheel-actions{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:12px;width:min(560px,100%);margin:22px auto 0;padding:17px;border:1.5px solid #d6bb86;border-radius:17px;background:#fffbf2}
 .mini-wheel-actions>p{width:100%;margin:0;text-align:center;font-size:13px;line-height:1.8;color:#6d5126}
 .mini-wheel-actions>.mini-cta{min-width:min(200px,100%);flex:1 1 180px}
-@media(max-width:600px){.mini-hub-main{min-height:146px;padding:15px}.mini-hub-info{width:32px;height:32px;inset-block-start:7px;inset-inline-end:7px}.mini-emoji-grid{gap:4px}.mini-pattern-pads{width:min(330px,100%)}.mini-pattern-pad{aspect-ratio:1 / 1}.mini-standby .mini-start{min-height:60px}}
+@media(max-width:600px){.mini-hub-main{min-height:146px;padding:15px}.mini-emoji-grid{gap:4px}.mini-pattern-pads{width:min(330px,100%)}.mini-pattern-pad{aspect-ratio:1 / 1}.mini-standby .mini-start{min-height:60px}}
 @media(max-width:360px){.mini-hub-main{min-height:108px;flex-direction:row;gap:12px}.mini-bomb-grid{gap:4px}}
 @media(prefers-reduced-motion:reduce){.mini-standby-options[open] .mini-options-content,.mini-pattern-turn.is-turn-shifting:after{animation:none}.mini-pattern-pad{transition:none}.mini-pattern-turn.is-turn-shifting:after{display:none}}
 
@@ -197,3 +195,11 @@
 .mini-word-actions .mini-cta:disabled{opacity:.55}
 .mini-word-result-actions{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:12px;margin:20px auto 0;padding:16px;background:#fff8e8;border:1.5px solid #d7bc80;border-radius:15px}
 .mini-word-result-actions .mini-result-note{width:100%}
+
+/* Optional host aids retain the approved board geometry and default appearance. */
+.mini-round-status{text-align:center;font-size:14px;color:#534c40;margin:10px 0}
+.mini-symbol-option{display:flex;gap:10px;align-items:center;justify-content:center;margin:20px auto;font-size:15px}
+.mini-symbol-option input{width:20px;height:20px;accent-color:#fbb03b}
+.mini-pad-symbol{font-size:clamp(26px,5vw,48px);color:#292929;line-height:1}
+.mini-restart{margin:16px auto 0;display:flex}
+.host-setup-summary{background:#fff3d5;border-radius:12px;padding:12px;color:#53422a;font-size:14px;line-height:1.8}

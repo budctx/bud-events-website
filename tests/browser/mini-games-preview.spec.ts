@@ -1,4 +1,93 @@
 import {expect,test} from '@playwright/test';
+import {createMiniSession,createMiniGame} from '../../src/mini-games/engine.ts';
+import type {MiniSession} from '../../src/mini-games/engine.ts';
+
+async function restoreAuditFixture(page:import('@playwright/test').Page,state:MiniSession){
+ const run={schema:2,storage:'browser-v2',kind:'mini-games',ownerId:'audit-host',eventId:'audit-session',title:'اختبار الاستعادة',expiresAt:new Date(Date.now()+3600000).toISOString(),version:1,updatedAt:new Date().toISOString(),state};
+ await page.addInitScript(run=>{
+  const key='bud-browser-event:v2:'+run.ownerId+':'+run.eventId;
+  if(!localStorage.getItem(key))localStorage.setItem(key,JSON.stringify(run));
+  sessionStorage.setItem('bud-browser-event:active',JSON.stringify({storage:'browser-v2',ownerId:run.ownerId,eventId:run.eventId}));
+ },run);
+ await page.goto('/?screen=local&event=audit-session');
+}
+
+test('restored running game keeps Escape confirmation and can open another game after closing',async({page})=>{
+ let state=createMiniSession('جائزة');
+ state={...state,active:createMiniGame('form-word',{type:'open',game:'form-word',seconds:180},Date.now())};
+ await restoreAuditFixture(page,state);
+ await expect(page.getByRole('dialog',{name:'تكوين كلمة'})).toBeVisible();
+ await page.reload();
+ const modal=page.getByRole('dialog',{name:'تكوين كلمة'});
+ await expect(modal).toBeVisible();
+ await page.keyboard.press('Escape');
+ await expect(modal).toBeVisible();
+ await expect(modal.getByText('لم يتم تحديد فائز، هل أنت متأكد؟')).toBeVisible();
+ await modal.getByRole('button',{name:'العودة',exact:true}).click();
+ await expect(modal.getByRole('timer')).toBeVisible();
+ await page.keyboard.press('Escape');
+ await modal.getByRole('button',{name:'إنهاء بدون فائز'}).click();
+ await expect(modal).not.toBeVisible();
+ await page.getByRole('button',{name:'الكلمة المبعثرة',exact:true}).click();
+ await expect(page.getByRole('dialog',{name:'الكلمة المبعثرة'})).toBeVisible();
+ await expect(page.getByRole('button',{name:'بدء اللعبة'})).toBeVisible();
+});
+
+test('tied emoji result cannot register a winner and offers a fresh tiebreaker without changing prizes',async({page})=>{
+ const state=createMiniSession('جائزة1\nجائزة2');
+ const game=createMiniGame('emoji',{type:'open',game:'emoji'},Date.now());
+ if(game.kind!=='emoji')throw Error('bad fixture');
+ state.active={...game,finished:true,matched:Array.from({length:16},(_,i)=>i),scores:[4,4],winner:null,completedAt:Date.now()-5000};
+ await restoreAuditFixture(page,state);
+ const modal=page.getByRole('dialog',{name:'ذاكرة الإيموجي'});
+ await expect(modal.getByRole('button',{name:'جولة فاصلة'})).toBeVisible();
+ await expect(modal.getByRole('button',{name:'تسجيل فائز'})).toHaveCount(0);
+ await modal.getByRole('button',{name:'جولة فاصلة'}).click();
+ await expect(modal.locator('.mini-emoji-cell')).toHaveCount(16);
+ await expect(modal.locator('.mini-emoji-cell[data-revealed="true"]')).toHaveCount(0);
+ const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('bud-browser-event:v2:audit-host:audit-session')!));
+ expect(saved.state.winners).toEqual([]);
+ expect(saved.state.prizes).toEqual(state.prizes);
+});
+
+test('host restart asks for confirmation, preserves progress on cancel and preserves winners on restart',async({page})=>{
+ const state=createMiniSession('جائزة1\nجائزة2');
+ const game=createMiniGame('bomb',{type:'open',game:'bomb'},Date.now(),()=>0);
+ if(game.kind!=='bomb')throw Error('bad fixture');
+ state.active={...game,opened:[1],turn:2};state.winners=[{id:'winner-1',name:'فائز سابق'}];state.nextWinnerNumber=2;
+ await restoreAuditFixture(page,state);
+ const modal=page.getByRole('dialog',{name:'القنبلة'});
+ await modal.getByRole('button',{name:'إعادة الجولة',exact:true}).click();
+ await expect(modal.getByText('إعادة الجولة؟')).toBeVisible();
+ await modal.getByRole('button',{name:'إلغاء',exact:true}).click();
+ await expect(modal.getByRole('button',{name:'المربع 2 مكشوف',exact:true})).toBeDisabled();
+ await modal.getByRole('button',{name:'إعادة الجولة',exact:true}).click();
+ await modal.getByRole('button',{name:'إعادة الجولة',exact:true}).click();
+ await expect(modal.locator('.mini-bomb-cell[data-revealed="true"]')).toHaveCount(0);
+ const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('bud-browser-event:v2:audit-host:audit-session')!));
+ expect(saved.state.winners).toEqual(state.winners);expect(saved.state.prizes).toEqual(state.prizes);
+});
+
+test('revealed scramble labels the answer and the closing warning and summary retain winner record numbers',async({page})=>{
+ await page.goto('/?screen=mini-preview');await page.getByRole('button',{name:/بدء المعاينة/}).click();
+ await page.getByRole('button',{name:'الكلمة المبعثرة',exact:true}).click();await page.getByRole('button',{name:'بدء اللعبة'}).click();
+ await page.getByRole('button',{name:'كشف الكلمة الصحيحة',exact:true}).click();
+ await expect(page.locator('.mini-hint')).toHaveText('الكلمة الصحيحة');
+ await page.getByRole('button',{name:'تسجيل فائز',exact:true}).click();await page.getByRole('textbox',{name:'اسم الفائز'}).fill('اسم مكرر');await page.getByRole('button',{name:'حفظ الفائز'}).click();
+ await page.getByRole('button',{name:'الجوائز',exact:true}).click();await page.getByRole('button',{name:'انهاء',exact:true}).click();
+ await expect(page.getByRole('dialog',{name:'إنهاء الفعالية؟'})).toContainText('فائزون دون جائزة: 1');
+ await page.getByRole('button',{name:'إنهاء وعرض النتائج'}).click();
+ await expect(page.getByRole('textbox',{name:'نتائج الفعالية'})).toHaveValue('#1 اسم مكرر — لم تُمنح جائزة');
+});
+
+test('optional pattern symbols preserve the default unlabelled pads and replay count is visible',async({page})=>{
+ await page.goto('/?screen=mini-preview');await page.getByRole('button',{name:/بدء المعاينة/}).click();
+ await page.getByRole('button',{name:'احفظ النمط',exact:true}).click();
+ await page.getByRole('checkbox',{name:'تمييز الألوان بالرموز'}).check();await page.getByRole('button',{name:'بدء اللعبة'}).click();
+ await expect(page.locator('.mini-pad-symbol')).toHaveCount(4);
+ await expect(page.getByText('إعادة العرض لهذا الدور: 0')).toBeVisible();
+ await expect(page.getByRole('button',{name:'إعادة عرض النمط'})).toBeDisabled();
+});
 test('six-game preview runs with zero prizes and never requests a paid start',async({page})=>{
  await page.setViewportSize({width:390,height:844});
  const requests:string[]=[];
@@ -110,16 +199,11 @@ test('Mini Games product can be discovered before Discord login',async({page})=>
  await expect(page.getByTestId('product-card-mini-buy')).toHaveCount(1);
 });
 
-test('all six cards offer independent info dialogs and default-collapsed setup options',async({page})=>{
+test('six cards open the start modal without separate info buttons or unapproved explanations',async({page})=>{
  await page.goto('/?screen=mini-preview');await page.getByRole('button',{name:/بدء المعاينة/}).click();
  await expect(page.locator('.mini-hub-card')).toHaveCount(6);
- await expect(page.locator('.mini-hub-info')).toHaveCount(6);
- await page.getByRole('button',{name:'شرح القنبلة'}).click();
- const help=page.getByRole('dialog',{name:'شرح القنبلة'});
- await expect(help).toBeVisible();
- await expect(help).toContainText('سيُضاف شرح اللعبة هنا لاحقًا.');
- await expect(page.locator('.mini-bomb-cell')).toHaveCount(0);
- await help.getByRole('button',{name:'إغلاق الشرح'}).click();
+ await expect(page.locator('.mini-hub-info')).toHaveCount(0);
+ await expect(page.getByText('سيُضاف شرح اللعبة هنا لاحقًا.')).toHaveCount(0);
  await page.getByRole('button',{name:'ذاكرة الإيموجي',exact:true}).click();
  const setup=page.getByRole('dialog',{name:'ذاكرة الإيموجي'});
  await expect(setup.getByRole('button',{name:'بدء اللعبة'})).toBeVisible();
