@@ -1,6 +1,6 @@
 import {useEffect,useRef,useState} from 'react';
 import type {FormEvent} from 'react';
-import {ArrowLeft,Bomb,BookOpen,ChevronDown,Dices,Grid3X3,Info,RotateCcw,Settings2,Sparkles,Trophy,X} from 'lucide-react';
+import {ArrowLeft,Bomb,BookOpen,ChevronDown,Dices,Grid3X3,RotateCcw,Settings2,Sparkles,Trophy,X} from 'lucide-react';
 import type {LucideIcon} from 'lucide-react';
 import {Plus} from 'lucide-react';
 import {ButtonUtility} from '../ButtonUtility';
@@ -27,7 +27,9 @@ const resultPlayer=(player:1|2)=>player===1?'اللاعب الأول':'اللا�
 
 export function MiniGames({initial,onChange,onExit,sessionName='ميني قيمز'}:Props){
  const [state,setState]=useState(initial),latest=useRef(initial);
- const [selected,setSelected]=useState<MiniGameKind|null>(null),[seconds,setSeconds]=useState(60),[help,setHelp]=useState<MiniGameKind|null>(null);
+ const [selected,setSelected]=useState<MiniGameKind|null>(null),[seconds,setSeconds]=useState(60);
+ const [confirmRestart,setConfirmRestart]=useState(false),[patternSymbols,setPatternSymbols]=useState(false);
+ const [wordChanges,setWordChanges]=useState(0);
  const [clock,setClock]=useState(Date.now()),[confirmExit,setConfirmExit]=useState(false),[confirmFinish,setConfirmFinish]=useState(false),[winnerForm,setWinnerForm]=useState(false),[name,setName]=useState(''),[notice,setNotice]=useState('');
  const [pickedWinner,setPickedWinner]=useState<string|null>(null),[reveal,setReveal]=useState<{name:string;winnerId:string|null}|null>(null);
  const [pendingPrize,setPendingPrize]=useState<{prizeId:string;winnerId:string|null}|null>(null);
@@ -35,14 +37,15 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
  const [managerWinnerId,setManagerWinnerId]=useState(''),[managerName,setManagerName]=useState(''),[managerNotice,setManagerNotice]=useState('');
  const managerDialog=useRef<HTMLDialogElement>(null),managerTrigger=useRef<HTMLElement|null>(null);
  const gameTrigger=useRef<HTMLButtonElement|null>(null);
- const dialog=useRef<HTMLDialogElement>(null),helpDialog=useRef<HTMLDialogElement>(null),prizeRevealDialog=useRef<HTMLDialogElement>(null),prizeConfirmDialog=useRef<HTMLDialogElement>(null),helpTrigger=useRef<HTMLButtonElement|null>(null);
+ const dialog=useRef<HTMLDialogElement>(null),prizeRevealDialog=useRef<HTMLDialogElement>(null),prizeConfirmDialog=useRef<HTMLDialogElement>(null);
+ const cancelGame=useRef<()=>void>(()=>{});
  const prizeConfirmTrigger=useRef<HTMLElement|null>(null);
  const send=(action:MiniAction)=>{
   const at=Date.now();
   const next=miniReducer(latest.current,action,at);
   if(next!==latest.current){
    latest.current=next;setState(next);onChange?.(next);
-   if(action.type==='change-word')setClock(at); // Restart the displayed timer immediately.
+   if(action.type==='change-word'){setClock(at);setWordChanges(count=>count+1);}
   }
  };
  useEffect(()=>{
@@ -68,11 +71,6 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
   return()=>{if(node.open)node.close();if(managerOpen&&managerTrigger.current?.isConnected)managerTrigger.current.focus({preventScroll:true});};
  },[managerOpen]);
  useEffect(()=>{
-  const node=helpDialog.current;if(!node)return;
-  if(help){if(!node.open)node.showModal();}else if(node.open)node.close();
-  return()=>{if(node.open)node.close();};
- },[help]);
- useEffect(()=>{
   const node=prizeRevealDialog.current;if(!node)return;
   if(reveal){if(!node.open)node.showModal();}else if(node.open)node.close();
   return()=>{if(node.open)node.close();};
@@ -89,19 +87,35 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
   }
   return()=>{if(node.open)node.close();};
  },[pendingPrize]);
- const closeHelp=()=>{setHelp(null);helpTrigger.current?.focus({preventScroll:true});};
  const requestClose=()=>{
+  if(confirmRestart){setConfirmRestart(false);return;}
+  if(confirmExit){setConfirmExit(false);return;}
   if(winnerForm){setWinnerForm(false);return;}
   if(!selected&&!state.active)return;
   if(state.active&&!gameFinished(state.active,clock)){setConfirmExit(true);return;}
   if(state.active?.kind==='bomb'&&state.active.finished){setConfirmExit(true);return;}
   confirmClose();
  };
- const confirmClose=()=>{send({type:'close'});setSelected(null);setConfirmExit(false);setWinnerForm(false);setName('');};
- const open=(kind:MiniGameKind,trigger:HTMLButtonElement)=>{gameTrigger.current=trigger;setSeconds(kind==='form-word'?60:30);setConfirmExit(false);setNotice('');setSelected(kind);};
- const start=()=>{if(!selected)return;send({type:'open',game:selected,seconds});setSelected(null);setClock(Date.now());};
+ const confirmClose=()=>{send({type:'close'});setSelected(null);setConfirmExit(false);setConfirmRestart(false);setWinnerForm(false);setName('');};
+ // Native cancel listeners also cover dialogs opened immediately from restored state.
+ // Keep the callback current without rebinding it on every 120ms clock tick.
+ cancelGame.current=requestClose;
+ useEffect(()=>{
+  const node=dialog.current;if(!node)return;
+  const cancel=(event:Event)=>{event.preventDefault();cancelGame.current();};
+  node.addEventListener('cancel',cancel);
+  return()=>node.removeEventListener('cancel',cancel);
+ },[]);
+ const open=(kind:MiniGameKind,trigger:HTMLButtonElement)=>{gameTrigger.current=trigger;setSeconds(kind==='form-word'?60:30);setConfirmExit(false);setConfirmRestart(false);setNotice('');setSelected(kind);};
+ const start=()=>{if(!selected)return;send({type:'open',game:selected,seconds});setSelected(null);setWordChanges(0);setClock(Date.now());};
  const capacity=state.prizes.length,filled=state.winners.length,full=filled>=capacity;
  const canRecord=recordableWinner(state,clock);
+ const emojiDraw=state.active?.kind==='emoji'&&state.active.finished&&state.active.winner===null;
+ const restart=()=>{
+  const active=latest.current.active;if(!active)return;
+  send({type:'open',game:active.kind,...('seconds' in active?{seconds:active.seconds}: {})});
+  setConfirmRestart(false);setConfirmExit(false);setClock(Date.now());
+ };
  // First show the whole flip and an additional readable hold before the result overlay.
  const flipReady=state.active?.kind==='bomb'||state.active?.kind==='emoji'
   ?clock-(state.active.completedAt??0)>=MINI_FLIP_RESULT_DELAY_MS:true;
@@ -118,7 +132,7 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
  };
  const duplicate=name.trim()&&state.winners.some(w=>w.name.trim()===name.trim());
  const phase=state.phase;
- const copyResults=async()=>{try{await navigator.clipboard.writeText(formatEventResults(state,'ar')||'لا يوجد فائزون بعد');setNotice('نُسخت النتائج');}catch{setNotice('تعذر النسخ؛ يمكنك تحديد النتائج أدناه');}};
+ const copyResults=async()=>{try{await navigator.clipboard.writeText(formatEventResults(state,'ar',true)||'لا يوجد فائزون بعد');setNotice('نُسخت النتائج');}catch{setNotice('تعذر النسخ؛ يمكنك تحديد النتائج أدناه');}};
  const winner=state.winners.find(w=>w.id===pickedWinner);
  const canAward=winner&&!state.prizes.some(p=>p.winnerId===winner.id);
  const awardedWinners=new Set(state.prizes.map(prize=>prize.winnerId));
@@ -202,7 +216,6 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
    {capacity>0&&full&&<p className="mini-notice" role="status">تم تسجيل جميع الفائزين — تستطيع مواصلة اللعب دون تسجيل فائزين جدد.</p>}
    <div className="mini-hub-grid">{GAME_IDS.map(id=>{const Icon=icons[id];return <div key={id} className="mini-hub-card">
     <button type="button" className="mini-hub-main" onClick={event=>open(id,event.currentTarget)}><span className="mini-hub-icon"><Icon size={35} strokeWidth={1.75}/></span><strong>{GAME_LABELS[id]}</strong></button>
-    <button type="button" className="mini-hub-info" aria-label={'شرح '+GAME_LABELS[id]} onClick={event=>{helpTrigger.current=event.currentTarget;setHelp(id);}}><Info size={19}/></button>
    </div>;})}</div>
   </section>}
   {phase==='prizes'&&<><EventPrizeStage winners={state.winners} prizes={state.prizes} selectedWinnerId={pickedWinner??''} onSelectWinner={setPickedWinner}
@@ -211,11 +224,13 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
    onBack={()=>send({type:'phase',phase:'live'})} backDisabled={prizesStarted} onFinish={()=>setConfirmFinish(true)}/>
    {notice&&<p className="mini-notice" role="status">{notice}</p>}</>}
   {phase==='closing'&&<EventClosingStage
-   summary={formatEventResults(state,'ar')}
+   summary={formatEventResults(state,'ar',true)}
    onCopy={()=>{void copyResults();}}
    notice={notice}
    onExit={()=>onExit?.()}/>}
-  <EventFinishDialog open={confirmFinish} onCancel={()=>setConfirmFinish(false)} onConfirm={()=>{send({type:'phase',phase:'closing'});setConfirmFinish(false);}}/>
+  <EventFinishDialog open={confirmFinish} onCancel={()=>setConfirmFinish(false)} onConfirm={()=>{send({type:'phase',phase:'closing'});setConfirmFinish(false);}}>
+   {(hasWaitingWinner||state.prizes.some(prize=>!prize.revealed))&&<p className="mini-notice">فائزون دون جائزة: {num(state.winners.filter(w=>!awardedWinners.has(w.id)).length)} · جوائز لم تُفتح: {num(state.prizes.filter(prize=>!prize.revealed).length)}</p>}
+  </EventFinishDialog>
   <dialog ref={prizeConfirmDialog} className="mg-dialog mg-award-confirm" aria-label="تأكيد فتح الجائزة" onCancel={e=>{e.preventDefault();setPendingPrize(null);}}>
    <h2>تأكيد فتح الجائزة</h2>
    <div className="mg-confirm-gift"><WinnerIcon kind="gift"/></div>
@@ -249,10 +264,11 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
     onDelete={winner=>{setManagerMode('delete');setManagerWinnerId(winner.id);setManagerNotice('');}}/>}
    {managerNotice&&<p className="mg-help" role="status">{managerNotice}</p>}
   </dialog>
-  <dialog ref={dialog} className="mini-dialog" aria-label={winnerForm&&!state.active?'تسجيل فائز':selected?GAME_LABELS[selected]:state.active?GAME_LABELS[state.active.kind]:'إعداد اللعبة'} onCancel={e=>{e.preventDefault();requestClose();}}>
+  <dialog ref={dialog} className="mini-dialog" aria-label={winnerForm&&!state.active?'تسجيل فائز':selected?GAME_LABELS[selected]:state.active?GAME_LABELS[state.active.kind]:'إعداد اللعبة'}>
    <div className="mini-dialog-head"><h2>{selected?GAME_LABELS[selected]:state.active?GAME_LABELS[state.active.kind]:'اللعبة'}</h2><button type="button" className="mini-icon-button" aria-label="إغلاق اللعبة" onClick={requestClose}><X size={21}/></button></div>
-   {confirmExit?<div className="mini-confirm"><h3>لم يتم تحديد فائز، هل أنت متأكد؟</h3><p>يمكنك العودة للعبة أو إنهاؤها دون تسجيل فائز.</p><div className="mini-action-row"><button className="mini-cta mini-secondary" onClick={()=>setConfirmExit(false)}>العودة</button><button className="mini-cta mini-primary" onClick={confirmClose}>إنهاء بدون فائز</button></div></div>:selected?<div className="mini-standby">
+   {confirmRestart?<div className="mini-confirm"><h3>إعادة الجولة؟</h3><p>سيُلغى تقدم هذه الجولة وتبدأ جولة جديدة. الفائزون المسجلون والجوائز محفوظون.</p><div className="mini-action-row"><button className="mini-cta mini-secondary" autoFocus onClick={()=>setConfirmRestart(false)}>إلغاء</button><button className="mini-cta mini-primary" onClick={restart}>إعادة الجولة</button></div></div>:confirmExit?<div className="mini-confirm"><h3>لم يتم تحديد فائز، هل أنت متأكد؟</h3><p>يمكنك العودة للعبة أو إنهاؤها دون تسجيل فائز.</p><div className="mini-action-row"><button className="mini-cta mini-secondary" onClick={()=>setConfirmExit(false)}>العودة</button><button className="mini-cta mini-primary" onClick={confirmClose}>إنهاء بدون فائز</button></div></div>:selected?<div className="mini-standby">
     <button type="button" className="mini-cta mini-primary mini-start" onClick={start}>بدء اللعبة <ArrowLeft size={20}/></button>
+    {selected==='pattern'&&<label className="mini-symbol-option"><input type="checkbox" checked={patternSymbols} onChange={event=>setPatternSymbols(event.target.checked)}/> تمييز الألوان بالرموز</label>}
     {(selected==='form-word'||selected==='scramble')&&<details className="mini-standby-options">
      <summary><span><Settings2 size={17}/> خيارات اللعبة</span><ChevronDown size={18} className="mini-options-chevron"/></summary>
      <div className="mini-options-content">
@@ -262,7 +278,8 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
     </details>}
    </div>:winnerForm&&!state.active?<form className="mini-winner-form" onSubmit={e=>{e.preventDefault();saveWinner();}}><label htmlFor="mini-prize-winner-name">اسم الفائز</label><input id="mini-prize-winner-name" autoFocus value={name} maxLength={80} required onChange={e=>setName(e.target.value)} placeholder="أدخل اسم الفائز"/>{duplicate&&<p className="mini-notice">الاسم مسجل سابقًا، ويمكن تسجيله مجددًا كفائز مستقل.</p>}<div className="mini-action-row"><button className="mini-cta mini-secondary" type="button" onClick={()=>setWinnerForm(false)}>إلغاء</button><button type="submit" className="mini-cta mini-primary" disabled={!name.trim()||full}>حفظ الفائز</button></div></form>:state.active?<div className="mini-playing">
     {winnerForm?<form className="mini-winner-form" onSubmit={e=>{e.preventDefault();saveWinner();}}><label htmlFor="mini-winner-name">اسم الفائز</label><input id="mini-winner-name" autoFocus value={name} maxLength={80} required onChange={e=>setName(e.target.value)} placeholder="أدخل اسم الفائز"/>{duplicate&&<p className="mini-notice">الاسم مسجل سابقًا، ويمكن تسجيله مجددًا كفائز مستقل.</p>}<div className="mini-action-row"><button className="mini-cta mini-secondary" type="button" onClick={()=>setWinnerForm(false)}>إلغاء</button><button type="submit" className="mini-cta mini-primary" disabled={!name.trim()}>حفظ الفائز</button></div></form>:<>
-     <MiniGameStage game={state.active} now={clock} send={send}/>
+     <MiniGameStage game={state.active} now={clock} send={send} patternSymbols={patternSymbols} wordChanges={wordChanges}/>
+     {['bomb','emoji','pattern'].includes(state.active.kind)&&!gameFinished(state.active,clock)&&<button type="button" className="mini-icon-text mini-restart" onClick={()=>setConfirmRestart(true)}><RotateCcw size={18}/> إعادة الجولة</button>}
      {state.active.kind==='scramble'&&state.active.revealed&&<div className="mini-word-result-actions" role="region" aria-label="نتيجة الكلمة المبعثرة">
       {winnerMessage?<p className="mini-result-note">{winnerMessage}</p>:<button className="mini-cta mini-primary" disabled={!canRecord} onClick={()=>setWinnerForm(true)}><Trophy size={17}/> تسجيل فائز</button>}
       <button className="mini-cta mini-secondary" onClick={closeGame}>إنهاء اللعبة دون فائز</button>
@@ -274,13 +291,9 @@ export function MiniGames({initial,onChange,onExit,sessionName='ميني قيم�
      </div>}
     </>}
    </div>:null}
-   {state.active&&state.active.kind!=='wheel'&&state.active.kind!=='scramble'&&gameFinished(state.active,clock)&&flipReady&&!winnerForm&&<div className="mini-result-layer" role="region" aria-label="نتيجة اللعبة"><div className="mini-result-card"><p className="mini-result-text" role="status">{resultText}</p>{winnerMessage?<p className="mini-result-note">{winnerMessage}</p>:state.active.kind==='pattern'&&state.active.draw?null:<button className="mini-cta mini-primary" disabled={!canRecord} onClick={()=>setWinnerForm(true)}><Trophy size={17}/> تسجيل فائز</button>}<button className="mini-cta mini-secondary" onClick={closeGame}>إنهاء اللعبة دون فائز</button></div></div>}
+   {state.active&&state.active.kind!=='wheel'&&state.active.kind!=='scramble'&&gameFinished(state.active,clock)&&flipReady&&!winnerForm&&!confirmExit&&!confirmRestart&&<div className="mini-result-layer" role="region" aria-label="نتيجة اللعبة"><div className="mini-result-card"><p className="mini-result-text" role="status">{resultText}</p>{emojiDraw?<button className="mini-cta mini-primary" onClick={restart}>جولة فاصلة</button>:winnerMessage?<p className="mini-result-note">{winnerMessage}</p>:state.active.kind==='pattern'&&state.active.draw?null:<button className="mini-cta mini-primary" disabled={!canRecord} onClick={()=>setWinnerForm(true)}><Trophy size={17}/> تسجيل فائز</button>}<button className="mini-cta mini-secondary" onClick={closeGame}>إنهاء اللعبة دون فائز</button></div></div>}
   </dialog>
   <dialog ref={prizeRevealDialog} className="mini-dialog mg-award-result" aria-label="نتيجة الجائزة" onCancel={event=>{event.preventDefault();setReveal(null);}}>{reveal&&<PrizeReveal key={reveal.name+reveal.winnerId} name={reveal.name} winner={state.winners.find(w=>w.id===reveal.winnerId)||null} locale="ar" celebration={true} onClose={()=>setReveal(null)}/>}</dialog>
-  <dialog ref={helpDialog} className="mini-dialog mini-help-dialog" aria-label={help?'شرح '+GAME_LABELS[help]:'شرح اللعبة'} onCancel={e=>{e.preventDefault();closeHelp();}}>
-   <div className="mini-dialog-head"><h2>{help?GAME_LABELS[help]:'اللعبة'}</h2><button type="button" className="mini-icon-button" aria-label="إغلاق الشرح" onClick={closeHelp}><X size={21}/></button></div>
-   <div className="mini-help-empty"><Info size={32}/><p>سيُضاف شرح اللعبة هنا لاحقًا.</p></div>
-  </dialog>
  </main>;
 }
 export function MiniGamesPreview({onExit}:{onExit:()=>void}){

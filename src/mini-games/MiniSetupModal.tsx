@@ -49,9 +49,10 @@ export function MiniSetupModal({ownerId,onClose,onPlay}:{ownerId:string;onClose:
       {uncertain&&<BudNotice tone="warning" persistent resolveOnUnmount>هناك طلب بدء لم نتأكد من نتيجته. أعد المحاولة بنفس الطلب؛ لن يُخصم مفتاح ثانٍ.</BudNotice>}
       <fieldset disabled={busy||uncertain}>
        <EventSetupStage eventName="ميني قيمز" title={title} titleId="mini-host-title" onTitleChange={setTitle} prizeId="mini-host-prizes" prizeHeadingId="mini-setup-prizes-title" prizeText={prizeText} onPrizeChange={setPrizeText} parsed={parsed}/>
+       <p className="host-setup-summary" role="status">{parsed.count>0?`${parsed.count} جوائز · حتى ${parsed.count} سجلات فائزين`:'دون جوائز · تسجيل الفائزين غير متاح'} · بدء الفعالية يستهلك مفتاحًا واحدًا.</p>
       </fieldset>
       <div className="host-start-actions">
-       <button type="submit" className="host-primary" disabled={busy||!parsed.valid}>{busy?'جارٍ بدء الفعالية…':uncertain?'إعادة المحاولة':'بدء الفعالية'}</button>
+       <button type="submit" className="host-primary" disabled={busy||!parsed.valid||!title.trim()||title.trim().length>100}>{busy?'جارٍ بدء الفعالية…':uncertain?'إعادة المحاولة':'بدء الفعالية'}</button>
       </div>
      </form>
     </section></div>

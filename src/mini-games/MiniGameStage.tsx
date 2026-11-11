@@ -6,12 +6,12 @@ import type {PatternColor} from './catalog.ts';
 import {CATEGORIES,LETTERS,PATTERN_COLORS} from './catalog.ts';
 import {MiniFlipCard} from './MiniFlipCard';
 
-type Props={game:ActiveMiniGame;now:number;send:(action:MiniAction)=>void};
+type Props={game:ActiveMiniGame;now:number;send:(action:MiniAction)=>void;patternSymbols?:boolean;wordChanges?:number};
 const num=(v:number)=>new Intl.NumberFormat('ar-u-nu-latn').format(v);
 function playerLabel(player:1|2){return 'اللاعب '+num(player);}
 const colorClass=(value:string)=>'mini-color-'+({أحمر:'red',أزرق:'blue',أخضر:'green',أصفر:'yellow'} as Record<string,string>)[value];
 
-export function MiniGameStage({game,now,send}:Props){
+export function MiniGameStage({game,now,send,patternSymbols=false,wordChanges=0}:Props){
  // Briefly light the whole pad on a host answer, before evaluating it or changing turns.
  // This also keeps the final (possibly incorrect) color visible before the result screen.
  const [hostLit,setHostLit]=useState<PatternColor|null>(null);
@@ -56,8 +56,9 @@ export function MiniGameStage({game,now,send}:Props){
   </>}
   {(game.kind==='form-word'||game.kind==='scramble')&&<>
    <div className="mini-timer" role="timer" aria-label="الوقت المتبقي"><Timer size={19}/><strong>{num(remainingSeconds(game,now))}</strong><span>ثانية</span></div>
+   {game.kind==='scramble'&&wordChanges>0&&!game.revealed&&<p key={wordChanges} className="mini-round-status" role="status">كلمة جديدة · تحدٍ جديد</p>}
    <div className="mini-letters" dir="rtl">{game.kind==='scramble'&&game.revealed?<strong className="mini-scramble-answer" dir="rtl">{game.answer}</strong>:game.letters.map((letter,index)=><span className="mini-letter" key={index}>{letter}</span>)}</div>
-   <p className="mini-hint">{game.kind==='form-word'?'خمسة أحرف عشوائية — كوّن منها كلمة صحيحة.':'ما الكلمة الصحيحة بعد ترتيب هذه الأحرف؟'}</p>
+   <p className="mini-hint" role="status">{game.kind==='form-word'?'خمسة أحرف عشوائية — كوّن منها كلمة صحيحة.':game.revealed?'الكلمة الصحيحة':finished?'انتهى الوقت':'ما الكلمة الصحيحة بعد ترتيب هذه الأحرف؟'}</p>
    {game.kind==='scramble'?<div className="mini-word-actions">
     <button type="button" className="mini-cta mini-primary" disabled={game.revealed} onClick={()=>send({type:'reveal'})}>كشف الكلمة الصحيحة</button>
     <button type="button" className="mini-cta mini-secondary" onClick={()=>send({type:'change-word'})}>تغيير الكلمة</button>
@@ -74,13 +75,15 @@ export function MiniGameStage({game,now,send}:Props){
     return <>
      <div className="mini-pattern-turn" role="status">
       <span>الدور الآن</span><strong>{playerLabel(game.turn)}</strong>
-      <small>{displaying?'شاهد الأضواء':num(game.progress)+' / '+num(game.level)}</small>
+      <small>{displaying?'شاهد الأضواء':'دورك الآن · '+num(game.progress)+' / '+num(game.level)}</small>
+      {game.level>5&&<span>التحدي التالي: {num(game.level)} خطوات</span>}
      </div>
      <div className="mini-pattern-board">
-      <div className="mini-pattern-pads" aria-label="لوحة ألوان احفظ النمط">{PATTERN_COLORS.map(value=><button type="button" key={value} aria-label={'اللون '+value} className={'mini-pattern-pad '+colorClass(value)+(active===value||hostLit===value?' is-lit':'')} disabled={displaying||hostLit!==null} aria-disabled={displaying||hostLit!==null} onClick={()=>pressPatternColor(value)}/>)}</div>
+      <div className="mini-pattern-pads" aria-label="لوحة ألوان احفظ النمط">{PATTERN_COLORS.map((value,index)=><button type="button" key={value} aria-label={'اللون '+value} className={'mini-pattern-pad '+colorClass(value)+(active===value||hostLit===value?' is-lit':'')} disabled={displaying||hostLit!==null} aria-disabled={displaying||hostLit!==null} onClick={()=>pressPatternColor(value)}>{patternSymbols&&<span className="mini-pad-symbol" aria-hidden="true">{['●','▲','■','◆'][index]}</span>}</button>)}</div>
       {announcing&&<div className="mini-pattern-announcement" role="status"><strong>{game.turn===1?'دور اللاعب الأول':'دور اللاعب الثاني'}</strong><span>استعد لحفظ التسلسل</span></div>}
      </div>
-     <button type="button" className="mini-icon-text" disabled={hostLit!==null} onClick={()=>send({type:'replay'})}><RotateCcw size={18}/> إعادة عرض النمط</button>
+     <button type="button" className="mini-icon-text" disabled={hostLit!==null||displaying} onClick={()=>send({type:'replay'})}><RotateCcw size={18}/> إعادة عرض النمط</button>
+     <p className="mini-round-status" role="status">إعادة العرض لهذا الدور: {num(game.replays)}</p>
     </>;
    })()}
   {game.kind==='emoji'&&<>
@@ -105,6 +108,7 @@ export function MiniGameStage({game,now,send}:Props){
      <div className="mini-wheel-reel" aria-label="حرف">{idle?<span className="mini-wheel-idle">الحرف</span>:elapsed<WHEEL_LETTER_STOP_MS?<div key={'letter'+game.draws} className="mini-wheel-spinning mini-wheel-long">{[...LETTERS,...LETTERS,...LETTERS].map((c,i)=><span key={i}>{c}</span>)}</div>:<strong>{game.letter}</strong>}</div>
     </div>
     {finished&&<p className="mini-wheel-readout" role="status"><span>التصنيف: <strong>{game.category}</strong></span><span>الحرف: <strong>{game.letter}</strong></span></p>}
+    {!idle&&<p className="mini-round-status" role="status">السحب {num(game.draws)}</p>}
     <span className="bud-sr-only" role="status">{spinning?'جارٍ الدوران…':''}</span>
     <button type="button" className={'mini-wheel-lever'+(spinning?' is-spinning':'')} disabled={spinning} aria-label={idle?'سحب المقبض':'إعادة السحب'} onClick={()=>send({type:'spin'})}>
      <span className="mini-wheel-lever-art" aria-hidden="true"><span className="mini-wheel-lever-base"/><span className="mini-wheel-lever-handle"/></span>

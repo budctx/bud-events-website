@@ -239,4 +239,10 @@ test('eight emoji pairs can end 4–4 without awarding a fabricated winner',()=>
  assert.deepEqual(s.active.scores,[4,4]);
  assert.equal(s.active.winner,null);
  assert.equal(s.active.completedAt,2010);
+ assert.equal(recordableWinner(s,3000),false);
+ assert.strictEqual(miniReducer(s,{type:'winner',name:'فائز غير محسوم'},3000,first),s);
+ const replay=miniReducer(s,{type:'open',game:'emoji'},3100,first);
+ assert.equal(replay.winners.length,0);
+ assert.deepEqual(replay.prizes,s.prizes);
+ assert.equal(replay.active?.kind==='emoji'&&replay.active.finished,false);
 });

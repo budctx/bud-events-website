@@ -30,7 +30,7 @@ export function EventPrizeStage({winners,prizes,selectedWinnerId,onSelectWinner,
      {prize.revealed?<><span className="mg-prize-recipient"><strong dir="auto">{recipient?.name??'دون اسم'}</strong>{recipient&&<WinnerNumber id={recipient.id}/>}</span><span className="mg-prize-ribbon" dir="auto">{prize.name}</span><small>تم فتح الجائزة</small></>:<><WinnerIcon kind="gift"/><bdi className="mg-prize-index">{index+1}</bdi></>}
     </button>;
    })}</div>}</div>
-   <div className="mg-draw-footer"><div className="mg-actions"><button className="mg-button" disabled={readOnly||backDisabled} onClick={onBack}>عودة</button><button className="mg-button mg-primary" disabled={readOnly} onClick={onFinish}>انهاء</button></div></div>
+   <div className="mg-draw-footer">{backDisabled&&!readOnly&&<p className="mg-help">بدأ فتح الجوائز؛ لا يمكن العودة إلى الألعاب.</p>}<div className="mg-actions"><button className="mg-button" disabled={readOnly||backDisabled} onClick={onBack}>عودة</button><button className="mg-button mg-primary" disabled={readOnly} onClick={onFinish}>انهاء</button></div></div>
   </div>
  </section>;
 }
