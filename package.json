@@ -40,7 +40,7 @@
     "react-dom": "19.3.0"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "0.5.11",
+    "@electric-sql/pglite": "0.5.13",
     "@playwright/test": "1.64.0",
     "@types/node": "24.19.2",
     "@types/react": "19.3.0",
